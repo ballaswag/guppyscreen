@@ -45,3 +45,7 @@ Allows executing MACROS. It auto filters available MACROS as the user types. Als
 
 ### WIFI
 ![WIFI](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/wifi.png)
+
+
+## Credits
+Icons are from [z-bolt](https://github.com/Z-Bolt/OctoScreen)
