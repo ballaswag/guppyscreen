@@ -2,50 +2,40 @@
 
 Guppy Screen is a touch UI for Klipper using APIs exposed by Moonraker. It builds on LVGL as a standalone executable, has no dependency on any display servers such as X/Wayland.
 
+## Installation
+Run the following interactive script via SSH on your K1/Max to install Guppy Screen.
+
+## Features
+:white_check_mark: Console/Macro Shell  
+:white_check_mark: Bedmesh  
+:white_check_mark: Input Shaper (PSD graphs)  
+:white_check_mark: Print Status  
+:white_check_mark: Spoolman Integration  
+:white_check_mark: Extrude/Retract  
+:white_check_mark: Temperature Control  
+:white_check_mark: Fans/LED/Move Control  
+:white_check_mark: Fine Tune (speed, flow, z-offset) 
+:white_check_mark: File Browser 
+
 ## Roadmap
-UI is still in early development. It currently only has been tested with Creality K1/MAX and its touch screen. Code should be fully cross-platform in terms of printer support as well as SoC support (ARM/MIPS/x86/etc).
+:bangbang: Exclude Object  
+:bangbang: Cross platform releases (ARM)  
+:bangbang: Belt/Vibration graphs  
+:bangbang: Firmware Retraction  
+:bangbang: Other Fine Tune params (Pressure Advance, Smooth Time)  
+:bangbang: Limits (Velocity, Acel, Square Corner Velocity, etc.)  
+
+Open for feature requests.
+
+## Screenshot
+### Material Theme
+![Material Theme Guppy Screen](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/material/material_screenshot.png)
+
+Earlier development screenshots can be found [here](https://github.com/ballaswag/guppyscreen/blob/main/screenshots)
 
 ## Video Demo
 https://www.reddit.com/r/crealityk1/comments/17jp59g/new_touch_ui_for_the_k1/
 
-## Screenshot
-### Home
-![Home](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/home.png)
-
-### Console
-![Console](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/console.png)
-Allows executing MACROS. It auto filters available MACROS as the user types. Also stores previously executed commands for ease of use.
-
-### Fine Tune
-![Fine Tune](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/finetune.png)
-
-### File Browser
-![File Browser](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/files.png)
-
-### Print Status
-![Print Status](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/print_status.png)
-
-### Extrude/Retract
-![Extrude Retract](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/extrude_retract.png)
-
-### Temperature Control
-![Temperature Control](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/temp.png)
-
-### Move
-![Move](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/move.png)
-
-### Fans
-![Fans](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/fan.png)
-
-### LED
-![LED](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/led.png)
-
-### Settings
-![Settings](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/settings.png)
-
-### WIFI
-![WIFI](https://github.com/ballaswag/guppyscreen/blob/main/screenshots/wifi.png)
-
-
 ## Credits
-Icons are from [z-bolt](https://github.com/Z-Bolt/OctoScreen)
+[Material Design Icons](https://pictogrammers.com/library/mdi/)  
+[Z-Bolt Icons](https://github.com/Z-Bolt/OctoScreen)
