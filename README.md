@@ -15,6 +15,12 @@ sh -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/bal
 sh -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer.sh)" -s zbolt
 ```
 
+## Uninstall
+ssh into your K1/Max and run the follwow command:
+```
+/usr/data/guppyscreen/reinstall-creality.sh
+```
+
 ## Features
 :white_check_mark: Console/Macro Shell  
 :white_check_mark: Bedmesh  
