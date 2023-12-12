@@ -36,11 +36,15 @@ if [ "$MRK_KPY_OK" != "true" ]; then
     fi
 fi
 
+## bootstrap for ssl support
+wget -q --no-check-certificate https://raw.githubusercontent.com/ballaswag/k1-discovery/main/bin/curl -O /tmp/curl
+chmod +x /tmp/curl
+
 # download/extract latest guppyscreen
 if [ x"$1" == x"zbolt" ]; then
-    wget -q --no-check-certificate https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen-zbolt.tar.gz -O /tmp/guppyscreen.tar.gz
+    /tmp/curl -s -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen-zbolt.tar.gz -o /tmp/guppyscreen.tar.gz
 else
-    wget -q --no-check-certificate https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen.tar.gz -O /tmp/guppyscreen.tar.gz
+    /tmp/curl -s -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen.tar.gz -o /tmp/guppyscreen.tar.gz
 fi
 tar xf /tmp/guppyscreen.tar.gz -C /usr/data/
 
