@@ -37,7 +37,7 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
   , ygraph_cont(lv_img_create(cont))
   , ygraph(lv_img_create(ygraph_cont))
   , youtput(lv_label_create(cont))
-  , yspinner(lv_spinner_create(cont, 1000, 60))    
+  , yspinner(lv_spinner_create(cont, 1000, 60))
   , xcontrol(lv_obj_create(cont))
   , xslider(lv_slider_create(xcontrol))
   , xlabel(lv_label_create(xcontrol))
@@ -306,7 +306,7 @@ void InputShaperPanel::handle_callback(lv_event_t *event) {
 void InputShaperPanel::handle_macro_response(json &j) {
   spdlog::trace("inputshapping macro response: {}", j.dump());
   auto &v = j["/params/0"_json_pointer];
-  if (!j.is_null()) {
+  if (!v.is_null()) {
     std::string resp = v.template get<std::string>();
     std::lock_guard<std::mutex> lock(lv_lock);
     bool graph_requested = lv_obj_has_state(graph_switch, LV_STATE_CHECKED);

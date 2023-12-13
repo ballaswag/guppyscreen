@@ -53,6 +53,23 @@ if [ ! -d "$K1_GUPPY_DIR" ]; then
     exit 1
 fi
 
+#### let's see if guppyscreen starts before doing anything more
+printf "${green} Test starting Guppy Screen ${white}\n"
+killall guppyscreen &> /dev/null
+$K1_GUPPY_DIR/guppyscreen &> /dev/null &
+
+## allow guppy to live a little
+sleep 1
+
+ps auxw | grep [g]uppyscreen | grep -v sh
+
+if [ $? -eq 0 ]; then
+    printf "${green} Guppy Screen started sucessfully, continuing with installation ${white}\n"
+    killall guppyscreen
+else
+    printf "${red} Guppy Screen FAILED to start, aborting ${white}\n"
+    exit 1
+fi
 
 if [ ! -d "$BACKUP_DIR" ]; then
     printf "${green} Backing up original K1 files ${white}\n"
@@ -152,4 +169,19 @@ if [ "$confirm_decreality" = "y" -o "$confirm_decreality" = "Y" ]; then
 fi
 
 printf "${green}Starting GuppyScreen ${white}\n"
-/etc/init.d/S99guppyscreen restart
+/etc/init.d/S99guppyscreen restart &> /dev/null
+
+sleep 1
+
+ps auxw | grep [g]uppyscreen | grep -v sh
+
+if [ $? -eq 0 ]; then
+    printf "${green} Successfully installed Guppy Screen. Enjoy! ${white}\n"
+else
+    printf "${red} Guppy Screen FAILED to install. Rolling back... ${white}\n"
+    cp $BACKUP_DIR/S99start_app /etc/init.d/S99start_app
+    rm /etc/init.d/S99guppyscreen
+
+    /etc/init.d/S99start_app restart &> /dev/null
+    exit 1
+fi

@@ -19,4 +19,4 @@ else
         echo "Okay I wont delete the BackupDir"
 fi
 
-/etc/init.d/S99start_app start
+/etc/init.d/S99start_app start &> /dev/null

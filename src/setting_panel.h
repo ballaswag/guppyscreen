@@ -35,7 +35,8 @@ class SettingPanel {
   ButtonContainer restart_klipper_btn;
   ButtonContainer restart_firmware_btn;
   ButtonContainer sysinfo_btn;
-  ButtonContainer spoolman_btn;  
+  ButtonContainer spoolman_btn;
+  
 };
 
 #endif // __SETTING_PANEL_H__

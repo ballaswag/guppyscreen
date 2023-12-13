@@ -5,15 +5,24 @@ LV_IMG_DECLARE(bedmesh_img);
 LV_IMG_DECLARE(fine_tune_img);
 LV_IMG_DECLARE(inputshaper_img);
 
+#ifndef ZBOLT
+LV_IMG_DECLARE(belts_calibration_img);
+#endif
+
 PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent, FineTunePanel &finetune)
   : cont(lv_obj_create(parent))
   , bedmesh_panel(c, l)
   , finetune_panel(finetune)
   , inputshaper_panel(c, l)
+  , belts_calibration_panel(c, l)
   , bedmesh_btn(cont, &bedmesh_img, "Bed Mesh", &PrinterTunePanel::_handle_callback, this)
   , finetune_btn(cont, &fine_tune_img, "Fine Tune", &PrinterTunePanel::_handle_callback, this)
   , inputshaper_btn(cont, &inputshaper_img, "Input Shaper", &PrinterTunePanel::_handle_callback, this)
-    
+#ifndef ZBOLT
+  , belts_calibration_btn(cont, &belts_calibration_img, "Belts Calibration", &PrinterTunePanel::_handle_callback, this)
+#else
+  , belts_calibration_btn(cont, &inputshaper_img, "Belts Calibration", &PrinterTunePanel::_handle_callback, this)
+#endif
 {
   lv_obj_set_style_radius(cont, 0, 0);
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
@@ -30,7 +39,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   lv_obj_set_grid_cell(bedmesh_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 1);
   lv_obj_set_grid_cell(finetune_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 0, 1);
   lv_obj_set_grid_cell(inputshaper_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
-  // lv_obj_set_grid_cell(restart_firmware_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+  lv_obj_set_grid_cell(belts_calibration_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 0, 1);
 
   // row 2
   // lv_obj_set_grid_cell(bedmesh_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 1, 1);
@@ -67,6 +76,9 @@ void PrinterTunePanel::handle_callback(lv_event_t *event) {
     } else if (btn == inputshaper_btn.get_button()) {
       spdlog::trace("tune inputshaper pressed");
       inputshaper_panel.foreground();
+    } else if (btn == belts_calibration_btn.get_button()) {
+      spdlog::trace("tune belts pressed");
+      belts_calibration_panel.foreground();
     }
   }
 }
