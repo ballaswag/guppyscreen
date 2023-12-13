@@ -53,7 +53,9 @@ Earlier development screenshots can be found [here](https://github.com/ballaswag
 https://www.reddit.com/r/crealityk1/comments/17jp59g/new_touch_ui_for_the_k1/
 
 ## Support Guppy Screen
-You can directly support this project using [GitHub Sponsors](https://github.com/sponsors/ballaswag/) or [Ko-Fi](https://ko-fi.com/ballaswag)
+You can directly support this project by <a href='https://ko-fi.com/ballaswag' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+or
+[![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/ballaswag)
 
 ## Credits
 [Material Design Icons](https://pictogrammers.com/library/mdi/)  

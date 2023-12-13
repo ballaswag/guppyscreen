@@ -1,0 +1,12 @@
+[submodule "lvgl"]
+	path = lvgl
+	url = https://github.com/lvgl/lvgl.git
+[submodule "lv_drivers"]
+	path = lv_drivers
+	url = https://github.com/littlevgl/lv_drivers.git
+[submodule "libhv"]
+	path = libhv
+	url = https://github.com/ithewei/libhv.git
+[submodule "spdlog"]
+	path = spdlog
+	url = https://github.com/gabime/spdlog.git

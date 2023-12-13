@@ -1,0 +1,34 @@
+#!/bin/sh
+
+GUPPYSCREEN_PATH=/usr/data/guppyscreen/guppyscreen
+
+start_server(){
+
+    export HOME=/root
+    sync && echo 3 > /proc/sys/vm/drop_caches
+    [ -x "$GUPPYSCREEN_PATH" ] && $GUPPYSCREEN_PATH &
+}
+
+stop_server(){
+    killall guppyscreen
+}
+
+
+case "$1" in
+    start)
+        start_server
+        ;;
+    stop)
+        stop_server
+        ;;
+    restart|reload)
+        "$0" stop
+        "$0" start
+        ;;
+    *)
+        echo "Usage:"
+        echo "    $0 {start|stop|restart}"
+        exit 1
+esac
+
+exit $?
