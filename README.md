@@ -2,6 +2,20 @@
 
 Guppy Screen is a touch UI for Klipper using APIs exposed by Moonraker. It builds on LVGL as a standalone executable, has no dependency on any display servers such as X/Wayland.
 
+## BEFORE YOU INSTALL
+I'm adding this into the installer for the next release, but for now manually install [gcode_shell_command](https://github.com/dw-0/kiauh/blob/master/docs/gcode_shell_command.md) and add this to your printer.cfg
+
+```
+[gcode_shell_command dropbear_restart]
+command: /etc/init.d/S50dropbear
+timeout: 600.0
+verbose: True
+```
+This allows you to restart SSH as long as Moonraker is running, i.e. via Fluidd/Mainsail Console
+```
+RUN_SHELL_COMMAND cmd=dropbear_restart PARAMS=restart
+```
+
 ## Installation
 Run the following interactive script via SSH on your K1/Max to install Guppy Screen.
 
