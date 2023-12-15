@@ -63,3 +63,4 @@ or
 [Moonraker](https://github.com/Arksine/moonraker)  
 [KlipperScreen](https://github.com/KlipperScreen/KlipperScreen)  
 [Fluidd](https://github.com/fluidd-core/fluidd)  
+[Klippain-shaketune](https://github.com/Frix-x/klippain-shaketune)  
