@@ -20,6 +20,7 @@ import matplotlib.patches
 import locale
 import time
 import glob
+import shaper_calibrate
 from datetime import datetime
 
 matplotlib.use('Agg')
@@ -487,16 +488,7 @@ def parse_log(logname):
                "graph_accelerometer.py script to process it instead." % (logname,))
 
 
-def setup_klipper_import(kdir):
-    global shaper_calibrate
-    kdir = os.path.expanduser(kdir)
-    sys.path.append(os.path.join(kdir, 'klippy'))
-    shaper_calibrate = importlib.import_module('.shaper_calibrate', 'extras')
-
-
 def belts_calibration(lognames, klipperdir="~/klipper", max_freq=200., graph_spectogram=True, width=8.3, height=11.6):
-    setup_klipper_import(klipperdir)
-
     for filename in lognames[:2]:
         # Wait for the file handler to be released by Klipper
         while is_file_open(filename):
