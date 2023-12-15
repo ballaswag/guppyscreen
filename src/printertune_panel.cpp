@@ -21,7 +21,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
 #ifndef ZBOLT
   , belts_calibration_btn(cont, &belts_calibration_img, "Belts/Resonate", &PrinterTunePanel::_handle_callback, this)
 #else
-  , belts_calibration_btn(cont, &inputshaper_img, "Belts Calibration", &PrinterTunePanel::_handle_callback, this)
+  , belts_calibration_btn(cont, &inputshaper_img, "Belts/Resonate", &PrinterTunePanel::_handle_callback, this)
 #endif
 {
   lv_obj_set_style_radius(cont, 0, 0);
