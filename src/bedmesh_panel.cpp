@@ -14,7 +14,6 @@ LV_IMG_DECLARE(sd_img);
 
 
 static lv_color_t color_gradient(double offset);
-static void mesh_draw_cb(lv_event_t * e);
 
 BedMeshPanel::BedMeshPanel(KWebSocketClient &c, std::mutex &l)
   : NotifyConsumer(l)
@@ -50,17 +49,11 @@ BedMeshPanel::BedMeshPanel(KWebSocketClient &c, std::mutex &l)
   lv_obj_clear_flag(top_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_flex_flow(top_cont, LV_FLEX_FLOW_ROW);
 
-  lv_obj_set_style_text_font(mesh_table, &lv_font_montserrat_14, LV_STATE_DEFAULT);
-  lv_obj_set_style_pad_top(mesh_table, 26, LV_PART_ITEMS | LV_STATE_DEFAULT);
-  lv_obj_set_style_pad_bottom(mesh_table, 26, LV_PART_ITEMS | LV_STATE_DEFAULT);
-  // lv_table_set_row_cnt(mesh_table, 0);
-  // lv_table_set_col_cnt(mesh_table, 0);
-
+  lv_obj_set_style_text_font(mesh_table, &lv_font_montserrat_10, LV_STATE_DEFAULT);
   
   lv_obj_set_size(profile_cont, LV_PCT(50), 340);
   lv_obj_set_style_pad_all(profile_cont, 0, 0);
   lv_obj_set_style_border_width(profile_cont, 0, 0);  
-  // lv_obj_set_style_pad_row(cont, 0, 0);
   lv_obj_clear_flag(profile_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_flex_flow(profile_cont, LV_FLEX_FLOW_COLUMN);
 
@@ -69,8 +62,6 @@ BedMeshPanel::BedMeshPanel(KWebSocketClient &c, std::mutex &l)
   lv_table_set_col_width(profile_table, 1, 50);
   lv_table_set_col_width(profile_table, 2, 50);
   lv_obj_set_height(profile_table, 200);
-  // lv_obj_set_style_pad_top(profile_table, 15, LV_PART_ITEMS | LV_STATE_DEFAULT);
-  // lv_obj_set_style_pad_bottom(profile_table, 15, LV_PART_ITEMS | LV_STATE_DEFAULT);
 
   // profile info
   lv_table_set_col_width(profile_info, 0, 240);
@@ -86,7 +77,7 @@ BedMeshPanel::BedMeshPanel(KWebSocketClient &c, std::mutex &l)
   lv_obj_set_flex_flow(controls_cont, LV_FLEX_FLOW_ROW);
   lv_obj_clear_flag(controls_cont, LV_OBJ_FLAG_SCROLLABLE);
  
-  lv_obj_add_event_cb(mesh_table, mesh_draw_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
+  lv_obj_add_event_cb(mesh_table, &BedMeshPanel::_mesh_draw_cb, LV_EVENT_DRAW_PART_BEGIN, this);
   lv_obj_add_event_cb(profile_table, &BedMeshPanel::_handle_profile_action, LV_EVENT_VALUE_CHANGED, this);
 
   // prompt
@@ -185,11 +176,17 @@ void BedMeshPanel::refresh_views(json &bm) {
 	mesh_json = State::get_instance()->get_data("/printer_state/bed_mesh/probed_matrix"_json_pointer);
       }
 
-      auto mesh = mesh_json.template get<std::vector<std::vector<double>>>();
+      mesh = mesh_json.template get<std::vector<std::vector<double>>>();
 
       // calculate cell width
       if (mesh.size() > 0 && mesh[0].size() > 0) {
-	uint32_t col_width = 380 / mesh[0].size();
+	int col_width = std::max(4, (int)(380 / mesh[0].size()));
+	int cel_height = std::max(1, (int)(col_width / 2 - 8));
+
+	lv_obj_set_style_pad_top(mesh_table, cel_height, LV_PART_ITEMS | LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(mesh_table, cel_height, LV_PART_ITEMS | LV_STATE_DEFAULT);
+
+	lv_table_set_col_cnt(mesh_table, mesh[0].size());
 	for (int i = 0; i < mesh[0].size(); i++) {
 	  lv_table_set_col_width(mesh_table, i, col_width);
 	}
@@ -198,10 +195,15 @@ void BedMeshPanel::refresh_views(json &bm) {
       for (int i = mesh.size() - 1; i >= 0; i--) {
 	auto row = mesh[i];
 	for (int j = 0; j < row.size(); j++) {
-	  lv_table_set_cell_value(mesh_table, row_idx, j, fmt::format("{:.2f}", row[j]).c_str());
+	  if (mesh.size() < 6 && row.size() < 6) {
+	    lv_table_set_cell_value(mesh_table, row_idx, j, fmt::format("{:.2f}", row[j]).c_str());
+	  } else {
+	    lv_table_set_cell_value(mesh_table, row_idx, j, "");
+	  }
 	}
 	row_idx++;
       }
+      lv_table_set_row_cnt(mesh_table, row_idx);
     } else {
       // no active profile, hide mesh matrix
       lv_obj_add_flag(mesh_table, LV_OBJ_FLAG_HIDDEN);
@@ -407,6 +409,26 @@ void BedMeshPanel::handle_kb_input(lv_event_t *e)
   }
 }
 
+void BedMeshPanel::mesh_draw_cb(lv_event_t * e)
+{
+  lv_obj_t * obj = lv_event_get_target(e);
+  lv_obj_draw_part_dsc_t * dsc = lv_event_get_draw_part_dsc(e);
+  if(dsc->part == LV_PART_ITEMS) {
+    uint32_t row = dsc->id /  lv_table_get_col_cnt(obj);
+    uint32_t col = dsc->id - row * lv_table_get_col_cnt(obj);
+
+    dsc->label_dsc->align = LV_TEXT_ALIGN_CENTER;
+    dsc->label_dsc->color = lv_palette_darken(LV_PALETTE_GREY, 3);
+    
+    // rows of the mesh is reversed
+    int32_t reversed_row_idx = mesh.size() - row - 1;
+    double offset = mesh[reversed_row_idx][col];
+    lv_color_t color = color_gradient(offset);
+
+    dsc->rect_dsc->bg_color = color;
+    dsc->rect_dsc->bg_opa = LV_OPA_90;
+  }
+}
 
 static lv_color_t color_gradient(double offset)
 {
@@ -421,23 +443,4 @@ static lv_color_t color_gradient(double offset)
   }
   
   return lv_color_make(255, 255, 255);
-}
-
-static void mesh_draw_cb(lv_event_t * e)
-{
-  lv_obj_t * obj = lv_event_get_target(e);
-  lv_obj_draw_part_dsc_t * dsc = lv_event_get_draw_part_dsc(e);
-  if(dsc->part == LV_PART_ITEMS) {
-    uint32_t row = dsc->id /  lv_table_get_col_cnt(obj);
-    uint32_t col = dsc->id - row * lv_table_get_col_cnt(obj);
-
-    dsc->label_dsc->align = LV_TEXT_ALIGN_CENTER;
-    dsc->label_dsc->color = lv_palette_darken(LV_PALETTE_GREY, 3);
-    
-    double offset = std::stod(lv_table_get_cell_value(obj, row, col));
-    lv_color_t color = color_gradient(offset);
-
-    dsc->rect_dsc->bg_color = color;
-    dsc->rect_dsc->bg_opa = LV_OPA_90;
-  }
 }

@@ -19,7 +19,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   , finetune_btn(cont, &fine_tune_img, "Fine Tune", &PrinterTunePanel::_handle_callback, this)
   , inputshaper_btn(cont, &inputshaper_img, "Input Shaper", &PrinterTunePanel::_handle_callback, this)
 #ifndef ZBOLT
-  , belts_calibration_btn(cont, &belts_calibration_img, "Belts Calibration", &PrinterTunePanel::_handle_callback, this)
+  , belts_calibration_btn(cont, &belts_calibration_img, "Belts/Resonate", &PrinterTunePanel::_handle_callback, this)
 #else
   , belts_calibration_btn(cont, &inputshaper_img, "Belts Calibration", &PrinterTunePanel::_handle_callback, this)
 #endif

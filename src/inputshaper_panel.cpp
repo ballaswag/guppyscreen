@@ -144,6 +144,7 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
   
 
   lv_obj_align_to(xlabel, xslider, LV_ALIGN_BOTTOM_MID, 0, 35);
+  lv_label_set_text(xlabel, "0 Hz");
   
   lv_dropdown_set_options(xshaper_dd, fmt::format("{}", fmt::join(shapers, "\n")).c_str());
   lv_obj_align(xshaper_dd, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -164,6 +165,7 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
 		      LV_EVENT_VALUE_CHANGED, this);
   
   lv_obj_align_to(ylabel, yslider, LV_ALIGN_BOTTOM_MID, 0, 35);
+  lv_label_set_text(ylabel, "0 Hz");
 
   lv_dropdown_set_options(yshaper_dd, fmt::format("{}", fmt::join(shapers, "\n")).c_str());
   lv_obj_align(yshaper_dd, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -252,7 +254,7 @@ void InputShaperPanel::handle_callback(lv_event_t *event) {
     bool x_requested = lv_obj_has_state(x_switch, LV_STATE_CHECKED);
     bool y_requested = lv_obj_has_state(y_switch, LV_STATE_CHECKED);
 
-    if (x_requested || y_requested) {
+    if ((x_requested || y_requested) && !KUtils::is_homed()) {
       ws.gcode_script("G28");
     }
 

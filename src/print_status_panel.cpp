@@ -48,9 +48,7 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   , flow_rate(detail_cont, &extrude, 100, "0.0 mm3/s")    
   , fan0(detail_cont, &fan, 100, "0%")
   , elapsed(detail_cont, &clock_img, 100, "0s")
-  // , fan1(detail_cont, &fan, 100, "0%")
   , time_left(detail_cont, &hourglass, 100, "...")
-  // , fan2(detail_cont, &fan, 100, "0%")
   , estimated_time_s(0)
   , flow_ts(std::time(nullptr))
   , last_filament_used(0.0)
@@ -238,6 +236,7 @@ void PrintStatusPanel::consume(json &j) {
   if (!printfile.is_null()) {
     // filename change indicates a start of a print
     // populate();
+    reset();
     foreground(); // auto move to front when print is detected
   }
 
@@ -309,24 +308,6 @@ void PrintStatusPanel::consume(json &j) {
   }
 
   fan0.update_label(fmt::format("{}", fmt::join(values, ", ")).c_str());
-
-  // auto fan_value = j["/params/0/output_pin fan0/value"_json_pointer];
-  // if (!fan_value.is_null()) {
-  //   int fv = static_cast<int>(fan_value.template get<double>() * 100);
-  //   fan0.update_label((std::to_string(fv) + "%").c_str());
-  // }
-
-  // fan_value = j["/params/0/output_pin fan1/value"_json_pointer];
-  // if (!fan_value.is_null()) {
-  //   int fv = static_cast<int>(fan_value.template get<double>() * 100);
-  //   fan1.update_label((std::to_string(fv) + "%").c_str());
-  // }
-
-  // fan_value = j["/params/0/output_pin fan2/value"_json_pointer];
-  // if (!fan_value.is_null()) {
-  //   int fv = static_cast<int>(fan_value.template get<double>() * 100);
-  //   fan2.update_label((std::to_string(fv) + "%").c_str());
-  // }
 
   // progress
   v = j["/params/0/print_stats/print_duration"_json_pointer];

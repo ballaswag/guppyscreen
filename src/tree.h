@@ -18,11 +18,14 @@ struct Tree {
   }
 
   ~Tree() {
-    // spdlog::debug("deleting file_panel %s\n", name.c_str());
+    children.clear();
     // delete file_panel;
   }
 
   bool is_leaf() const {
+    // this is just wrong, a folder without files is a still a
+    // folder. lucky the files.list endpoint doesn't return empty
+    // folders
     return children.empty();
   }
   
@@ -44,12 +47,35 @@ struct Tree {
     }
 
     Tree *cur_node = this;
+    std::string cur_path;
     for (const auto &p : paths) {
-      cur_node = &(cur_node->find_or_create(p, path));
+      if (cur_path.length() > 0) {
+	cur_path = fmt::format("{}/{}", cur_path, p);
+      } else {
+	cur_path = p;
+      }
+
+      cur_node = &(cur_node->find_or_create(p, cur_path));
+    }
+  }
+
+  Tree *find_path(const std::vector<std::string>& paths) {
+    if (paths.empty()) {
+      return this;
     }
 
-    // cur_node->full_path = path;
+    Tree *cur_node = this;
+    for (const auto &p : paths) {
+      const auto &entry = cur_node->children.find(p);
+      if (entry != cur_node->children.cend()) {
+	cur_node = &entry->second;
+      } else {
+	return this;
+      }
+    }
+    return cur_node->is_leaf() ? this : cur_node;
   }
+  
 
   Tree *get_child(const std::string child) {
     const auto &e = children.find(child);
@@ -81,6 +107,10 @@ struct Tree {
   void set_metadata(json &j) {
     has_metadata = true;
     metadata = j;
+  }
+
+  void clear() {
+    children.clear();
   }
 
   const char* get_thumbpath() {

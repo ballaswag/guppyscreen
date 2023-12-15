@@ -7,6 +7,7 @@
 #include "lvgl/lvgl.h"
 
 #include <mutex>
+#include <vector>
 
 class BedMeshPanel : public NotifyConsumer {
  public:
@@ -23,6 +24,7 @@ class BedMeshPanel : public NotifyConsumer {
   void handle_prompt_save(lv_event_t *event);
   void handle_prompt_cancel(lv_event_t *event);
   void handle_kb_input(lv_event_t *e);
+  void mesh_draw_cb(lv_event_t *e);
 
   static void _handle_callback(lv_event_t *event) {
     BedMeshPanel *panel = (BedMeshPanel*)event->user_data;
@@ -48,7 +50,12 @@ class BedMeshPanel : public NotifyConsumer {
     BedMeshPanel *panel = (BedMeshPanel*)e->user_data;
     panel->handle_kb_input(e);
   };
-  
+
+  static void _mesh_draw_cb(lv_event_t *e) {
+    BedMeshPanel *panel = (BedMeshPanel*)e->user_data;
+    panel->mesh_draw_cb(e);
+  };
+
  private:
   KWebSocketClient &ws;
   lv_obj_t *cont;
@@ -67,6 +74,7 @@ class BedMeshPanel : public NotifyConsumer {
   lv_obj_t *input;
   lv_obj_t *kb;
   std::string active_profile;
+  std::vector<std::vector<double>> mesh;
 };
 
 #endif // __BEDMESH_PANEL_H__

@@ -55,7 +55,7 @@ fi
 
 #### let's see if guppyscreen starts before doing anything more
 printf "${green} Test starting Guppy Screen ${white}\n"
-killall guppyscreen &> /dev/null
+killall -q guppyscreen
 $K1_GUPPY_DIR/guppyscreen &> /dev/null &
 
 ## allow guppy to live a little
@@ -65,10 +65,28 @@ ps auxw | grep [g]uppyscreen | grep -v sh
 
 if [ $? -eq 0 ]; then
     printf "${green} Guppy Screen started sucessfully, continuing with installation ${white}\n"
-    killall guppyscreen
+    killall -q guppyscreen
 else
     printf "${red} Guppy Screen FAILED to start, aborting ${white}\n"
     exit 1
+fi
+
+printf "${green}Setting up Guppy Macros ${white}\n"
+if [ ! -f $GCODE_SHELL_CMD ]; then
+    printf "${green}Installing gcode_shell_command.py for klippy ${white}\n"
+    cp $K1_GUPPY_DIR/k1_mods/gcode_shell_command.py $GCODE_SHELL_CMD
+fi
+
+mkdir -p $K1_CONFIG_DIR/GuppyScreen/scripts
+cp $K1_GUPPY_DIR/scripts/*.cfg $K1_CONFIG_DIR/GuppyScreen
+cp $K1_GUPPY_DIR/scripts/*.py $K1_CONFIG_DIR/GuppyScreen/scripts
+
+## includ guppyscreen *.cfg in printer.cfg
+if grep -q "include GuppyScreen" $K1_CONFIG_DIR/printer.cfg ; then
+    echo "printer.cfg already includes GuppyScreen cfgs"
+else
+    printf "${green}Including guppyscreen cfgs in printer.cfg ${white}\n"
+    sed -i '/\[include gcode_macro\.cfg\]/a \[include GuppyScreen/*\.cfg\]' $K1_CONFIG_DIR/printer.cfg
 fi
 
 if [ ! -d "$BACKUP_DIR" ]; then
@@ -85,10 +103,13 @@ if [ ! -f $BACKUP_DIR/ft2font.cpython-38-mipsel-linux-gnu.so ]; then
     mv /usr/lib/python3.8/site-packages/matplotlib/ft2font.cpython-38-mipsel-linux-gnu.so $BACKUP_DIR
 fi
 
+## dropbear early to ensure ssh is started with display-server
+cp $K1_GUPPY_DIR/k1_mods/S50dropbear /etc/init.d/S50dropbear
+
 printf "${white}=== Do you want to disable all Creality services (revertable) with GuppyScreen installation? ===\n"
 printf "${green}  Pros: Frees up system resources on your K1 for critical services such as Klipper (Recommended)\n"
 printf "${white}  Cons: Disabling all Creality services breaks Creality Cloud/Creality Slider.\n\n"
-printf "Disable all Creality Services? (y/n)"
+printf "Disable all Creality Services? (y/n): "
 
 read confirm_decreality
 echo
@@ -102,7 +123,6 @@ else
 fi
 
 printf "${green}Setting up GuppyScreen ${white}\n"
-cp $K1_GUPPY_DIR/k1_mods/S50dropbear /etc/init.d/S50dropbear
 cp $K1_GUPPY_DIR/k1_mods/S99guppyscreen /etc/init.d/S99guppyscreen
 
 cp $K1_GUPPY_DIR/k1_mods/calibrate_shaper_config.py $SHAPER_CONFIG
@@ -112,23 +132,6 @@ if [ ! -d "/usr/lib/python3.8/site-packages/matplotlib-2.2.3-py3.8.egg-info" ]; 
 else
     printf "${green}Replacing mathplotlib ft2font module for plotting PSD graphs ${white}\n"
     cp $K1_GUPPY_DIR/k1_mods/ft2font.cpython-38-mipsel-linux-gnu.so $FT2FONT_PATH
-fi
-
-if [ ! -f $GCODE_SHELL_CMD ]; then
-    printf "${green}Installing gcode_shell_command.py for klippy ${white}\n"
-    cp $K1_GUPPY_DIR/k1_mods/gcode_shell_command.py $GCODE_SHELL_CMD
-fi
-
-mkdir -p $K1_CONFIG_DIR/GuppyScreen/scripts
-cp $K1_GUPPY_DIR/scripts/*.cfg $K1_CONFIG_DIR/GuppyScreen
-cp $K1_GUPPY_DIR/scripts/*.py $K1_CONFIG_DIR/GuppyScreen/scripts
-
-## includ guppyscreen *.cfg in printer.cfg
-if grep -q "include GuppyScreen" $K1_CONFIG_DIR/printer.cfg ; then
-    echo "printer.cfg already includes GuppyScreen cfgs"
-else
-    printf "${green}Including guppyscreen cfgs in printer.cfg ${white}\n"
-    sed -i '/\[include gcode_macro\.cfg\]/a \[include GuppyScreen/*\.cfg\]' $K1_CONFIG_DIR/printer.cfg
 fi
 
 sync
@@ -156,16 +159,16 @@ else
     printf "${red}Some GuppyScreen functionaly won't work until Klipper is restarted. ${white}\n"
 fi
 
-killall Monitor
-killall display-server
+killall -q Monitor
+killall -q display-server
 if [ "$confirm_decreality" = "y" -o "$confirm_decreality" = "Y" ]; then
     echo "Killing Creality services"
-    killall master-server
-    killall audio-server
-    killall wifi-server
-    killall app-server
-    killall upgrade-server
-    killall web-server
+    killall -q master-server
+    killall -q audio-server
+    killall -q wifi-server
+    killall -q app-server
+    killall -q upgrade-server
+    killall -q web-server
 fi
 
 printf "${green}Starting GuppyScreen ${white}\n"

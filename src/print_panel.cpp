@@ -108,13 +108,6 @@ PrintPanel::~PrintPanel() {
 }
 
 void PrintPanel::populate_files(json &j) {
-  if (j.contains("result")) {
-    for (auto f : j["result"]) {
-      root.add_path(KUtils::split(f["path"], '/'), f["path"]);
-    }
-  }
-
-  std::lock_guard<std::mutex> lock(lv_lock);
   show_dir(cur_dir);
   // XXX: maybe use the directory instead of file endpoint in moonraker
   for (auto &c : cur_dir->children) {
@@ -142,7 +135,23 @@ void PrintPanel::consume(json &j) {
 }
 
 void PrintPanel::subscribe() {
-  ws.send_jsonrpc("server.files.list", R"({"root":"gcodes"})"_json, [this](json &d) { this->populate_files(d); });
+  ws.send_jsonrpc("server.files.list", R"({"root":"gcodes"})"_json, [this](json &d) {
+    std::lock_guard<std::mutex> lock(lv_lock);
+    std::string cur_path = cur_dir->full_path;
+    root.clear();
+    cur_file = NULL;
+    cur_dir = NULL;
+
+    if (d.contains("result")) {
+      for (auto f : d["result"]) {
+	root.add_path(KUtils::split(f["path"], '/'), f["path"]);
+      }
+    }
+    Tree *dir = root.find_path(KUtils::split(cur_path, '/'));
+    // need to simply this using the directory endpoint
+    cur_dir = dir;
+    this->populate_files(d);
+  });
 }
 
 void PrintPanel::foreground() {
@@ -179,7 +188,11 @@ void PrintPanel::handle_callback(lv_event_t *e) {
     str_fn = lv_table_get_cell_value(file_table, row, col);
     
     const char *filename = str_fn+5; // +5 skips the LV_SYMBOL and spaces
-    if (std::memcmp(LV_SYMBOL_DIRECTORY, str_fn, 3) == 0) {
+    if (row == 0 && col == 0) {
+      // refresh
+      subscribe();
+
+    } else if (std::memcmp(LV_SYMBOL_DIRECTORY, str_fn, 3) == 0) {
       if ((strcmp(filename, "..") == 0)) {
 	if (cur_dir->parent != cur_dir) {
 	  cur_dir = cur_dir->parent;
@@ -207,6 +220,7 @@ void PrintPanel::handle_callback(lv_event_t *e) {
 
 void PrintPanel::show_dir(const Tree *dir) {
   uint32_t index = 0;
+  lv_table_set_cell_value_fmt(file_table, index++, 0, LV_SYMBOL_REFRESH "  %s", "Refresh Files");
   lv_table_set_cell_value_fmt(file_table, index++, 0, LV_SYMBOL_DIRECTORY "  %s", "..");
 
   // dir first
@@ -215,12 +229,7 @@ void PrintPanel::show_dir(const Tree *dir) {
       continue;
     }
 
-    if (c.second.is_leaf()) {
-      lv_table_set_cell_value_fmt(file_table, index, 0, LV_SYMBOL_FILE "  %s", c.second.name.c_str());
-    } else {
-      lv_table_set_cell_value_fmt(file_table, index, 0, LV_SYMBOL_DIRECTORY "  %s", c.second.name.c_str());
-    }
-
+    lv_table_set_cell_value_fmt(file_table, index, 0, LV_SYMBOL_DIRECTORY "  %s", c.second.name.c_str());
     index++;
   }
   
@@ -230,12 +239,7 @@ void PrintPanel::show_dir(const Tree *dir) {
       continue;
     }
     
-    if (c.second.is_leaf()) {
-      lv_table_set_cell_value_fmt(file_table, index, 0, LV_SYMBOL_FILE "  %s", c.second.name.c_str());
-    } else {
-      lv_table_set_cell_value_fmt(file_table, index, 0, LV_SYMBOL_DIRECTORY "  %s", c.second.name.c_str());
-    }
-
+    lv_table_set_cell_value_fmt(file_table, index, 0, LV_SYMBOL_FILE "  %s", c.second.name.c_str());
     index++;
   }
 
