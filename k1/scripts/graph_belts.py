@@ -18,6 +18,8 @@ import matplotlib.pyplot, matplotlib.dates, matplotlib.font_manager
 import matplotlib.ticker, matplotlib.gridspec, matplotlib.colors
 import matplotlib.patches
 import locale
+import time
+import glob
 from datetime import datetime
 
 matplotlib.use('Agg')
@@ -57,6 +59,22 @@ def print_with_c_locale(*args, **kwargs):
     original_print(*args, **kwargs)
     locale.setlocale(locale.LC_ALL, original_locale)
 print = print_with_c_locale
+
+
+def is_file_open(filepath):
+    for proc in os.listdir('/proc'):
+        if proc.isdigit():
+            for fd in glob.glob(f'/proc/{proc}/fd/*'):
+                try:
+                    if os.path.samefile(fd, filepath):
+                        return True
+                except FileNotFoundError:
+                    # Klipper has already released the CSV file
+                    pass
+                except PermissionError:
+                    # Unable to check for this particular process due to permissions
+                    pass
+    return False
 
 
 ######################################################################
@@ -478,6 +496,11 @@ def setup_klipper_import(kdir):
 
 def belts_calibration(lognames, klipperdir="~/klipper", max_freq=200., graph_spectogram=True, width=8.3, height=11.6):
     setup_klipper_import(klipperdir)
+
+    for filename in lognames[:2]:
+        # Wait for the file handler to be released by Klipper
+        while is_file_open(filename):
+            time.sleep(2)
 
     # Parse data
     datas = [parse_log(fn) for fn in lognames]

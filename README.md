@@ -24,8 +24,8 @@ ssh into your K1/Max and run the follwow command:
 ## Features
 :white_check_mark: Console/Macro Shell  
 :white_check_mark: Bedmesh  
-:white_check_mark: Input Shaper (PSD graphs)
-:white_check_mark: Belt Calibration/Excitate
+:white_check_mark: Input Shaper (PSD graphs)  
+:white_check_mark: Belt Calibration/Excitate  
 :white_check_mark: Print Status  
 :white_check_mark: Spoolman Integration  
 :white_check_mark: Extrude/Retract  
@@ -37,6 +37,7 @@ ssh into your K1/Max and run the follwow command:
 ## Roadmap
 :bangbang: Exclude Object  
 :bangbang: Cross platform releases (ARM)  
+:bangbang: Multi-Printer support  
 :bangbang: Vibration graphs  
 :bangbang: Firmware Retraction  
 :bangbang: Other Fine Tune params (Pressure Advance, Smooth Time)  
