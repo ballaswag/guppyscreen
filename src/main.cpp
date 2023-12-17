@@ -28,7 +28,7 @@ static void hal_init(void);
 #include "spoolman_panel.h"
 #include "init_panel.h"
 #include "state.h"
-#include "json.hpp"
+#include "hv/json.hpp"
 #include "config.h"
 #include "bedmesh_panel.h"
 #include "spdlog/spdlog.h"

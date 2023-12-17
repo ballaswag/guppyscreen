@@ -1,6 +1,4 @@
 #include "file_panel.h"
-#include "requests.h"
-#include "hurl.h"
 #include "config.h"
 #include "state.h"
 #include "utils.h"
