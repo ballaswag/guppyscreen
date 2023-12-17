@@ -13,9 +13,8 @@ jobs:
     container: ballaswag/guppydev:latest
     steps:
     - uses: actions/checkout@v3
-    - name: Checkout submodules
-      run: |
-        git submodule update --init --recursive
+      with:
+        submodules: recursive
     - run: |
         echo "CROSS_COMPILE=mips-linux-gnu-" >> $GITHUB_ENV
     - name: make wpaclient
