@@ -9,9 +9,17 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: ballaswag/guppydev:latest
     steps:
-    - run: echo $PATH
     - uses: actions/checkout@v3
-
+      with:
+        submodules: recursive
+    - run: |
+        echo "CROSS_COMPILE=mips-linux-gnu-" >> $GITHUB_ENV
+    - name: make wpaclient
+      run: make wpaclient
+    - name: make libhv
+      run: make libhv.a
+    - name: make guppyscreen
+      run: make -j
