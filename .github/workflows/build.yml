@@ -1,0 +1,17 @@
+name: guppy build
+
+on:
+  push:
+    branches: [ "dev_workflow" ]
+  pull_request:
+    branches: [ "dev_workflow" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    container: ballaswag/guppydev:latest
+    steps:
+    - run: echo $PATH
+    - uses: actions/checkout@v3
+
