@@ -42,13 +42,13 @@ chmod +x /tmp/curl
 
 # download/extract latest guppyscreen
 if [ x"$1" == x"zbolt" ]; then
-    /tmp/curl -s -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen-zbolt.tar.gz -o /tmp/guppyscreen.tar.gz
+    /tmp/curl -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen-zbolt.tar.gz -o /tmp/guppyscreen.tar.gz
 else
-    /tmp/curl -s -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen.tar.gz -o /tmp/guppyscreen.tar.gz
+    /tmp/curl -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen.tar.gz -o /tmp/guppyscreen.tar.gz
 fi
 tar xf /tmp/guppyscreen.tar.gz -C /usr/data/
 
-if [ ! -d "$K1_GUPPY_DIR" ]; then
+if [ ! -f "$K1_GUPPY_DIR/guppyscreen" ]; then
     printf "${red}Did not find guppyscreen in $K1_GUPPY_DIR. GuppyScreen must be extracted in $K1_GUPPY_DIR ${white}\n"
     exit 1
 fi
@@ -61,7 +61,7 @@ $K1_GUPPY_DIR/guppyscreen &> /dev/null &
 ## allow guppy to live a little
 sleep 1
 
-ps auxw | grep [g]uppyscreen | grep -v sh
+ps auxw | grep guppyscreen | grep -v sh | grep -v grep
 
 if [ $? -eq 0 ]; then
     printf "${green} Guppy Screen started sucessfully, continuing with installation ${white}\n"
@@ -176,7 +176,7 @@ printf "${green}Starting GuppyScreen ${white}\n"
 
 sleep 1
 
-ps auxw | grep [g]uppyscreen | grep -v sh
+ps auxw | grep guppyscreen | grep -v sh | grep -v grep
 
 if [ $? -eq 0 ]; then
     printf "${green} Successfully installed Guppy Screen. Enjoy! ${white}\n"
