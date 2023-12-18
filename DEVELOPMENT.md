@@ -35,9 +35,8 @@ Building for the K1/Max
 4. `unset SIMULATION && export CROSS_COMPILE=mips-linux-gnu-`
 5. `(cd lv_drivers/ && git apply ../patches/0001-lv_driver_fb_ioctls.patch)`
 6. `(cd spdlog/ && git apply ../patches/0002-spdlog_fmt_initializer_list.patch)`
-7. `(cd libhv/ && git apply ../patches/0003-libhv-link-atomic-mipsel.patch)`
-7. `make -C wpa_supplicant/wpa_supplicant/ clean && make -j$(nproc) -C wpa_supplicant/wpa_supplicant/ libwpa_client.a`
-8. `make -C libhv clean && make -j$(nproc) -C libhv  #### note the libhv sometimes fails with the -j option, rerun if you see an error`
+7. `make -C wpa_supplicant/wpa_supplicant/ clean && make wpaclient`
+8. `make -C libhv clean && make libhv.a`
 9. `make clean && make -j$(nproc) ### executable is in ./build/bin/guppyscreen`
 
 
@@ -49,10 +48,9 @@ Building and running Guppy Screen on your local machine speeds up development. C
 3. `unset CROSS_COMPILE && export SIMULATION=1`
 4. `(cd lv_drivers/ && git apply ../patches/0001-lv_driver_fb_ioctls.patch)`
 5. `(cd spdlog/ && git apply ../patches/0002-spdlog_fmt_initializer_list.patch)`
-6. `(cd libhv/ && git apply ../patches/0003-libhv-link-atomic-mipsel.patch)`
-7. `make -C wpa_supplicant/wpa_supplicant/ clean && make -j$(nproc) -C wpa_supplicant/wpa_supplicant/ libwpa_client.a`
-8. `make -C libhv clean && make -j$(nproc) -C libhv  #### note the libhv sometimes fails with the -j option, rerun if you see an error`
-9. `make clean && make -j$(nproc) ### executable is in ./build/bin/guppyscreen`
+6. `make -C wpa_supplicant/wpa_supplicant/ clean && make wpaclient`
+7. `make -C libhv clean && make libhv.a`
+8. `make clean && make -j$(nproc) ### executable is in ./build/bin/guppyscreen`
 
 
 ### Simulation
