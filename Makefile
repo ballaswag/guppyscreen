@@ -80,7 +80,7 @@ COMPILE_CXX				= $(CC) $(CFLAGS) $(INC) $(DEFINES)
 all: default
 
 libhv.a:
-	$(MAKE) -C libhv -j$(nproc)
+	$(MAKE) -C libhv -j$(nproc) libhv
 
 wpaclient:
 	$(MAKE) -C wpa_supplicant/wpa_supplicant -j$(nproc) libwpa_client.a
