@@ -1,11 +1,8 @@
 #include "main_panel.h"
 #include "lvgl/lvgl.h"
-#include "json.hpp"
 #include "spdlog/spdlog.h"
 
 #include <string>
-
-using json = nlohmann::json;
 
 LV_IMG_DECLARE(filament_img);
 LV_IMG_DECLARE(light_img);

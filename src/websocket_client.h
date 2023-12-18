@@ -1,9 +1,9 @@
 #ifndef __KWEBSOCKET_CLIENT_H__
 #define __KWEBSOCKET_CLIENT_H__
 
-#include "WebSocketClient.h"
+#include "hv/WebSocketClient.h"
 #include "notify_consumer.h"
-#include "json.hpp"
+#include "hv/json.hpp"
 
 #include <map>
 #include <set>
