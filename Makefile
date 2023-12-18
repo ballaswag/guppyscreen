@@ -15,14 +15,14 @@ endif
 LVGL_DIR_NAME 	?= lvgl
 LVGL_DIR 		?= .
 
-WARNINGS		:= -Wall -Wshadow -Wundef -Wmissing-prototypes -Wno-discarded-qualifiers -Wall -Wextra -Wno-unused-function -Wno-error=strict-prototypes -Wpointer-arith \
+WARNINGS		:= -Wall -Wextra -Wno-unused-function -Wno-error=strict-prototypes -Wpointer-arith \
 					-fno-strict-aliasing -Wno-error=cpp -Wuninitialized -Wmaybe-uninitialized -Wno-unused-parameter -Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess \
-					-Wno-format-nonliteral -Wno-cast-qual -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wformat-security -Wno-ignored-qualifiers -Wno-error=pedantic \
-					-Wno-sign-compare -Wno-error=missing-prototypes -Wdouble-promotion -Wclobbered -Wdeprecated -Wempty-body -Wtype-limits -Wshift-negative-value -Wstack-usage=2048 \
+					-Wno-format-nonliteral -Wno-cast-qual -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wformat-security -Wno-error=pedantic \
+					-Wno-sign-compare -Wdouble-promotion -Wclobbered -Wempty-body -Wtype-limits -Wshift-negative-value \
 					-Wno-unused-value -Wno-unused-parameter -Wno-missing-field-initializers -Wuninitialized -Wmaybe-uninitialized -Wall -Wextra -Wno-unused-parameter \
-					-Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess -Wno-format-nonliteral -Wpointer-arith -Wno-cast-qual -Wmissing-prototypes \
-					-Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wno-discarded-qualifiers -Wformat-security -Wno-ignored-qualifiers -Wno-sign-compare -std=c99
-CFLAGS 			?= -O3 -g0 -I$(LVGL_DIR)/ $(WARNINGS) -Ilibhv/include/hv -Iwpa_supplicant/src/common
+					-Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess -Wno-format-nonliteral -Wpointer-arith -Wno-cast-qual \
+					-Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wformat-security -Wno-sign-compare
+CFLAGS 			?= -O3 -g0 -MD -MP -I$(LVGL_DIR)/ $(WARNINGS) 
 LDFLAGS 		?= -lm -Llibhv/lib -l:libhv.a -latomic -lpthread -Lwpa_supplicant/wpa_supplicant/ -l:libwpa_client.a -lstdc++fs
 BIN 			= guppyscreen
 BUILD_DIR 		= ./build
@@ -57,14 +57,15 @@ AOBJS 			= $(ASRCS:.S=$(OBJEXT))
 COBJS 			= $(CSRCS:.c=$(OBJEXT))
 
 MAINOBJ 		= $(MAINSRC:.cpp=$(OBJEXT))
+DEPS                    = $(addprefix $(BUILD_OBJ_DIR)/, $(patsubst %.o, %.d, $(MAINOBJ)))
 
 OBJS 			= $(AOBJS) $(COBJS) $(MAINOBJ)
 TARGET 			= $(addprefix $(BUILD_OBJ_DIR)/, $(patsubst ./%, %, $(OBJS)))
 
-INC 				:= -I./ui/simulator/inc/ -I./ -I./lvgl/ -I./spdlog/include
+INC 				:= -I./ -I./lvgl/ -I./spdlog/include -Ilibhv/include -Iwpa_supplicant/src/common
 LDLIBS	 			:= -lm
 
-DEFINES				+= -D _GNU_SOURCE -D SPDLOG_HEADER_ONLY
+DEFINES				+= -D _GNU_SOURCE # -D SPDLOG_HEADER_ONLY
 
 ifdef SIMULATION
 DEFINES +=  -D LV_BUILD_TEST=0 -D SIMULATOR
@@ -78,11 +79,11 @@ COMPILE_CXX				= $(CC) $(CFLAGS) $(INC) $(DEFINES)
 
 all: default
 
-build_libhv:
-	$(MAKE) -C libhv -j $(nproc) clean
+libhv.a:
+	$(MAKE) -C libhv -j$(nproc) libhv
 
-build_wpaclient:
-	$(MAKE) -C wpa_supplicant/wpa_supplicant -j $(nproc) libwpa_client.a
+wpaclient:
+	$(MAKE) -C wpa_supplicant/wpa_supplicant -j$(nproc) libwpa_client.a
 
 $(BUILD_OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
@@ -114,3 +115,5 @@ install:
 
 uninstall:
 	$(RM) -r $(addprefix $(DESTDIR)$(bindir)/,$(BIN))
+
+-include			$(DEPS)

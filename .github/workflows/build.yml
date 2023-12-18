@@ -1,0 +1,43 @@
+name: guppy build
+
+on:
+  push:
+    branches: [ "dev_workflow" ]
+  pull_request:
+    branches: [ "dev_workflow" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-22.04
+    container: ballaswag/guppydev:latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - run: |
+        echo "CROSS_COMPILE=mips-linux-gnu-" >> $GITHUB_ENV
+
+    - name: patch lv_drivers
+      run: |
+        git apply ../patches/0001-lv_driver_fb_ioctls.patch
+      working-directory: ./lv_drivers
+
+    - name: patch fmt in spdlog
+      run: |
+        git apply ../patches/0002-spdlog_fmt_initializer_list.patch
+      working-directory: ./spdlog
+
+    - name: make wpaclient
+      run: make wpaclient
+
+    - name: make libhv
+      run: make libhv.a
+
+    - name: make guppyscreen
+      run: make -j
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: guppyscreen
+        path: build/bin/guppyscreen
