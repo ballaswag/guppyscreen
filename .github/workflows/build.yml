@@ -2,21 +2,35 @@ name: guppy build
 
 on:
   push:
-    branches: [ "dev_workflow" ]
+    branches: [ "dev", "main" ]
   pull_request:
-    branches: [ "dev_workflow" ]
+    branches: [ "main" ]
 
 jobs:
   build:
+    strategy:
+      matrix:
+        arch: [mips-linux-gnu-, aarch64-none-linux-gnu-]
+        theme: [zbolt, material]
 
     runs-on: ubuntu-22.04
-    container: ballaswag/guppydev:latest
+    container:
+      image: ballaswag/guppydev:latest
+      options: --user 1001
+  
+    env:
+      CROSS_COMPILE: ${{ matrix.arch }}
+      GUPPY_THEME: ${{ matrix.theme }}
+  
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: recursive
-    - run: |
-        echo "CROSS_COMPILE=mips-linux-gnu-" >> $GITHUB_ENV
+
+    - name: set guppyscreen version
+      run: |
+        chmod +x ./version.sh
+        ./version.sh >> $GITHUB_ENV
 
     - name: patch lv_drivers
       run: |
@@ -37,7 +51,12 @@ jobs:
     - name: make guppyscreen
       run: make -j
 
+    - name: package release
+      run: |
+        chmod +x ./release.sh
+        ./release.sh >> $GITHUB_ENV
+
     - uses: actions/upload-artifact@v4
       with:
-        name: guppyscreen
-        path: build/bin/guppyscreen
+        name: ${{ env.GUPPY_ARCHIVE_NAME }}
+        path: ./${{ env.GUPPY_ARCHIVE_NAME }}.tar.gz

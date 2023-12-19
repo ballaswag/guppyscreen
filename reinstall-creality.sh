@@ -5,6 +5,8 @@ BACKUP_DIR=/usr/data/guppyify-backup
 cp $BACKUP_DIR/S12boot_display /etc/init.d/S12boot_display
 cp $BACKUP_DIR/S50dropbear /etc/init.d/S50dropbear
 cp $BACKUP_DIR/S99start_app /etc/init.d/S99start_app
+mv /usr/bin/Monitor.disable /usr/bin/Monitor
+mv /usr/bin/display-server.disable /usr/bin/display-server
 rm /etc/init.d/S99guppyscreen
 
 killall guppyscreen

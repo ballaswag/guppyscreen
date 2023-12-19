@@ -108,6 +108,7 @@ int main(void)
 
     lv_style_init(&style_container);
     lv_style_set_border_width(&style_container, 0);
+    lv_style_set_radius(&style_container, 0);
     
     lv_style_init(&style_imgbtn_pressed);
     lv_style_set_img_recolor_opa(&style_imgbtn_pressed, LV_OPA_100);

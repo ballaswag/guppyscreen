@@ -40,7 +40,7 @@ include $(LVGL_DIR)/lv_drivers/lv_drivers.mk
 
 CSRCS 			+= $(wildcard $(LVGL_DIR)/assets/*.c)
 
-ifdef ZBOLT
+ifeq ($(GUPPY_THEME),zbolt)
 CSRCS 			+= $(wildcard $(LVGL_DIR)/assets/zbolt/*.c)
 DEFINES			+= -D ZBOLT
 else

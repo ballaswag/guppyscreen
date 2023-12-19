@@ -1,0 +1,7 @@
+#!/bin/bash
+
+COMMIT_HASH=`git rev-parse --short HEAD`
+VERSION=`cat ./VERSION`
+VERSION_STR="$VERSION-$COMMIT_HASH-beta"
+
+echo -n "GUPPYSCREEN_VERSION=$VERSION_STR"
