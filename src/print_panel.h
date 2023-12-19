@@ -52,7 +52,7 @@ class PrintPanel : public NotifyConsumer {
   
   
  private:
-  void show_dir(const Tree *dir, uint32_t sort_type);
+  void show_dir(Tree *dir, uint32_t sort_type);
   void show_file_detail(Tree *f);
   
   KWebSocketClient &ws;
