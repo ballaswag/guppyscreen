@@ -29,15 +29,10 @@ SensorContainer::SensorContainer(KWebSocketClient &c,
   , series(chart_series)
   , last_updated_ts(std::time(nullptr))
 {
-
     lv_obj_clear_flag(sensor_cont, LV_OBJ_FLAG_SCROLLABLE);
-    // lv_obj_set_ style_set_border_width(&style, 0);    
-    // lv_obj_add_style(sensor_cont, &style, LV_PART_MAIN);
-
     lv_obj_set_style_border_color(sensor_cont, color, LV_PART_MAIN);
     lv_obj_set_style_border_side(sensor_cont, LV_BORDER_SIDE_LEFT, LV_PART_MAIN);
     lv_obj_set_style_border_width(sensor_cont, 5, LV_PART_MAIN);
-    lv_obj_set_style_radius(sensor_cont, 0, LV_PART_MAIN);
 
     lv_obj_set_size(sensor_cont, 330, 60);
     lv_img_set_src(sensor_img, img);

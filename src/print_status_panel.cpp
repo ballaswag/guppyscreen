@@ -13,6 +13,7 @@ LV_IMG_DECLARE(hourglass);
 LV_IMG_DECLARE(bed);
 LV_IMG_DECLARE(home_z);
 LV_IMG_DECLARE(fan);
+LV_IMG_DECLARE(layers_img);
 
 LV_IMG_DECLARE(fine_tune_img);
 LV_IMG_DECLARE(pause_img);
@@ -45,7 +46,8 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   , bed_temp(detail_cont, &bed, 100, "21")
   , print_speed(detail_cont, &speed_up_img, 100, "0 mm/s")
   , z_offset(detail_cont, &home_z, 100, "0.0 mm")
-  , flow_rate(detail_cont, &extrude, 100, "0.0 mm3/s")    
+  , flow_rate(detail_cont, &extrude, 100, "0.0 mm3/s")
+  , layers(detail_cont, &layers_img, 100, "...")
   , fan0(detail_cont, &fan, 100, "0%")
   , elapsed(detail_cont, &clock_img, 100, "0s")
   , time_left(detail_cont, &hourglass, 100, "...")
@@ -56,6 +58,8 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   , flow(0.0)
   , extruder_target(-1)
   , heater_bed_target(-1)
+  , cur_layer(-1)
+  , total_layer(-1)
 {
 
   lv_obj_clear_flag(status_cont, LV_OBJ_FLAG_SCROLLABLE);  
@@ -79,11 +83,11 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
 
   //detail containter row 3
   lv_obj_set_grid_cell(flow_rate.get_container(), LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 2, 1);
-  lv_obj_set_grid_cell(fan0.get_container(), LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_START, 2, 1);  
-  
+  lv_obj_set_grid_cell(layers.get_container(), LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_START, 2, 1);
+
   //detail containter row 4
   lv_obj_set_grid_cell(elapsed.get_container(), LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 3, 1);
-  // lv_obj_set_grid_cell(fan1.get_container(), LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_START, 3, 1);  
+  lv_obj_set_grid_cell(fan0.get_container(), LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_START, 3, 1);
 
   //detail containter row 5
   lv_obj_set_grid_cell(time_left.get_container(), LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 4, 1);
@@ -351,7 +355,12 @@ void PrintStatusPanel::consume(json &j) {
       lv_obj_add_flag(resume_btn.get_container(), LV_OBJ_FLAG_HIDDEN);
     }
   }
-  
+
+  // layers
+  v = j["/params/0/print_stats/info"_json_pointer];
+  if (!v.is_null()) {
+    update_layers(v);
+  }
 }
 
 void PrintStatusPanel::handle_callback(lv_event_t *event) {
@@ -365,15 +374,9 @@ void PrintStatusPanel::handle_callback(lv_event_t *event) {
     ws.send_jsonrpc("printer.print.pause");
     pause_btn.disable();
 
-    
-    // lv_obj_clear_flag(resume_btn.get_container(), LV_OBJ_FLAG_HIDDEN);
-    // lv_obj_add_flag(pause_btn.get_container(), LV_OBJ_FLAG_HIDDEN);
-
   } else if (btn == resume_btn.get_button()) {
     ws.send_jsonrpc("printer.print.resume");
     resume_btn.disable();
-    // lv_obj_add_flag(resume_btn.get_container(), LV_OBJ_FLAG_HIDDEN);
-    // lv_obj_clear_flag(pause_btn.get_container(), LV_OBJ_FLAG_HIDDEN);
   } else if (btn == cancel_btn.get_button()) {
     ws.send_jsonrpc("printer.print.cancel");
   } else if (btn == finetune_btn.get_button()) {
@@ -442,6 +445,27 @@ void PrintStatusPanel::update_flow_rate(double filament_used) {
 
     last_filament_used = filament_used;
     flow_ts = std::time(nullptr);
+  }
+}
+
+void PrintStatusPanel::update_layers(json &info) {
+  auto v = info["/current_layer"_json_pointer];
+  int new_cur_layer = cur_layer;
+  int new_total_layer = total_layer;
+  if (!v.is_null()) {
+    new_cur_layer = v.template get<int>();
+  }
+
+  v = info["/total_layer"_json_pointer];
+  if (!v.is_null()) {
+    new_total_layer = v.template get<int>();
+  }
+
+  if (new_total_layer > total_layer || new_cur_layer > cur_layer) {
+    total_layer = new_total_layer;
+    cur_layer = new_cur_layer;
+
+    layers.update_label(fmt::format("{} / {}", cur_layer, total_layer).c_str());
   }
 }
 

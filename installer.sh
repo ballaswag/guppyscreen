@@ -119,7 +119,8 @@ if [ "$confirm_decreality" = "y" -o "$confirm_decreality" = "Y" ]; then
     rm /etc/init.d/S99start_app
 else
     # disables only display-server and Monitor
-    cp $K1_GUPPY_DIR/k1_mods/S99start_app /etc/init.d/S99start_app
+    mv /usr/bin/Monitor /usr/bin/Monitor.disable
+    mv /usr/bin/display-server /usr/bin/display-server.disable
 fi
 
 printf "${green}Setting up GuppyScreen ${white}\n"

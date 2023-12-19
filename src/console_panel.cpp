@@ -18,7 +18,6 @@ ConsolePanel::ConsolePanel(KWebSocketClient &websocket_client, std::mutex &lock,
   , input(lv_textarea_create(input_cont))
   , kb(lv_keyboard_create(console_cont))
 {
-  lv_obj_set_style_radius(console_cont, 0, 0);  
   lv_obj_align(console_cont, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_size(console_cont, LV_PCT(100), LV_PCT(100));
   lv_obj_set_flex_flow(console_cont, LV_FLEX_FLOW_COLUMN);

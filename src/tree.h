@@ -9,9 +9,10 @@
 #include "spdlog/spdlog.h"
 
 struct Tree {
-  Tree(const std::string &filename, const std::string &path)
+Tree(const std::string &filename, const std::string &path, uint32_t modified)
     : name(filename)
     , full_path(path)
+    , date_modified(modified)
     , has_metadata(false)
     , parent(this) {
     // spdlog::debug("creating new node {}, {}", name, path);
@@ -29,19 +30,23 @@ struct Tree {
     return children.empty();
   }
   
-  Tree& find_or_create(const std::string &value, const std::string &path) {
+  Tree& find_or_create(const std::string &value, const std::string &path, uint32_t modified) {
+    if (modified > date_modified) {
+      date_modified = modified;
+    }
+
     const auto &entry = children.find(value);
     if (entry != children.cend()) {
       return entry->second;
     }
 
-    children.insert({value, Tree(value, path)});
+    children.insert({value, Tree(value, path, modified)});
     Tree &child = children.find(value)->second;
     child.parent = this;
     return child;
   }
 
-  void add_path(const std::vector<std::string>& paths, const std::string &path) {
+  void add_path(const std::vector<std::string>& paths, const std::string &path, uint32_t modified) {
     if (paths.empty()) {
       return;
     }
@@ -55,7 +60,7 @@ struct Tree {
 	cur_path = p;
       }
 
-      cur_node = &(cur_node->find_or_create(p, cur_path));
+      cur_node = &(cur_node->find_or_create(p, cur_path, modified));
     }
   }
 
@@ -123,6 +128,7 @@ struct Tree {
   
   std::string name;
   std::string full_path;
+  uint32_t date_modified;
   json metadata;
   bool has_metadata;
   Tree *parent;
