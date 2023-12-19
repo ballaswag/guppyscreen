@@ -14,18 +14,18 @@ cp reinstall-creality.sh $RELEASES_DIR
 if [ x"$CROSS_COMPILE" == x"mips-linux-gnu-" ]; then
     ## k1
     if [ $ZBOLT -eq 1 ]; then
-	tar cf guppyscreen-zbolt.tar -C releases .
-	echo -n "GUPPY_ARCHIVE_NAME=guppyscreen-zbolt.tar"
+	tar czf guppyscreen-zbolt.tar.gz -C releases .
+	echo -n "GUPPY_ARCHIVE_NAME=guppyscreen-zbolt"
     else
-	tar cf guppyscreen.tar -C releases .
-	echo -n "GUPPY_ARCHIVE_NAME=guppyscreen.tar"
+	tar czf guppyscreen.tar.gz -C releases .
+	echo -n "GUPPY_ARCHIVE_NAME=guppyscreen"
     fi
 else
     if [ $ZBOLT -eq 1 ]; then
-	tar cf guppyscreen-zbolt-arm.tar -C releases .
-	echo -n "GUPPY_ARCHIVE_NAME=guppyscreen-zbolt-arm.tar"
+	tar czf guppyscreen-zbolt-arm.tar.gz -C releases .
+	echo -n "GUPPY_ARCHIVE_NAME=guppyscreen-zbolt-arm"
     else
-	tar cf guppyscreen-arm.tar -C releases .
-	echo -n "GUPPY_ARCHIVE_NAME=guppyscreen-arm.tar"
+	tar czf guppyscreen-arm.tar.gz -C releases .
+	echo -n "GUPPY_ARCHIVE_NAME=guppyscreen-arm"
     fi
 fi
