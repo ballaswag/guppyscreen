@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     strategy:
       matrix:
         arch: [mips-linux-gnu-, aarch64-none-linux-gnu-]
