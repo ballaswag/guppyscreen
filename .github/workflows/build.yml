@@ -14,7 +14,9 @@ jobs:
         zbolt: [0, 1]
 
     runs-on: ubuntu-22.04
-    container: ballaswag/guppydev:latest
+    container:
+      image: ballaswag/guppydev:latest
+      options: --user 1001
   
     env:
       CROSS_COMPILE: ${{ matrix.arch }}
@@ -57,4 +59,4 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: guppyscreen-${{ env.GUPPY_ARCHIVE_NAME }}
-        path: ./guppyscreen-${{ env.GUPPY_ARCHIVE_NAME }}
+        path: ./${{ env.GUPPY_ARCHIVE_NAME }}
