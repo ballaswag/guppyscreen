@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         arch: [mips-linux-gnu-, aarch64-none-linux-gnu-]
-        zbolt: [0, 1]
+        theme: [zbolt, material]
 
     runs-on: ubuntu-22.04
     container:
@@ -20,7 +20,7 @@ jobs:
   
     env:
       CROSS_COMPILE: ${{ matrix.arch }}
-      ZBOLT: ${{ matrix.zbolt }}
+      GUPPY_THEME: ${{ matrix.theme }}
   
     steps:
     - uses: actions/checkout@v3
