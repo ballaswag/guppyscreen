@@ -27,7 +27,7 @@ jobs:
         submodules: recursive
 
     - name: set guppyscreen version
-    - run: |
+      run: |
         chmod +x ./version.sh
         ./version.sh >> $GITHUB_ENV
 
