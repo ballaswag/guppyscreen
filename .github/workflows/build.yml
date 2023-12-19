@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         arch: [mips-linux-gnu-, aarch64-none-linux-gnu-]
-	zbolt: [0, 1]
+        zbolt: [0, 1]
 
     runs-on: ubuntu-22.04
     container: ballaswag/guppydev:latest
