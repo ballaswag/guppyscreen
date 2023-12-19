@@ -155,16 +155,7 @@ PrintPanel::~PrintPanel() {
 
 void PrintPanel::populate_files(json &j) {
   sorted_by = SORTED_BY_MODIFIED;
-
   show_dir(cur_dir, SORTED_BY_MODIFIED);
-  // XXX: maybe use the directory instead of file endpoint in moonraker
-  for (auto &c : cur_dir->children) {
-    if (c.second.is_leaf()) {
-      cur_file = &c.second;
-      show_file_detail(cur_file);
-      break;
-    }
-  }
 }
 
 void PrintPanel::consume(json &j) {  
@@ -259,7 +250,7 @@ void PrintPanel::handle_callback(lv_event_t *e) {
   }
 }
 
-void PrintPanel::show_dir(const Tree *dir, uint32_t sort_type) {
+void PrintPanel::show_dir(Tree *dir, uint32_t sort_type) {
   uint32_t index = 0;
   lv_table_set_cell_value_fmt(file_table, index++, 0, LV_SYMBOL_DIRECTORY "  %s", "..");
 
@@ -273,7 +264,7 @@ void PrintPanel::show_dir(const Tree *dir, uint32_t sort_type) {
 	  return true;
 	}
 
-	return reversed ? x.date_modified < y.date_modified : y.date_modified < x.date_modified;
+	return reversed ? x.date_modified > y.date_modified : y.date_modified > x.date_modified;
       });
   } else {
     KUtils::sort_map_values<std::string, Tree>(dir->children, sorted_files, [reversed](Tree &x, Tree &y) {
@@ -299,6 +290,19 @@ void PrintPanel::show_dir(const Tree *dir, uint32_t sort_type) {
 
   lv_table_set_row_cnt(file_table, index);
   lv_obj_scroll_to_y(file_table, 0, LV_ANIM_OFF);
+
+  // XXX: maybe use the directory instead of file endpoint in moonraker
+  for (auto &c : sorted_files) {
+    if (c.is_leaf()) {
+      const auto &selected = dir->children.find(c.name);
+      if (selected != dir->children.cend()) {
+	cur_file = &selected->second;
+	show_file_detail(cur_file);
+      }
+      break;
+    }
+  }
+
 }
 
 void PrintPanel::show_file_detail(Tree *f) {
