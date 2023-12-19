@@ -27,7 +27,7 @@ jobs:
         submodules: recursive
     - run: |
         chmod +x ./version.sh
-	./version.sh >> $GITHUB_ENV
+        ./version.sh >> $GITHUB_ENV
 
     - name: patch lv_drivers
       run: |
@@ -51,7 +51,7 @@ jobs:
     - name: package release
     - run: |
         chmod +x ./release.sh
-	./release.sh >> $GITHUB_ENV
+        ./release.sh >> $GITHUB_ENV
 
     - uses: actions/upload-artifact@v4
       with:
