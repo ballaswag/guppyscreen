@@ -24,10 +24,8 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   , belts_calibration_btn(cont, &inputshaper_img, "Belts/Resonate", &PrinterTunePanel::_handle_callback, this)
 #endif
 {
-  lv_obj_set_style_radius(cont, 0, 0);
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(cont, LV_PCT(100), LV_PCT(100));
-
 
   static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(5), LV_GRID_FR(5), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
   static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1),

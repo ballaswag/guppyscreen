@@ -16,7 +16,6 @@ SysInfoPanel::SysInfoPanel()
   , back_btn(cont, &back, "Back", &SysInfoPanel::_handle_callback, this)
 {
   lv_obj_move_background(cont);
-  lv_obj_set_style_radius(cont, 0, 0);
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(cont, LV_PCT(100), LV_PCT(100));
 

@@ -55,8 +55,6 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
     lv_style_set_border_width(&style, 0);
     lv_style_set_bg_color(&style, lv_palette_darken(LV_PALETTE_GREY, 4));
 
-    lv_obj_set_style_radius(main_cont, 0, 0);
-
     ws.register_notify_update(this);    
 }
 
@@ -72,6 +70,7 @@ MainPanel::~MainPanel() {
 void MainPanel::subscribe() {
   spdlog::trace("main panel subscribing");
   ws.send_jsonrpc("printer.gcode.help", [this](json &d) { console_panel.handle_macros(d); });
+  print_panel.subscribe();
 }
 
 PrinterTunePanel& MainPanel::get_tune_panel() {
@@ -175,7 +174,6 @@ void MainPanel::handle_ledpanel_cb(lv_event_t *event) {
 void MainPanel::handle_print_cb(lv_event_t *event) {
   if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
     spdlog::trace("clicked print");
-    print_panel.subscribe();
     print_panel.foreground();
   }
 }
@@ -217,8 +215,6 @@ void MainPanel::create_main(lv_obj_t * parent)
 
     lv_chart_set_div_line_count(temp_chart, 3, 8);
     lv_chart_set_point_count(temp_chart, 250);
-
-    lv_obj_set_style_radius(temp_chart, 0, 0);
 }
 
 void MainPanel::create_sensors(json &temp_sensors) {

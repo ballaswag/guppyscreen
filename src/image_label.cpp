@@ -28,6 +28,7 @@ ImageLabel::ImageLabel(lv_obj_t *parent,
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(cont, LV_PCT(width_pct), LV_PCT(height_pct));
   lv_obj_set_style_border_width(cont, 2, 0);
+  lv_obj_set_style_radius(cont, 4, 0);
 
   lv_img_set_src(image, img);
   lv_label_set_text(label, value);
