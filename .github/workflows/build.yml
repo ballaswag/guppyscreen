@@ -14,48 +14,48 @@ jobs:
         arch: [mips-linux-gnu-, aarch64-none-linux-gnu-]
         zbolt: [0, 1]
 
-      runs-on: ubuntu-22.04
-      container: ballaswag/guppydev:latest
+    runs-on: ubuntu-22.04
+    container: ballaswag/guppydev:latest
   
-      env:
-        CROSS_COMPILE: ${{ matrix.arch }}
-        ZBOLT: ${{ matrix.zbolt }}
+    env:
+      CROSS_COMPILE: ${{ matrix.arch }}
+      ZBOLT: ${{ matrix.zbolt }}
   
-      steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-  
-      - name: set guppyscreen version
-      - run: |
-          chmod +x ./version.sh
-          ./version.sh >> $GITHUB_ENV
-  
-      - name: patch lv_drivers
-        run: |
-          git apply ../patches/0001-lv_driver_fb_ioctls.patch
-        working-directory: ./lv_drivers
-  
-      - name: patch fmt in spdlog
-        run: |
-          git apply ../patches/0002-spdlog_fmt_initializer_list.patch
-        working-directory: ./spdlog
-  
-      - name: make wpaclient
-        run: make wpaclient
-  
-      - name: make libhv
-        run: make libhv.a
-  
-      - name: make guppyscreen
-        run: make -j
-  
-      - name: package release
-      - run: |
-          chmod +x ./release.sh
-          ./release.sh >> $GITHUB_ENV
-  
-      - uses: actions/upload-artifact@v4
-        with:
-          name: guppyscreen-${{ env.GUPPY_ARCHIVE_NAME }}
-          path: ./guppyscreen-${{ env.GUPPY_ARCHIVE_NAME }}
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: set guppyscreen version
+    - run: |
+        chmod +x ./version.sh
+        ./version.sh >> $GITHUB_ENV
+
+    - name: patch lv_drivers
+      run: |
+        git apply ../patches/0001-lv_driver_fb_ioctls.patch
+      working-directory: ./lv_drivers
+
+    - name: patch fmt in spdlog
+      run: |
+        git apply ../patches/0002-spdlog_fmt_initializer_list.patch
+      working-directory: ./spdlog
+
+    - name: make wpaclient
+      run: make wpaclient
+
+    - name: make libhv
+      run: make libhv.a
+
+    - name: make guppyscreen
+      run: make -j
+
+    - name: package release
+    - run: |
+        chmod +x ./release.sh
+        ./release.sh >> $GITHUB_ENV
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: guppyscreen-${{ env.GUPPY_ARCHIVE_NAME }}
+        path: ./guppyscreen-${{ env.GUPPY_ARCHIVE_NAME }}
