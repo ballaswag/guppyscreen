@@ -11,6 +11,7 @@
 #include "fan_panel.h"
 #include "led_panel.h"
 #include "print_panel.h"
+#include "macros_panel.h"
 #include "console_panel.h"
 #include "printertune_panel.h"
 #include "setting_panel.h"
@@ -90,6 +91,8 @@ class MainPanel : public NotifyConsumer {
   PrintPanel print_panel;
   lv_obj_t *tabview;
   lv_obj_t *main_tab;
+  lv_obj_t *macros_tab;
+  MacrosPanel macros_panel;
   lv_obj_t *console_tab;
   ConsolePanel console_panel;
   lv_obj_t *printertune_tab;

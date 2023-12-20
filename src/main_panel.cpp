@@ -14,6 +14,7 @@ LV_IMG_DECLARE(fan);
 LV_IMG_DECLARE(heater);
 
 LV_FONT_DECLARE(materialdesign_font_40);
+#define MACROS_SYMBOL "\xF3\xB1\xB2\x83"
 #define CONSOLE_SYMBOL "\xF3\xB0\x86\x8D"
 #define TUNE_SYMBOL "\xF3\xB1\x95\x82"
 #define HOME_SYMBOL "\xF3\xB0\x8B\x9C"
@@ -31,6 +32,8 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , print_panel(ws, lock, ps)
   , tabview(lv_tabview_create(lv_scr_act(), LV_DIR_LEFT, 60))
   , main_tab(lv_tabview_add_tab(tabview, HOME_SYMBOL))
+  , macros_tab(lv_tabview_add_tab(tabview, MACROS_SYMBOL))
+  , macros_panel(ws, lock, macros_tab)
   , console_tab(lv_tabview_add_tab(tabview, CONSOLE_SYMBOL))
   , console_panel(ws, lock, console_tab)
   , printertune_tab(lv_tabview_add_tab(tabview, TUNE_SYMBOL))
@@ -93,6 +96,9 @@ void MainPanel::init(json &j) {
       el.second->update_value(value);
     }
   }
+
+  macros_panel.populate();
+  
 }
 
 void MainPanel::consume(json &j) {  
@@ -135,6 +141,7 @@ void MainPanel::create_panel() {
   lv_obj_set_style_text_font(lv_scr_act(), LV_FONT_DEFAULT, 0);
 
   lv_obj_set_style_pad_all(main_tab, 0, 0);
+  lv_obj_set_style_pad_all(macros_tab, 0, 0);
   lv_obj_set_style_pad_all(console_tab, 0, 0);
   lv_obj_set_style_pad_all(printertune_tab, 0, 0);
   lv_obj_set_style_pad_all(setting_tab, 0, 0);
