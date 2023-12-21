@@ -237,8 +237,10 @@ static void hal_init(void) {
     spdlog::debug("resolution {} x {}", width, height);
     disp_drv.hor_res    = width;
     disp_drv.ver_res    = height;
-    // disp_drv.sw_rotate = 1;
-    // disp_drv.rotated = LV_DISP_ROT_270;
+#ifdef GUPPY_ROTATE
+    disp_drv.sw_rotate = 1;
+    disp_drv.rotated = LV_DISP_ROT_270;
+#endif
     lv_disp_drv_register(&disp_drv);
 
     evdev_init();
