@@ -82,3 +82,31 @@ The following attributes need to be configured in `guppyconfig.json`
 ```
 
 Note: Guppy Screen currently requires running as `root` because it directly interacts with wpa_supplicant.
+
+### Virtual Klipper
+
+It is possible to use https://github.com/mainsail-crew/virtual-klipper-printer to start a virtual printer locally
+to make local testing and development easier.   You will need to install docker-ce and docker-compose locally.   
+
+#### Install Docker and Docker Compose
+
+You can follow the instructions to get docker and docker-compose setup on Ubuntu:
+https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
+
+1. `sudo apt-get update && sudo apt-get install ca-certificates curl gnupg`
+2. `sudo install -m 0755 -d /etc/apt/keyrings`
+3. `curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg`
+4. `sudo chmod a+r /etc/apt/keyrings/docker.gpg`
+3. `echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null`
+4. `sudo apt-get update`
+5. `sudo apt-get install docker-ce docker-compose docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`
+6. `sudo usermod -a -G docker $USER`
+
+In order to use docker without `sudo`, you will need to logout and back in so that the `docker` group assignment takes effect.
+
+#### Build and Start
+
+1. `git clone https://github.com/mainsail-crew/virtual-klipper-printer.git && cd virtual-klipper-printer.git`
+2. `docker-compose -d up`
+
+You can now configure the guppyconfig.json `moonraker_host` to be `127.0.0.1` and `moonraker_port` to be 7125
