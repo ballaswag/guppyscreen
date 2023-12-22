@@ -1,0 +1,6 @@
+/*.log
+build/
+*.d
+*.o
+*.a
+/.idea
