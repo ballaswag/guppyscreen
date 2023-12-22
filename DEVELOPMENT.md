@@ -106,7 +106,7 @@ In order to use docker without `sudo`, you will need to logout and back in so th
 
 #### Build and Start
 
-1. `git clone https://github.com/mainsail-crew/virtual-klipper-printer.git && cd virtual-klipper-printer.git`
-2. `docker-compose -d up`
+1. `git clone https://github.com/mainsail-crew/virtual-klipper-printer.git && cd virtual-klipper-printer`
+2. `docker-compose up -d`
 
 You can now configure the guppyconfig.json `moonraker_host` to be `127.0.0.1` and `moonraker_port` to be 7125
