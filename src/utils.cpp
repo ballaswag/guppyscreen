@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <experimental/filesystem>
+#include <regex>
 
 namespace fs = std::experimental::filesystem;
 
@@ -217,5 +218,53 @@ namespace KUtils {
 
   size_t bytes_to_mb(size_t s) {
     return s / 1024 / 1024;
+  }
+
+  std::map<std::string, std::map<std::string, std::string>> parse_macros(json &m) {
+
+    std::map<std::string, std::map<std::string, std::string>> macros;
+    
+    std::regex param_regex(R"(params\.(\w+)(.*))", std::regex_constants::icase);
+    std::regex default_value_regex(R"(\|\s*default\s*\(\s*((["'])(?:\\.|(?!\2)[^])*\2|-?[0-9][^,)]*))",
+				   std::regex_constants::icase);
+    for (auto &el : m.items()) {
+      std::string key = el.key();
+      if (key.rfind("gcode_macro ", 0) == 0) {
+	auto &gcode = el.value()["/gcode"_json_pointer];
+	if (!gcode.is_null()) {
+
+	  auto macro_split = split(el.key(), ' ');
+	  if (macro_split.size() > 1 && macro_split[1].rfind("_", 0) != 0) {
+	    std::string macro_name = macro_split[1];
+	    
+	    const auto &gcode_str = gcode.template get<std::string>();
+	    auto param_begin = 
+	      std::sregex_iterator(gcode_str.begin(), gcode_str.end(), param_regex);
+	    auto param_end = std::sregex_iterator();
+
+	    std::map<std::string, std::string> macro_params;
+	    for (std::sregex_iterator i = param_begin; i != param_end; ++i) {
+	      std::smatch match = *i;
+	      std::string param_name = match.str(1);
+	      std::string rest = match.str(2);
+	      std::smatch matches;
+	      std::string default_value = "";
+
+	      spdlog::debug("macro: {}, param; {}, rest: {}", macro_name, param_name, rest);
+
+	      if (std::regex_search(rest, matches, default_value_regex)) {
+		default_value = matches.str(1);
+	      }
+
+	      macro_params.insert({param_name, default_value});
+	    }
+	    macros.insert({macro_name, macro_params});
+	  }
+	}
+      }
+    }
+
+    return macros;
+
   }
 }

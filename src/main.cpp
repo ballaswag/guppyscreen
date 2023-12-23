@@ -24,16 +24,17 @@ static void hal_init(void);
 #include "websocket_client.h"
 #include "notify_consumer.h"
 #include "main_panel.h"
-#include "print_status_panel.h"
 #include "spoolman_panel.h"
 #include "init_panel.h"
 #include "state.h"
+#include "hv/hlog.h"
 #include "hv/json.hpp"
 #include "config.h"
 #include "bedmesh_panel.h"
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/sinks/stdout_sinks.h"
+
 #include <mutex>
 #include <vector>
 #include <atomic>
@@ -73,6 +74,8 @@ std::atomic_bool is_sleeping(false);
 
 int main(void)
 {
+    hlog_disable();
+
     // config
     Config *conf = Config::get_instance();
     spdlog::debug("current path {}", std::string(fs::canonical("/proc/self/exe").parent_path()));
@@ -134,14 +137,12 @@ int main(void)
     /// preregister state to consume subscriptions
     ws.register_notify_update(State::get_instance());
 
-    PrintStatusPanel print_status(ws, lv_lock);
     SpoolmanPanel spoolman_panel(ws, lv_lock);
-    MainPanel main_panel(ws, lv_lock, print_status, spoolman_panel);
+    MainPanel main_panel(ws, lv_lock, spoolman_panel);
     main_panel.create_panel();
 
     InitPanel init_panel(main_panel,
 			 main_panel.get_tune_panel().get_bedmesh_panel(),
-			 print_status,
 			 lv_lock);
 
     std::string ws_url = fmt::format("ws://{}:{}/websocket",

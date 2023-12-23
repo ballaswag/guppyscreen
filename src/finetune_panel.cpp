@@ -36,6 +36,8 @@ FineTunePanel::FineTunePanel(KWebSocketClient &websocket_client, std::mutex &l)
   , speed_factor(panel_cont, &speed_up_img, 150, 20, 15 ,"100%")
   , flow_factor(panel_cont, &flow_up_img, 150, 20, 15, "100%")
 {
+  lv_obj_move_background(panel_cont);
+  
   lv_obj_set_size(panel_cont, LV_PCT(100), LV_PCT(100));
   lv_obj_clear_flag(panel_cont, LV_OBJ_FLAG_SCROLLABLE);
 

@@ -57,6 +57,11 @@ void Config::init(const std::string config_path) {
     }
   };
 
+  json default_macros_conf = {
+    {"load_filament", "LOAD_MATERIAL"},
+    {"unload_filament", "QUIT_MATERIAL"}
+  };
+
   if (stat(config_path.c_str(), &buffer) == 0) {
     data = json::parse(std::fstream(config_path));
 
@@ -73,7 +78,8 @@ void Config::init(const std::string config_path) {
 	      {"moonraker_port", 7125},
 	      {"display_sleep_sec", 600},
 	      {"monitored_sensors", sensors_conf},
-	      {"fans", fans_conf}
+	      {"fans", fans_conf},
+	      {"default_macros", default_macros_conf}
 	    }
 	  }}
       }
@@ -94,6 +100,11 @@ void Config::init(const std::string config_path) {
   auto &fans = data[json::json_pointer(df() + "fans")];
   if (fans.is_null()) {
     data[json::json_pointer(df() + "fans")] = fans_conf;
+  }
+
+  auto &default_macros = data[json::json_pointer(df() + "default_macros")];
+  if (default_macros.is_null()) {
+    data[json::json_pointer(df() + "default_macros")] = default_macros_conf;
   }
 
   std::ofstream o(config_path);

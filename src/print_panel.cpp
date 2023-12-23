@@ -41,6 +41,7 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   , sorted_by(SORTED_BY_MODIFIED)
 {
   spdlog::trace("building print panel");
+  lv_obj_move_background(files_cont);
 
   lv_obj_set_size(files_cont, LV_PCT(100), LV_PCT(100));
   lv_obj_clear_flag(files_cont, LV_OBJ_FLAG_SCROLLABLE);

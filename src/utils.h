@@ -42,6 +42,8 @@ namespace KUtils {
     std::sort(out_vect.begin(), out_vect.end(), sorter);
   };
 
+  std::map<std::string, std::map<std::string, std::string>> parse_macros(json &m);
+
 };
 
 #endif // __K_UTILS_H__

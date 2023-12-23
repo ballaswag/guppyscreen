@@ -24,6 +24,8 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   , belts_calibration_btn(cont, &inputshaper_img, "Belts/Resonate", &PrinterTunePanel::_handle_callback, this)
 #endif
 {
+  lv_obj_move_background(cont);
+
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(cont, LV_PCT(100), LV_PCT(100));
 
