@@ -250,7 +250,7 @@ namespace KUtils {
 	      std::smatch matches;
 	      std::string default_value = "";
 
-	      spdlog::debug("macro: {}, param; {}, rest: {}", macro_name, param_name, rest);
+	      spdlog::trace("macro: {}, param; {}, rest: {}", macro_name, param_name, rest);
 
 	      if (std::regex_search(rest, matches, default_value_regex)) {
 		default_value = matches.str(1);

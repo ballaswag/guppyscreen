@@ -47,6 +47,7 @@ class MacroItem {
   lv_obj_t *cont;
   lv_obj_t *top_cont;
   lv_obj_t *macro_label;
+  lv_obj_t *hide_show_cont;
   lv_obj_t *hide_show;
   lv_obj_t *kb;
   bool hidden;

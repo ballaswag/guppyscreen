@@ -12,7 +12,8 @@ MacroItem::MacroItem(KWebSocketClient &c,
   , cont(lv_obj_create(parent))
   , top_cont(lv_obj_create(cont))
   , macro_label(lv_label_create(top_cont))
-  , hide_show(lv_label_create(top_cont))
+  , hide_show_cont(lv_obj_create(top_cont))
+  , hide_show(lv_label_create(hide_show_cont))
   , kb(keyboard)
   , hidden(hide)
   , always_visible(false)
@@ -33,10 +34,12 @@ MacroItem::MacroItem(KWebSocketClient &c,
   lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW_WRAP);
   lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-  lv_obj_set_style_border_side(cont, LV_BORDER_SIDE_LEFT | LV_BORDER_SIDE_RIGHT | LV_BORDER_SIDE_TOP,
-			       LV_PART_MAIN);  
+  lv_obj_set_style_border_side(cont, LV_BORDER_SIDE_TOP, LV_PART_MAIN);  
 
   lv_obj_set_style_border_width(cont, 2, 0);
+  lv_obj_clear_flag(hide_show_cont, LV_OBJ_FLAG_SCROLLABLE);
+  
+  lv_obj_center(hide_show);
 
   if (hidden) {
     lv_label_set_text(hide_show, "    " LV_SYMBOL_EYE_OPEN "    ");
@@ -46,9 +49,10 @@ MacroItem::MacroItem(KWebSocketClient &c,
     lv_obj_set_style_text_color(hide_show, lv_color_white(), LV_PART_MAIN);
   }
 
-  lv_obj_align(hide_show, LV_ALIGN_LEFT_MID, 0, 0);
-  lv_obj_add_flag(hide_show, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_add_event_cb(hide_show, &MacroItem::_handle_hide_show, LV_EVENT_CLICKED, this);
+  lv_obj_align(hide_show_cont, LV_ALIGN_LEFT_MID, 0, 0);
+  lv_obj_set_size(hide_show_cont, 60, LV_PCT(100));
+  lv_obj_add_flag(hide_show_cont, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(hide_show_cont, &MacroItem::_handle_hide_show, LV_EVENT_CLICKED, this);
 
   lv_label_set_text(macro_label, macro_name.c_str());
   lv_obj_align(macro_label, LV_ALIGN_LEFT_MID, 65, 0);
@@ -153,7 +157,7 @@ void MacroItem::handle_send_macro(lv_event_t *e) {
 void MacroItem::handle_hide_show(lv_event_t *e) {
   lv_event_code_t code = lv_event_get_code(e);
   if (code == LV_EVENT_CLICKED) {
-    spdlog::debug("macro item hide/show");
+    spdlog::trace("macro item hide/show");
     std::string key = fmt::format("macros.settings.{}", lv_label_get_text(macro_label));
 
     json h = {
