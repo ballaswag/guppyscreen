@@ -7,13 +7,12 @@
 #include <algorithm>
 #include <cstdio>
 
-InitPanel::InitPanel(MainPanel &mp, BedMeshPanel &bmp, PrintStatusPanel &pstatus, std::mutex& l)
+InitPanel::InitPanel(MainPanel &mp, BedMeshPanel &bmp, std::mutex& l)
   : cont(lv_obj_create(lv_scr_act()))
   , label_cont(lv_obj_create(cont))
   , label(lv_label_create(label_cont))
   , main_panel(mp)
   , bedmesh_panel(bmp)
-  , print_status_panel(pstatus)
   , lv_lock(l)
 {
   lv_obj_set_size(cont, LV_PCT(100), LV_PCT(100));
@@ -54,6 +53,13 @@ void InitPanel::connected(KWebSocketClient &ws) {
 	};
 	ws.send_jsonrpc("server.database.get_item", h,
 			[](json& j) { State::get_instance()->set_data("console", j, "/result/value"); });
+
+	h = {
+	  { "namespace", "guppyscreen" }
+	};
+	ws.send_jsonrpc("server.database.get_item", h,
+			[](json& j) { State::get_instance()->set_data("guppysettings", j, "/result/value"); });	
+
 	// console
 	this->main_panel.subscribe();
 
@@ -100,9 +106,6 @@ void InitPanel::connected(KWebSocketClient &ws) {
 			    this->main_panel.init(data);
 			    this->bedmesh_panel.refresh_views_with_lock(
 									data["/result/status/bed_mesh"_json_pointer]);
-			    auto fans = State::get_instance()->get_display_fans();
-			    this->print_status_panel.init(fans);
-
 			    spdlog::debug("done init");
 			    std::lock_guard<std::mutex> lock(this->lv_lock);
 			    lv_obj_add_flag(this->cont, LV_OBJ_FLAG_HIDDEN);

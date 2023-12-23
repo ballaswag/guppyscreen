@@ -24,7 +24,6 @@ static void hal_init(void);
 #include "websocket_client.h"
 #include "notify_consumer.h"
 #include "main_panel.h"
-#include "print_status_panel.h"
 #include "spoolman_panel.h"
 #include "init_panel.h"
 #include "state.h"
@@ -138,15 +137,12 @@ int main(void)
     /// preregister state to consume subscriptions
     ws.register_notify_update(State::get_instance());
 
-    PrintStatusPanel print_status(ws, lv_lock);
     SpoolmanPanel spoolman_panel(ws, lv_lock);
-    MainPanel main_panel(ws, lv_lock, print_status, spoolman_panel);
+    MainPanel main_panel(ws, lv_lock, spoolman_panel);
     main_panel.create_panel();
-
 
     InitPanel init_panel(main_panel,
 			 main_panel.get_tune_panel().get_bedmesh_panel(),
-			 print_status,
 			 lv_lock);
 
     std::string ws_url = fmt::format("ws://{}:{}/websocket",

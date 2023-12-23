@@ -6,6 +6,7 @@
 #include "button_container.h"
 #include "image_label.h"
 #include "finetune_panel.h"
+#include "mini_print_status.h"
 #include "lvgl/lvgl.h"
 
 #include <mutex>
@@ -15,7 +16,7 @@
 class PrintStatusPanel : public NotifyConsumer {
  public:
   /* PrintStatusPanel(KWebSocketClient &ws, std::mutex &lock, json &j); */
-  PrintStatusPanel(KWebSocketClient &ws, std::mutex &lock);
+  PrintStatusPanel(KWebSocketClient &ws, std::mutex &lock, lv_obj_t *mini_parent);
   ~PrintStatusPanel();
 
   void init(json &fans);
@@ -42,6 +43,7 @@ class PrintStatusPanel : public NotifyConsumer {
  private:
   KWebSocketClient &ws;
   FineTunePanel finetune_panel;
+  MiniPrintStatus mini_print_status;
   lv_obj_t *status_cont;
   lv_obj_t *buttons_cont;
   ButtonContainer finetune_btn;

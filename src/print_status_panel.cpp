@@ -25,10 +25,12 @@ LV_IMG_DECLARE(back);
 constexpr double pi() { return std::atan(1)*4; }
 
 PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
-				   std::mutex &lock)
+				   std::mutex &lock,
+				   lv_obj_t *mini_parent)
   : NotifyConsumer(lock)
   , ws(websocket_client)
   , finetune_panel(websocket_client, lock)
+  , mini_print_status(mini_parent, &PrintStatusPanel::_handle_callback, this)
   , status_cont(lv_obj_create(lv_scr_act()))
   , buttons_cont(lv_obj_create(status_cont))
   , finetune_btn(buttons_cont, &fine_tune_img, "Fine Tune", &PrintStatusPanel::_handle_callback, this)
@@ -61,7 +63,7 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   , cur_layer(-1)
   , total_layer(-1)
 {
-
+  lv_obj_move_background(status_cont);
   lv_obj_clear_flag(status_cont, LV_OBJ_FLAG_SCROLLABLE);  
   lv_obj_set_size(status_cont, LV_PCT(100), LV_PCT(100));
 
@@ -156,6 +158,8 @@ void PrintStatusPanel::reset() {
   flow = 0.0;
   extruder_target = -1;
   heater_bed_target = -1;
+
+  mini_print_status.reset();
 }
 
 void PrintStatusPanel::init(json &fans) {
@@ -182,6 +186,20 @@ void PrintStatusPanel::init(json &fans) {
   }
 
   fan0.update_label(fmt::format("{}", fmt::join(values, ", ")).c_str());
+
+  populate();
+  json &pstat_state = State::get_instance()
+    ->get_data("/printer_state/print_stats/state"_json_pointer);
+  if (!pstat_state.is_null()) {
+    auto pstatus = pstat_state.template get<std::string>();
+    if (pstatus != "printing" && pstatus != "paused") {
+      mini_print_status.hide();
+    }
+    mini_print_status.update_status(pstatus);
+  } else {
+    mini_print_status.show();
+  }
+  
 }
 
 void PrintStatusPanel::populate() {
@@ -194,6 +212,8 @@ void PrintStatusPanel::populate() {
       json fname_input = {{"filename", fname }};
       ws.send_jsonrpc("server.files.metadata", fname_input,
 		      [fname, this](json &d) { this->handle_metadata(fname, d); });
+
+      mini_print_status.show();
     }
   }
 
@@ -204,6 +224,18 @@ void PrintStatusPanel::populate() {
   } else {
     lv_obj_add_flag(resume_btn.get_container(), LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(pause_btn.get_container(), LV_OBJ_FLAG_HIDDEN);
+  }
+
+  // progress percentage
+  auto v = s->get_data("/printer_state/virtual_sdcard/progress"_json_pointer);
+  if (!v.is_null()) {
+    int cur_value = (int)lv_bar_get_value(progress_bar);
+    int new_value = static_cast<int>(v.template get<double>() * 100);
+    if (new_value >= cur_value + 1) {
+      lv_bar_set_value(progress_bar, new_value, LV_ANIM_ON);
+      lv_label_set_text(progress_label, fmt::format("{}%", new_value).c_str());
+      mini_print_status.update_progress(new_value);
+    }
   }
 }
 
@@ -227,8 +259,10 @@ void PrintStatusPanel::handle_metadata(const std::string &gcode_file, json &j) {
   if (fullpath.length() > 0) {
     spdlog::trace("thumb path: {}", fullpath);
     std::lock_guard<std::mutex> lock(lv_lock);
-    lv_img_set_src(thumbnail, ("A:" + fullpath).c_str());
+    const std::string img_path = "A:" + fullpath;
+    lv_img_set_src(thumbnail, img_path.c_str());
     lv_img_set_zoom(thumbnail, 230);
+    mini_print_status.update_img(img_path);
   }
 }
 
@@ -242,6 +276,16 @@ void PrintStatusPanel::consume(json &j) {
     // populate();
     reset();
     foreground(); // auto move to front when print is detected
+  }
+
+  auto& pstate = j["/params/0/print_stats/state"_json_pointer];
+  if (!pstate.is_null()) {
+    auto print_status = pstate.template get<std::string>();
+    if (print_status != "printing" && print_status != "paused") {
+      mini_print_status.hide();
+    }
+
+    mini_print_status.update_status(print_status);
   }
 
   auto v = j["/params/0/extruder/target"_json_pointer];
@@ -328,6 +372,7 @@ void PrintStatusPanel::consume(json &j) {
     if (new_value >= cur_value + 1) {
       lv_bar_set_value(progress_bar, new_value, LV_ANIM_ON);
       lv_label_set_text(progress_label, fmt::format("{}%", new_value).c_str());
+      mini_print_status.update_progress(new_value);
     }
   }
 
@@ -381,6 +426,8 @@ void PrintStatusPanel::handle_callback(lv_event_t *event) {
     ws.send_jsonrpc("printer.print.cancel");
   } else if (btn == finetune_btn.get_button()) {
     finetune_panel.foreground();
+  } else if (btn == mini_print_status.get_container()) {
+    foreground();
   }
 }
 
@@ -390,8 +437,9 @@ void PrintStatusPanel::update_time_progress(uint32_t time_passed) {
       // XXX: better estimate
       time_left.update_label("...");
     } else {
-      // XXX: human readable
-      time_left.update_label(KUtils::eta_string(remaining).c_str());
+      auto eta_str = KUtils::eta_string(remaining);
+      time_left.update_label(eta_str.c_str());
+      mini_print_status.update_eta(eta_str);
     }
 
     elapsed.update_label(KUtils::eta_string(time_passed).c_str());
@@ -449,6 +497,7 @@ void PrintStatusPanel::update_flow_rate(double filament_used) {
 }
 
 void PrintStatusPanel::update_layers(json &info) {
+  spdlog::debug("layers {}", info.dump());
   auto v = info["/current_layer"_json_pointer];
   int new_cur_layer = cur_layer;
   int new_total_layer = total_layer;

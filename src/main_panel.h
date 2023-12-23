@@ -27,7 +27,6 @@ class MainPanel : public NotifyConsumer {
  public:
   MainPanel(KWebSocketClient &ws,
 	    std::mutex &lv_lock,
-	    PrintStatusPanel &ps,
 	    SpoolmanPanel &sm);
 
   ~MainPanel();
@@ -88,7 +87,6 @@ class MainPanel : public NotifyConsumer {
   HomingPanel homing_panel;
   FanPanel fan_panel;
   LedPanel led_panel;
-  PrintPanel print_panel;
   lv_obj_t *tabview;
   lv_obj_t *main_tab;
   lv_obj_t *macros_tab;
@@ -96,10 +94,12 @@ class MainPanel : public NotifyConsumer {
   lv_obj_t *console_tab;
   ConsolePanel console_panel;
   lv_obj_t *printertune_tab;
-  PrinterTunePanel printertune_panel;
   lv_obj_t *setting_tab;
   SettingPanel setting_panel;
   lv_obj_t *main_cont;
+  PrintStatusPanel print_status_panel;
+  PrintPanel print_panel;
+  PrinterTunePanel printertune_panel;
   Numpad numpad;
   ExtruderPanel extruder_panel;
   SpoolmanPanel &spoolman_panel;

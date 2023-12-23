@@ -1,4 +1,5 @@
 #include "main_panel.h"
+#include "state.h"
 #include "lvgl/lvgl.h"
 #include "spdlog/spdlog.h"
 
@@ -22,14 +23,12 @@ LV_FONT_DECLARE(materialdesign_font_40);
 
 MainPanel::MainPanel(KWebSocketClient &websocket,
 		     std::mutex &lock,
-		     PrintStatusPanel &ps,
 		     SpoolmanPanel &sm)
   : NotifyConsumer(lock)
   , ws(websocket)
   , homing_panel(ws, lock)
   , fan_panel(ws, lock)
   , led_panel(ws, lock)    
-  , print_panel(ws, lock, ps)
   , tabview(lv_tabview_create(lv_scr_act(), LV_DIR_LEFT, 60))
   , main_tab(lv_tabview_add_tab(tabview, HOME_SYMBOL))
   , macros_tab(lv_tabview_add_tab(tabview, MACROS_SYMBOL))
@@ -37,10 +36,12 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , console_tab(lv_tabview_add_tab(tabview, CONSOLE_SYMBOL))
   , console_panel(ws, lock, console_tab)
   , printertune_tab(lv_tabview_add_tab(tabview, TUNE_SYMBOL))
-  , printertune_panel(ws, lock, printertune_tab, ps.get_finetune_panel())
   , setting_tab(lv_tabview_add_tab(tabview, SETTING_SYMBOL))
   , setting_panel(websocket, lock, setting_tab, sm)
   , main_cont(lv_obj_create(main_tab))
+  , print_status_panel(websocket, lock, main_cont)
+  , print_panel(ws, lock, print_status_panel)
+  , printertune_panel(ws, lock, printertune_tab, print_status_panel.get_finetune_panel())
   , numpad(Numpad(main_cont))
   , extruder_panel(ws, lock, numpad, sm)
   , spoolman_panel(sm)
@@ -98,7 +99,9 @@ void MainPanel::init(json &j) {
   }
 
   macros_panel.populate();
-  
+
+  auto fans = State::get_instance()->get_display_fans();
+  print_status_panel.init(fans);
 }
 
 void MainPanel::consume(json &j) {  
@@ -116,7 +119,7 @@ void MainPanel::consume(json &j) {
       el.second->update_series(value);
       el.second->update_value(value);
     }
-  }
+  }  
 }
 
 static void scroll_begin_event(lv_event_t * e)
@@ -147,6 +150,7 @@ void MainPanel::create_panel() {
   lv_obj_set_style_pad_all(setting_tab, 0, 0);
 
   create_main(main_tab);
+  
 }
 
 void MainPanel::handle_homing_cb(lv_event_t *event) {

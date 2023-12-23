@@ -33,10 +33,14 @@ class ExtruderPanel : public NotifyConsumer {
   Selector temp_selector;
   Selector length_selector;
   Selector speed_selector;
+  ButtonContainer load_btn;
+  ButtonContainer unload_btn;
   ButtonContainer spoolman_btn;
   ButtonContainer extrude_btn;
   ButtonContainer retract_btn;
   ButtonContainer back_btn;
+  std::string load_filament_macro;
+  std::string unload_filament_macro;
 };
 
 #endif // __EXTRUDER_PANEL_H__
