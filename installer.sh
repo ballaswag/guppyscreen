@@ -5,13 +5,9 @@ green=`echo "\033[01;32m"`
 red=`echo "\033[01;31m"`
 white=`echo "\033[m"`
 
-K1_CONFIG_DIR=/usr/data/printer_data/config
 BACKUP_DIR=/usr/data/guppyify-backup
 K1_GUPPY_DIR=/usr/data/guppyscreen
 FT2FONT_PATH=/usr/lib/python3.8/site-packages/matplotlib/ft2font.cpython-38-mipsel-linux-gnu.so
-KLIPPY_EXTRA_DIR=/usr/share/klipper/klippy/extras
-GCODE_SHELL_CMD=$KLIPPY_EXTRA_DIR/gcode_shell_command.py
-SHAPER_CONFIG=$KLIPPY_EXTRA_DIR/calibrate_shaper_config.py
 
 printf "${green}=== Installing Guppy Screen === ${white}\n"
 
@@ -35,6 +31,28 @@ if [ "$MRK_KPY_OK" != "true" ]; then
 	exit 1
     fi
 fi
+
+KLIPPER_PATH=`curl localhost:7125/printer/info | jq -r .result.klipper_path`
+if [ x"$KLIPPER_PATH" == x"null" ]; then
+    KLIPPER_PATH=/usr/share/klipper
+    printf "${green} Falling back to klipper path: $KLIPPER_PATH ${white}\n"
+fi
+
+printf "${green} Found klipper path: $KLIPPER_PATH ${white}\n"
+
+KLIPPY_EXTRA_DIR=$KLIPPER_PATH/klippy/extras
+GCODE_SHELL_CMD=$KLIPPY_EXTRA_DIR/gcode_shell_command.py
+SHAPER_CONFIG=$KLIPPY_EXTRA_DIR/calibrate_shaper_config.py
+
+
+K1_CONFIG_FILE=`curl localhost:7125/printer/info | jq -r .result.config_file`
+if [ x"$K1_CONFIG_FILE" == x"null" ]; then    
+    K1_CONFIG_DIR=/usr/data/printer_data/config
+    printf "${green} Falling back to config dir: $K1_CONFIG_DIR ${white}\n"
+fi
+
+K1_CONFIG_DIR=$(dirname "$K1_CONFIG_FILE")
+printf "${green} Found config dir: $K1_CONFIG_DIR ${white}\n"
 
 ## bootstrap for ssl support
 wget -q --no-check-certificate https://raw.githubusercontent.com/ballaswag/k1-discovery/main/bin/curl -O /tmp/curl
@@ -119,6 +137,7 @@ if [ "$confirm_decreality" = "y" -o "$confirm_decreality" = "Y" ]; then
     rm /etc/init.d/S99start_app
 else
     # disables only display-server and Monitor
+    cp $K1_GUPPY_DIR/k1_mods/S99start_app /etc/init.d/S99start_app
     mv /usr/bin/Monitor /usr/bin/Monitor.disable
     mv /usr/bin/display-server /usr/bin/display-server.disable
 fi
