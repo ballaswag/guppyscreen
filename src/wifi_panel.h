@@ -4,8 +4,8 @@
 #include "wpa_event.h"
 #include "button_container.h"
 #include "lvgl/lvgl.h"
-
 #include <mutex>
+#include <string>
 
 class WifiPanel {
  public:
