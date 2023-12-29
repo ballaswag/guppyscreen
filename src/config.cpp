@@ -57,6 +57,7 @@ void Config::init(const std::string config_path) {
     }
   };
 
+  json cooldown_conf = {{ "cooldown", "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0"}};
   json default_macros_conf = {
     {"load_filament", "LOAD_MATERIAL"},
     {"unload_filament", "QUIT_MATERIAL"}
@@ -85,8 +86,6 @@ void Config::init(const std::string config_path) {
       }
     };
 
-    std::ofstream o(config_path);
-    o << std::setw(2) << data << std::endl;
   }
   
   std::string df_name = data["/default_printer"_json_pointer];
@@ -104,8 +103,19 @@ void Config::init(const std::string config_path) {
 
   auto &default_macros = data[json::json_pointer(df() + "default_macros")];
   if (default_macros.is_null()) {
+    default_macros_conf.merge_patch(cooldown_conf);
     data[json::json_pointer(df() + "default_macros")] = default_macros_conf;
+  } else {
+    if (!default_macros.contains("cooldown")) {
+      default_macros.merge_patch(cooldown_conf);
+    }
   }
+
+  auto &guppy_init = data[json::json_pointer(df() + "guppy_init_script")];
+  if (guppy_init.is_null()) {
+    data[json::json_pointer(df() + "guppy_init_script")] = "/etc/init.d/S99guppyscreen";
+  }
+  
 
   std::ofstream o(config_path);
   o << std::setw(2) << data << std::endl;

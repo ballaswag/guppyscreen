@@ -56,3 +56,7 @@ void ButtonContainer::enable() {
   lv_obj_clear_state(btn, LV_STATE_DISABLED);
   lv_obj_clear_state(label, LV_STATE_DISABLED);
 }
+
+void ButtonContainer::hide() {
+  lv_obj_add_flag(btn_cont, LV_OBJ_FLAG_HIDDEN);
+}

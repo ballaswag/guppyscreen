@@ -1,9 +1,17 @@
 #include "setting_panel.h"
+#include "config.h"
 #include "spdlog/spdlog.h"
+#include "subprocess.hpp"
+
+#include <experimental/filesystem>
+
+namespace fs = std::experimental::filesystem;
+namespace sp = subprocess;
 
 LV_IMG_DECLARE(network_img);
 LV_IMG_DECLARE(refresh_img);
 LV_IMG_DECLARE(spoolman_img);
+LV_IMG_DECLARE(update_img);
 
 #ifdef ZBOLT
 LV_IMG_DECLARE(info_img);
@@ -27,6 +35,8 @@ SettingPanel::SettingPanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent,
   , sysinfo_btn(cont, &sysinfo_img, "System Info", &SettingPanel::_handle_callback, this)
 #endif
   , spoolman_btn(cont, &spoolman_img, "Spoolman", &SettingPanel::_handle_callback, this)
+  , guppy_restart_btn(cont, &refresh_img, "Restart Guppy", &SettingPanel::_handle_callback, this)
+  , guppy_update_btn(cont, &update_img, "Update Guppy", &SettingPanel::_handle_callback, this)
 {
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(cont, LV_PCT(100), LV_PCT(100));
@@ -47,8 +57,8 @@ SettingPanel::SettingPanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent,
 
   // row 2
   lv_obj_set_grid_cell(spoolman_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-  // lv_obj_set_grid_cell(finetune_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-  // lv_obj_set_grid_cell(restart_klipper_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 1, 1);
+  lv_obj_set_grid_cell(guppy_restart_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 1, 1);
+  lv_obj_set_grid_cell(guppy_update_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 1, 1);
   // lv_obj_set_grid_cell(restart_firmware_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 1, 1);
   
 }
@@ -83,6 +93,26 @@ void SettingPanel::handle_callback(lv_event_t *event) {
     } else if (btn == spoolman_btn.get_button()) {
       spdlog::trace("setting spoolman pressed");
       spoolman_panel.foreground();
+    } else if (btn == guppy_restart_btn.get_button()) {
+      spdlog::trace("restart guppy pressed");
+      Config *conf = Config::get_instance();
+      auto init_script = conf->get<std::string>(conf->df() + "guppy_init_script");
+      const fs::path script(init_script);
+      if (fs::exists(script)) {
+	sp::call({init_script, "restart"});
+      } else {
+	spdlog::warn("Failed to restart Guppy Screen. Did not find restart script.");
+      }
+    } else if (btn == guppy_update_btn.get_button()) {
+      spdlog::trace("update guppy pressed");
+      // TODO: throw this inside the global threadpool to make it async
+      auto update_script = fs::canonical("/proc/self/exe").parent_path() / "update.sh";
+      const fs::path script(update_script);
+      if (fs::exists(script)) {
+	sp::call(script);
+      } else {
+	spdlog::warn("Failed to update Guppy Screen. Did not find update script.");
+      }
     }
   }
 }

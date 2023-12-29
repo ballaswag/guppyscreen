@@ -8,15 +8,23 @@
 #include <iomanip>
 #include <sstream>
 #include <vector>
+#include <experimental/filesystem>
+
+namespace fs = std::experimental::filesystem;
 
 FilePanel::FilePanel(lv_obj_t *parent)
   : file_cont(lv_obj_create(parent))
   , thumbnail(lv_img_create(file_cont))
+  , fname_label(lv_label_create(file_cont))
   , detail_label(lv_label_create(file_cont))
 {
   lv_obj_set_size(file_cont, LV_PCT(100), LV_PCT(100));
   lv_obj_clear_flag(file_cont, LV_OBJ_FLAG_SCROLLABLE);  
   lv_obj_align(file_cont, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_width(fname_label, LV_PCT(90));
+  lv_label_set_long_mode(fname_label, LV_LABEL_LONG_SCROLL);
+  lv_obj_set_style_text_align(fname_label, LV_TEXT_ALIGN_CENTER, 0);
+  
 
   static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(3), LV_GRID_FR(2), LV_GRID_TEMPLATE_LAST};
   static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
@@ -24,7 +32,8 @@ FilePanel::FilePanel(lv_obj_t *parent)
   lv_obj_set_grid_dsc_array(file_cont, grid_main_col_dsc, grid_main_row_dsc);
 
   lv_obj_set_grid_cell(thumbnail, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 1);
-  lv_obj_set_grid_cell(detail_label, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_START, 1, 1);
+  lv_obj_set_grid_cell(fname_label, LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 1, 1);
+  lv_obj_set_grid_cell(detail_label, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 1, 1);
 }
 
 FilePanel::~FilePanel() {
@@ -49,6 +58,9 @@ void FilePanel::refresh_view(json &j, const std::string &gcode_path) {
   int eta =  v.is_null() ? -1 : v.template get<int>();
   v = j["/result/filament_weight_total"_json_pointer];
   int fweight = v.is_null() ? -1 : v.template get<int>();
+
+  auto filename = fs::path(gcode_path).filename();
+  lv_label_set_text(fname_label, filename.string().c_str());
   
   std::string detail = fmt::format("Filament Weight: {} g\nPrint Time: {}\nSize: {} MB\nModified: {}",
 				   fweight > 0 ? std::to_string(fweight) : "(unknown)",

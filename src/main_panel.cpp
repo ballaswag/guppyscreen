@@ -102,6 +102,7 @@ void MainPanel::init(json &j) {
 
   auto fans = State::get_instance()->get_display_fans();
   print_status_panel.init(fans);
+  printertune_panel.init(j);
 }
 
 void MainPanel::consume(json &j) {  

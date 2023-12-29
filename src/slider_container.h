@@ -4,6 +4,8 @@
 #include "lvgl/lvgl.h"
 #include "button_container.h"
 
+#include <string>
+
 class SliderContainer {
  public:
   SliderContainer(lv_obj_t *parent,
@@ -19,6 +21,16 @@ class SliderContainer {
 		  const char *label_text,
 		  const void *off_bnt_img,
 		  const char *off_text,
+		  const void *max_bnt_img,
+		  const char *max_text,
+		  lv_event_cb_t cb,
+		  void *user_data,
+		  std::string u);
+
+  SliderContainer(lv_obj_t *parent,
+		  const char *label_text,
+		  const void *off_bnt_img,
+		  const char *off_text,
 		  lv_event_cb_t off_cb,
 		  void * off_cb_user_data,
 		  const void *max_bnt_img,
@@ -26,12 +38,15 @@ class SliderContainer {
 		  lv_event_cb_t max_cb,
 		  void * max_cb_user_data,
 		  lv_event_cb_t slider_cb,
-		  void * slider_user_data);
+		  void * slider_user_data,
+		  std::string u);
   ~SliderContainer();
   lv_obj_t *get_container();
   lv_obj_t *get_slider();
   lv_obj_t *get_off();
   lv_obj_t *get_max();
+
+  void set_range(int min_range, int max_range);
 
   void update_value(int value);
 
@@ -50,6 +65,7 @@ class SliderContainer {
   lv_obj_t *slider_value;
   ButtonContainer off_btn;
   ButtonContainer max_btn;
+  std::string unit;
 };
 
 #endif // __SLIDER_CONTAINER_H__

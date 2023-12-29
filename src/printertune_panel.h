@@ -2,6 +2,7 @@
 #define __PRINTERTUNE_PANEL_H__
 
 #include "finetune_panel.h"
+#include "limits_panel.h"
 #include "bedmesh_panel.h"
 #include "inputshaper_panel.h"
 #include "belts_calibration_panel.h"
@@ -16,6 +17,7 @@ class PrinterTunePanel {
 
   lv_obj_t *get_container();
   BedMeshPanel &get_bedmesh_panel();
+  void init(json &j);
   void handle_callback(lv_event_t *event);
 
   static void _handle_callback(lv_event_t *event) {
@@ -27,12 +29,14 @@ class PrinterTunePanel {
   lv_obj_t *cont;
   BedMeshPanel bedmesh_panel;
   FineTunePanel &finetune_panel;
+  LimitsPanel limits_panel;
   InputShaperPanel inputshaper_panel;
   BeltsCalibrationPanel belts_calibration_panel;
   ButtonContainer bedmesh_btn;  
   ButtonContainer finetune_btn;
   ButtonContainer inputshaper_btn;
   ButtonContainer belts_calibration_btn;
+  ButtonContainer limits_btn;
   
 };
 

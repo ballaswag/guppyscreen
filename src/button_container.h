@@ -16,6 +16,7 @@ class ButtonContainer {
   lv_obj_t *get_button();
   void disable();
   void enable();
+  void hide();
 
  private:
   lv_obj_t *btn_cont;

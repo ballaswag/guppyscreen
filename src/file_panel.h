@@ -22,6 +22,7 @@ class FilePanel {
  private:
   lv_obj_t *file_cont;
   lv_obj_t *thumbnail;
+  lv_obj_t *fname_label;
   lv_obj_t *detail_label;
 };
 

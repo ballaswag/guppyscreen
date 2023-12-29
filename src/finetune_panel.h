@@ -17,6 +17,7 @@ class FineTunePanel : public NotifyConsumer {
   void foreground();
   void handle_callback(lv_event_t *event);
   void handle_zoffset(lv_event_t *event);
+  void handle_pa(lv_event_t *event);
   void handle_speed(lv_event_t *event);
   void handle_flow(lv_event_t *event);
 
@@ -32,6 +33,11 @@ class FineTunePanel : public NotifyConsumer {
     panel->handle_zoffset(event);
   };
 
+  static void _handle_pa(lv_event_t *event) {
+    FineTunePanel *panel = (FineTunePanel*)event->user_data;
+    panel->handle_pa(event);
+  };
+
   static void _handle_speed(lv_event_t *event) {
     FineTunePanel *panel = (FineTunePanel*)event->user_data;
     panel->handle_speed(event);
@@ -45,9 +51,13 @@ class FineTunePanel : public NotifyConsumer {
  private:
   KWebSocketClient &ws;
   lv_obj_t *panel_cont;
+  lv_obj_t *values_cont;
   ButtonContainer zreset_btn;
   ButtonContainer zup_btn;
   ButtonContainer zdown_btn;
+  ButtonContainer pareset_btn;
+  ButtonContainer paup_btn;
+  ButtonContainer padown_btn;
   ButtonContainer speed_reset_btn;
   ButtonContainer speed_up_btn;
   ButtonContainer speed_down_btn;  
@@ -58,6 +68,7 @@ class FineTunePanel : public NotifyConsumer {
   Selector zoffset_selector;
   Selector multipler_selector;
   ImageLabel z_offset;
+  ImageLabel pa;
   ImageLabel speed_factor;
   ImageLabel flow_factor;
 };

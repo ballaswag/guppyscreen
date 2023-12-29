@@ -21,6 +21,7 @@ class SysInfoPanel {
   lv_obj_t *cont;
   lv_obj_t *network_label;
   ButtonContainer back_btn;
+  
 };
 
 #endif //__SYSINFO_PANEL_H__

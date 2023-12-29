@@ -4,6 +4,7 @@
 LV_IMG_DECLARE(bedmesh_img);
 LV_IMG_DECLARE(fine_tune_img);
 LV_IMG_DECLARE(inputshaper_img);
+LV_IMG_DECLARE(limit_img);
 
 #ifndef ZBOLT
 LV_IMG_DECLARE(belts_calibration_img);
@@ -13,6 +14,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   : cont(lv_obj_create(parent))
   , bedmesh_panel(c, l)
   , finetune_panel(finetune)
+  , limits_panel(c, l)
   , inputshaper_panel(c, l)
   , belts_calibration_panel(c, l)
   , bedmesh_btn(cont, &bedmesh_img, "Bed Mesh", &PrinterTunePanel::_handle_callback, this)
@@ -23,6 +25,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
 #else
   , belts_calibration_btn(cont, &inputshaper_img, "Belts/Resonate", &PrinterTunePanel::_handle_callback, this)
 #endif
+  , limits_btn(cont, &limit_img, "Limits", &PrinterTunePanel::_handle_callback, this)
 {
   lv_obj_move_background(cont);
 
@@ -42,7 +45,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   lv_obj_set_grid_cell(belts_calibration_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 0, 1);
 
   // row 2
-  // lv_obj_set_grid_cell(bedmesh_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 1, 1);
+  lv_obj_set_grid_cell(limits_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 1, 1);
   // lv_obj_set_grid_cell(finetune_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 1, 1);
   // lv_obj_set_grid_cell(restart_klipper_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 1, 1);
   // lv_obj_set_grid_cell(restart_firmware_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 1, 1);
@@ -63,6 +66,10 @@ BedMeshPanel& PrinterTunePanel::get_bedmesh_panel() {
   return bedmesh_panel;
 }
 
+void PrinterTunePanel::init(json &j) {
+  limits_panel.init(j);
+}
+
 void PrinterTunePanel::handle_callback(lv_event_t *event) {
   if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
     lv_obj_t *btn = lv_event_get_target(event);
@@ -79,6 +86,9 @@ void PrinterTunePanel::handle_callback(lv_event_t *event) {
     } else if (btn == belts_calibration_btn.get_button()) {
       spdlog::trace("tune belts pressed");
       belts_calibration_panel.foreground();
+    } else if (btn == limits_btn.get_button()) {
+      spdlog::trace("limits pressed");
+      limits_panel.foreground();
     }
   }
 }

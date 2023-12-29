@@ -12,6 +12,7 @@ LV_IMG_DECLARE(retract_img);
 LV_IMG_DECLARE(unload_filament_img);
 LV_IMG_DECLARE(load_filament_img);
 LV_IMG_DECLARE(extruder);
+LV_IMG_DECLARE(cooldown_img);
 
 ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
 			     std::mutex &lock,
@@ -31,12 +32,14 @@ ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
 		   {"1", "2", "5", "10", "25", "35", "50", ""}, 2, &ExtruderPanel::_handle_callback, this)
   , load_btn(panel_cont, &load_filament_img, "Load", &ExtruderPanel::_handle_callback, this)
   , unload_btn(panel_cont, &unload_filament_img, "Unload", &ExtruderPanel::_handle_callback, this)
+  , cooldown_btn(panel_cont, &cooldown_img, "Cooldown", &ExtruderPanel::_handle_callback, this)
   , spoolman_btn(panel_cont, &spoolman_img, "Spoolman", &ExtruderPanel::_handle_callback, this)
   , extrude_btn(panel_cont, &extrude_img, "Extrude", &ExtruderPanel::_handle_callback, this)
   , retract_btn(panel_cont, &retract_img, "Retract", &ExtruderPanel::_handle_callback, this)
   , back_btn(panel_cont, &back, "Back", &ExtruderPanel::_handle_callback, this)
   , load_filament_macro("LOAD_FILAMENT")
   , unload_filament_macro("UNLOAD_FILAMENT")
+  , cooldown_macro("SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0")
 {
   Config *conf = Config::get_instance();
   auto v = conf->get_json(conf->df() + "default_macros/load_filament");
@@ -47,6 +50,11 @@ ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
   v = conf->get_json(conf->df() + "default_macros/unload_filament");
   if (!v.is_null()) {
     unload_filament_macro = v.template get<std::string>();
+  }
+
+  v = conf->get_json(conf->df() + "default_macros/cooldown");
+  if (!v.is_null()) {
+    cooldown_macro = v.template get<std::string>();
   }
 
   lv_obj_move_background(panel_cont);
@@ -70,6 +78,7 @@ ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
   // lv_obj_set_grid_cell(spoolman_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_START, 0, 2);
   lv_obj_set_grid_cell(load_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_END, 0, 2);
   lv_obj_set_grid_cell(unload_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_START, 2, 2);
+  lv_obj_set_grid_cell(cooldown_btn.get_container(), LV_GRID_ALIGN_END, 0, 1, LV_GRID_ALIGN_END, 2, 2);
   
   // col 1
   // lv_obj_set_grid_cell(extruder_temp.get_sensor(), LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_CENTER, 0, 1);
@@ -172,6 +181,10 @@ void ExtruderPanel::handle_callback(lv_event_t *e) {
 
     if (btn == load_btn.get_button()) {
       ws.gcode_script(load_filament_macro);
+    }
+
+    if (btn == cooldown_btn.get_button()) {
+      ws.gcode_script(cooldown_macro);
     }
 
     if (btn == spoolman_btn.get_button()) {
