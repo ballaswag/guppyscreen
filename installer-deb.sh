@@ -104,7 +104,7 @@ echo "Found arch $ARCH, OS code name $CODENAME"
 if [ "$ARCH" = "aarch64" ] && [ "$CODENAME" = "bullseye" ]; then
     printf "${green}Installing Guppy Screen ${white}\n"
     
-    curl -s -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen-arm.tar.gz -o /tmp/guppyscreen-arm.tar.gz
+    curl -s -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen-arm.tar.gz -o /tmp/guppyscreen.tar.gz
     tar xf /tmp/guppyscreen.tar.gz -C ${HOME}
 
     has_moonraker
