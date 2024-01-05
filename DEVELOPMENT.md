@@ -17,7 +17,7 @@ The Guppy Screen uses features (filesystem) from C++17, so a gcc/g++ version (7.
 
 ### Environment Variables
 `CROSS_COMPILE` - The prefix to the toolchain architecture, e.g. `mips-linux-gnu-`
-`SIMULAUTION` - Define it to build with SDL for running on your local machine.
+`SIMULATION` - Define it to build with SDL for running on your local machine.
 `ZBOLT` - Define it to use the Z-Bolt icon set. By default the build uses the Material Design Icons.
 `GUPPYSCREEN_VERSION` - Version string displayed in the System Panel in the UI.
 
@@ -26,13 +26,13 @@ The Guppy Screen uses features (filesystem) from C++17, so a gcc/g++ version (7.
 #### Ubuntu and Debian
 For Ubuntu/Debian install build essentials and libsdl2-dev packages.
 
-`sudo apt-get install -y build-essential libsdl2-dev`
+`sudo apt-get install -y build-essential cmake libsdl2-dev`
 
 #### Arch and Derivatives
 
 For Arch and derivatives install 'base-devel' and 'sdl2' packages.
 
-`sudo pacman -S base-devel sdl2`
+`sudo pacman -S base-devel cmake sdl2`
 
 #### Mipsel Tool chain
 
@@ -53,17 +53,23 @@ Clone the guppyscreen repo (and submodules) and apply a couple of patches locall
 Building for the K1/Max
 
 1. `unset SIMULATION && export CROSS_COMPILE=mips-linux-gnu-`
-2. `make -C wpa_supplicant/wpa_supplicant/ clean && make wpaclient`
-3. `make -C libhv clean && make libhv.a`
-4. `make clean && make -j$(nproc) ### executable is in ./build/bin/guppyscreen`
+2. `make wpaclean && make wpaclient`
+3. `make libhvclean && make libhv.a`
+4. `make spdlogclean && make libspdlog.a`
+5. `make clean && make -j$(nproc)`
+
+The executable is ./build/bin/guppyscreen
 
 ### x86_64 (Intel/AMD)
 Building and running Guppy Screen on your local machine speeds up development. Changes can tested on the local machine before rebuilding for the other architectures.
 
 1. `unset CROSS_COMPILE && export SIMULATION=1`
-2. `make -C wpa_supplicant/wpa_supplicant/ clean && make wpaclient`
-3. `make -C libhv clean && make libhv.a`
-4. `make clean && make -j$(nproc) ### executable is in ./build/bin/guppyscreen`
+2. `make wpaclean && make wpaclient`
+3. `make libhvclean && make libhv.a`
+4. `make spdlogclean && make libspdlog.a`
+5. `make clean && make -j$(nproc)`
+
+The executable is ./build/bin/guppyscreen
 
 ### Simulation
 Guppy Screen default configurations (guppyconfig.json) is configured for the K1/Max. In order to run it remotely as a simulator build, a few thing needs to be setup.

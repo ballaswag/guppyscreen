@@ -126,7 +126,7 @@ cp $K1_GUPPY_DIR/k1_mods/S50dropbear /etc/init.d/S50dropbear
 
 printf "${white}=== Do you want to disable all Creality services (revertable) with GuppyScreen installation? ===\n"
 printf "${green}  Pros: Frees up system resources on your K1 for critical services such as Klipper (Recommended)\n"
-printf "${white}  Cons: Disabling all Creality services breaks Creality Cloud/Creality Slider.\n\n"
+printf "${white}  Cons: Disabling all Creality services breaks Creality Cloud/Creality Slicer.\n\n"
 printf "Disable all Creality Services? (y/n): "
 
 read confirm_decreality
