@@ -4,6 +4,9 @@
 #include "spdlog/spdlog.h"
 
 #include <memory>
+#include <experimental/filesystem>
+
+namespace fs = std::experimental::filesystem;
 
 WpaEvent::WpaEvent()
   : hv::EventLoopThread(NULL)
@@ -44,21 +47,36 @@ void WpaEvent::register_callback(const std::string &name,
 
 void WpaEvent::init_wpa() {
   // TODO: retries
+  
   std::string wpa_socket = Config::get_instance()->get<std::string>("/wpa_supplicant");
+  if (fs::is_directory(fs::status(wpa_socket))) {
+    for (const auto &e : fs::directory_iterator(wpa_socket)) {
+      if (fs::is_socket(e.path())
+	  && e.path().string().find("p2p") == std::string::npos) {
+	spdlog::debug("found wpa supplicant socket {}", e.path().string());
+	wpa_socket = e.path().string();
+	break;
+      }
+    }
+  }
+  
   if (conn == NULL) {
     conn = wpa_ctrl_open(wpa_socket.c_str());
     if (conn == NULL) {
       spdlog::trace("failed to open wpa control");
+      return;
     }
   }
   
   struct wpa_ctrl *mon_conn = wpa_ctrl_open(wpa_socket.c_str());
-  // struct wpa_ctrl *mon_conn = wpa_ctrl_open("/var/run/wpa_supplicant/wlan0");
 
   if (mon_conn != NULL) {
     if (wpa_ctrl_attach(mon_conn) == 0) {
       spdlog::trace("attached to wpa supplicant");
     }
+  } else {
+    spdlog::trace("failed to attached to wpa supplicant");
+    return;
   }
 
   int monfd = wpa_ctrl_get_fd(mon_conn);

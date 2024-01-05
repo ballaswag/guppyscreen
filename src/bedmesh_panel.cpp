@@ -301,8 +301,8 @@ void BedMeshPanel::foreground() {
 }
 
 void BedMeshPanel::handle_callback(lv_event_t *event) {
-  lv_obj_t *btn = lv_event_get_target(event);
-  if (btn == save_btn.get_button()) {
+  lv_obj_t *btn = lv_event_get_current_target(event);
+  if (btn == save_btn.get_container()) {
     spdlog::trace("mesh save pressed");
     lv_obj_clear_flag(prompt, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(kb, LV_OBJ_FLAG_HIDDEN);
@@ -313,11 +313,11 @@ void BedMeshPanel::handle_callback(lv_event_t *event) {
     
     lv_obj_move_foreground(prompt);
     
-  } else if (btn == clear_btn.get_button()) {
+  } else if (btn == clear_btn.get_container()) {
     spdlog::trace("mesh clear pressed");
     ws.gcode_script("BED_MESH_CLEAR");
     
-  } else if (btn == calibrate_btn.get_button()) {
+  } else if (btn == calibrate_btn.get_container()) {
     spdlog::trace("mesh calibrate pressed");
     auto v = State::get_instance()
       ->get_data("/printer_state/toolhead/homed_axes"_json_pointer);
@@ -329,7 +329,7 @@ void BedMeshPanel::handle_callback(lv_event_t *event) {
     }
     ws.gcode_script("G28 X Y Z\nBED_MESH_CALIBRATE");
 
-  } else if (btn == back_btn.get_button()) {
+  } else if (btn == back_btn.get_container()) {
     spdlog::trace("back button pressed");
     lv_obj_move_background(cont);
   }

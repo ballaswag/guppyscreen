@@ -1,0 +1,15 @@
+[Unit]
+Description=GuppyScreen
+After=moonraker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=biqu
+WorkingDirectory=/home/biqu/guppyscreen
+ExecStart="/home/biqu/guppyscreen/guppyscreen"
+
+[Install]
+WantedBy=multi-user.target

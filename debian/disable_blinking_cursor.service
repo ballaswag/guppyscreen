@@ -1,0 +1,11 @@
+[Unit]
+Description=NoBlinkingCursor
+ConditionPathExists=/dev/tty0
+
+[Service]
+ExecStart=/home/biqu/guppyscreen/debian/kd_graphic_mode
+Type=idle
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

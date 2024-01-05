@@ -161,58 +161,58 @@ void HomingPanel::foreground() {
 }
 
 void HomingPanel::handle_callback(lv_event_t *event) {
-  lv_obj_t *btn = lv_event_get_target(event);
+  lv_obj_t *btn = lv_event_get_current_target(event);  
   float distance = distances[selector_index];
   std::string move_op;
 
-  if (btn == home_all_btn.get_button()) {
+  if (btn == home_all_btn.get_container()) {
     spdlog::debug("home all pressed");
     ws.gcode_script("G28 X Y Z");
 
   }
-  else if (btn == home_xy_btn.get_button()) {
+  else if (btn == home_xy_btn.get_container()) {
     spdlog::debug("home xy pressed");
     ws.gcode_script("G28 X Y");
 
   }
-  else if (btn == y_up_btn.get_button()) {
+  else if (btn == y_up_btn.get_container()) {
     spdlog::debug("y up pressed");
     move_op = "G0 Y+" + std::to_string(distance) + " F1200";
 
   }
-  else if (btn == y_down_btn.get_button()) {
+  else if (btn == y_down_btn.get_container()) {
     spdlog::debug("y down pressed");
     move_op = "G0 Y-" + std::to_string(distance) + " F1200";
 
   }
-  else if (btn == x_up_btn.get_button()) {
+  else if (btn == x_up_btn.get_container()) {
     spdlog::debug("x up pressed");
     move_op = "G0 X+" + std::to_string(distance) + " F1200";
 
   }
-  else if (btn == x_down_btn.get_button()) {
+  else if (btn == x_down_btn.get_container()) {
     spdlog::debug("x down pressed");
     move_op = "G0 X-" + std::to_string(distance) + " F1200";
 
   }
-  else if (btn == z_up_btn.get_button()) {
+  else if (btn == z_up_btn.get_container()) {
     spdlog::debug("z up pressed");
     move_op = "G0 Z+" + std::to_string(distance) + " F1200";
 
   }
-  else if (btn == z_down_btn.get_button()) {
+  else if (btn == z_down_btn.get_container()) {
     spdlog::debug("z down pressed");
     move_op = "G0 Z-" + std::to_string(distance) + " F1200";
 
-  } else if (btn == emergency_btn.get_button()) {
+  } else if (btn == emergency_btn.get_container()) {
     spdlog::debug("emergency stop pressed");
     ws.send_jsonrpc("printer.emergency_stop");
 
-  } else if (btn == motoroff_btn.get_button()) {
+  } else if (btn == motoroff_btn.get_container()) {
     spdlog::debug("motor off pressed");
     ws.gcode_script("M84");
 
-  } else if (btn == back_btn.get_button()) {
+  } else if (btn == back_btn.get_container()) {
     lv_obj_move_background(homing_cont);
   }
   else {

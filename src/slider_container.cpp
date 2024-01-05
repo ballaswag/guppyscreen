@@ -117,11 +117,11 @@ lv_obj_t *SliderContainer::get_slider() {
 }
 
 lv_obj_t *SliderContainer::get_off() {
-  return off_btn.get_button();
+  return off_btn.get_container();
 }
 
 lv_obj_t *SliderContainer::get_max() {
-  return max_btn.get_button();
+  return max_btn.get_container();
 }
 
 void SliderContainer::set_range(int min_range, int max_range) {

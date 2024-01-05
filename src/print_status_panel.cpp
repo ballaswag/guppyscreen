@@ -409,22 +409,22 @@ void PrintStatusPanel::consume(json &j) {
 }
 
 void PrintStatusPanel::handle_callback(lv_event_t *event) {
-  lv_obj_t *btn = lv_event_get_target(event);
-  if (btn == back_btn.get_button()) {
+  lv_obj_t *btn = lv_event_get_current_target(event);
+  if (btn == back_btn.get_container()) {
     lv_obj_move_background(status_cont);
 
-  } else if (btn == emergency_btn.get_button()) {
+  } else if (btn == emergency_btn.get_container()) {
     ws.send_jsonrpc("printer.emergency_stop");
-  } else if (btn == pause_btn.get_button()) {
+  } else if (btn == pause_btn.get_container()) {
     ws.send_jsonrpc("printer.print.pause");
     pause_btn.disable();
 
-  } else if (btn == resume_btn.get_button()) {
+  } else if (btn == resume_btn.get_container()) {
     ws.send_jsonrpc("printer.print.resume");
     resume_btn.disable();
-  } else if (btn == cancel_btn.get_button()) {
+  } else if (btn == cancel_btn.get_container()) {
     ws.send_jsonrpc("printer.print.cancel");
-  } else if (btn == finetune_btn.get_button()) {
+  } else if (btn == finetune_btn.get_container()) {
     finetune_panel.foreground();
   } else if (btn == mini_print_status.get_container()) {
     foreground();

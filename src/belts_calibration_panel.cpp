@@ -106,15 +106,19 @@ void BeltsCalibrationPanel::foreground() {
 }
 
 void BeltsCalibrationPanel::handle_callback(lv_event_t *event) {
-  lv_obj_t *btn = lv_event_get_target(event);
-  if (btn == calibrate_btn.get_button()) {
+  lv_obj_t *btn = lv_event_get_current_target(event);
+  if (btn == calibrate_btn.get_container()) {
     auto config_root = KUtils::get_root_path("config");
     auto png_path = fmt::format("{}/{}", config_root.length() > 0 ? config_root : "/tmp" , BELTS_PNG);
 
     if (!KUtils::is_homed()) {
       ws.gcode_script("G28");
     }
-    ws.gcode_script(fmt::format("GUPPY_BELTS_SHAPER_CALIBRATION PNG_OUT_PATH={}", png_path));
+
+    auto screen_width = (double)lv_disp_get_physical_hor_res(NULL) / 100.0;
+    auto screen_height = (double)lv_disp_get_physical_ver_res(NULL) / 100.0;
+    ws.gcode_script(fmt::format("GUPPY_BELTS_SHAPER_CALIBRATION PNG_OUT_PATH={} PNG_WIDTH={} PNG_HEIGHT={}",
+				png_path, screen_width, screen_height));
 
     lv_obj_add_flag(graph, LV_OBJ_FLAG_HIDDEN);
     lv_img_set_src(graph, NULL);    
@@ -122,7 +126,7 @@ void BeltsCalibrationPanel::handle_callback(lv_event_t *event) {
     lv_obj_clear_flag(spinner, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(spinner);
 
-  } else if (btn == excite_btn.get_button()) {
+  } else if (btn == excite_btn.get_container()) {
     double excite_hz = (double)lv_slider_get_value(excite_slider) / 10.0 + 1; // [x-1, x+1]
     char excite_buf[10];
     lv_dropdown_get_selected_str(excite_dd, excite_buf, sizeof(excite_buf));
@@ -132,9 +136,9 @@ void BeltsCalibrationPanel::handle_callback(lv_event_t *event) {
     }
     ws.gcode_script(fmt::format("GUPPY_EXCITATE_AXIS_AT_FREQ FREQUENCY={} AXIS={}", excite_hz, excite_buf));
 
-  } else if (btn == back_btn.get_button()) {
+  } else if (btn == back_btn.get_container()) {
     lv_obj_move_background(cont);
-  } else if (btn == emergency_btn.get_button()) {
+  } else if (btn == emergency_btn.get_container()) {
     ws.send_jsonrpc("printer.emergency_stop");
   }
 }

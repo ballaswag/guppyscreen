@@ -119,8 +119,9 @@ void LimitsPanel::consume(json &j) {
 
 void LimitsPanel::handle_callback(lv_event_t *e) {
   lv_obj_t *obj = lv_event_get_target(e);
+  lv_obj_t *btn = lv_event_get_current_target(e);
 
-  if (obj == back_btn.get_button()) {
+  if (btn == back_btn.get_container()) {
     lv_obj_move_background(cont);
     return;
   }

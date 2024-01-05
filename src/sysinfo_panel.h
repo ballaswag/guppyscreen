@@ -4,6 +4,9 @@
 #include "button_container.h"
 #include "lvgl/lvgl.h"
 
+#include <vector>
+#include <string>
+
 class SysInfoPanel {
  public:
   SysInfoPanel();
@@ -20,7 +23,11 @@ class SysInfoPanel {
  private:
   lv_obj_t *cont;
   lv_obj_t *network_label;
+  lv_obj_t *loglevel_dd;
+  uint32_t loglevel;
   ButtonContainer back_btn;
+
+  static std::vector<std::string> log_levels;
   
 };
 

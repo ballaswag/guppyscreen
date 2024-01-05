@@ -22,9 +22,15 @@ ButtonContainer::ButtonContainer(lv_obj_t *parent,
     // lv_obj_align(btn, LV_ALIGN_CENTER, 0, 0);
     lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 0);
 
+    lv_obj_add_flag(btn, LV_OBJ_FLAG_EVENT_BUBBLE);
+    // lv_obj_add_flag(btn_cont, LV_OBJ_FLAG_EVENT_BUBBLE);
+
     if (cb != NULL) {
-      // lv_obj_add_event_cb(btn_cont, cb, LV_EVENT_CLICKED, user_data);
-      lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, user_data);
+      lv_obj_add_event_cb(btn_cont, &ButtonContainer::_handle_callback, LV_EVENT_PRESSED, this);
+      lv_obj_add_event_cb(btn_cont, &ButtonContainer::_handle_callback, LV_EVENT_RELEASED, this);
+      
+      lv_obj_add_event_cb(btn_cont, cb, LV_EVENT_CLICKED, user_data);
+      // lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, user_data);
     }
 
     lv_label_set_text(label, text);
@@ -32,7 +38,7 @@ ButtonContainer::ButtonContainer(lv_obj_t *parent,
 
     lv_obj_align_to(label, btn, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
     // lv_obj_align(label, LV_ALIGN_BOTTOM_MID, 0, 5);
-
+    // lv_obj_set_style_border_width(btn_cont, 2, 0);
 }
 
 ButtonContainer::~ButtonContainer() {
@@ -48,15 +54,26 @@ lv_obj_t *ButtonContainer::get_button() {
 
 void ButtonContainer::disable() {
   lv_obj_add_state(btn, LV_STATE_DISABLED);
+  lv_obj_add_state(btn_cont, LV_STATE_DISABLED);
   lv_obj_add_state(label, LV_STATE_DISABLED);
   
 }
 
 void ButtonContainer::enable() {
   lv_obj_clear_state(btn, LV_STATE_DISABLED);
+  lv_obj_clear_state(btn_cont, LV_STATE_DISABLED);
   lv_obj_clear_state(label, LV_STATE_DISABLED);
 }
 
 void ButtonContainer::hide() {
   lv_obj_add_flag(btn_cont, LV_OBJ_FLAG_HIDDEN);
+}
+
+void ButtonContainer::handle_callback(lv_event_t *e) {
+  const lv_event_code_t code = lv_event_get_code(e);
+  if (code == LV_EVENT_PRESSED) {
+    lv_imgbtn_set_state(btn, LV_IMGBTN_STATE_PRESSED);
+  } else if (code == LV_EVENT_RELEASED) {
+    lv_imgbtn_set_state(btn, LV_IMGBTN_STATE_RELEASED);
+  }
 }

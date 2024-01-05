@@ -235,17 +235,22 @@ void MainPanel::create_sensors(json &temp_sensors) {
   for (auto &sensor : temp_sensors.items()) {
     std::string key = sensor.key();
     bool controllable = sensor.value()["controllable"].template get<bool>();
-    std::string color = sensor.value()["color"].template get<std::string>();
-    std::string display_name = sensor.value()["display_name"].template get<std::string>();
 
     lv_color_t color_code = lv_palette_main(LV_PALETTE_ORANGE);
-    if (color == "red") {
-      color_code = lv_palette_main(LV_PALETTE_RED);
-    } else if (color == "purple") {
-      color_code = lv_palette_main(LV_PALETTE_PURPLE);
-    } else if (color == "blue") {
-      color_code = lv_palette_main(LV_PALETTE_BLUE);	
+    if (!sensor.value()["color"].is_number()) {
+      std::string color = sensor.value()["color"].template get<std::string>();
+      if (color == "red") {
+	color_code = lv_palette_main(LV_PALETTE_RED);
+      } else if (color == "purple") {
+	color_code = lv_palette_main(LV_PALETTE_PURPLE);
+      } else if (color == "blue") {
+	color_code = lv_palette_main(LV_PALETTE_BLUE);	
+      }
+    } else {
+      color_code = lv_palette_main((lv_palette_t)sensor.value()["color"].template get<int>());
     }
+
+    std::string display_name = sensor.value()["display_name"].template get<std::string>();
 
     const void* sensor_img = &heater;
     if (key == "extruder") {

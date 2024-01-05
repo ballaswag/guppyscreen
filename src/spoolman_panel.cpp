@@ -36,15 +36,21 @@ SpoolmanPanel::SpoolmanPanel(KWebSocketClient &c, std::mutex &l)
   lv_obj_align(spool_table, LV_ALIGN_TOP_MID, 0, 5);
 
   lv_table_set_col_cnt(spool_table, 8);
-  lv_table_set_col_width(spool_table, 0, 60);
-  lv_table_set_col_width(spool_table, 1, 210);
-  lv_table_set_col_width(spool_table, 2, 100);
-  lv_table_set_col_width(spool_table, 3, 50);
-  lv_table_set_col_width(spool_table, 4, 125);
-  lv_table_set_col_width(spool_table, 5, 125);
-  lv_table_set_col_width(spool_table, 6, 60);
-  lv_table_set_col_width(spool_table, 7, 60);
+  auto screen_width = lv_disp_get_physical_hor_res(NULL);
+  lv_table_set_col_width(spool_table, 0, 60); // id
+  lv_table_set_col_width(spool_table, 3, 50); // color
+  lv_table_set_col_width(spool_table, 6, 60); // set active
+  lv_table_set_col_width(spool_table, 7, 60); // archive
 
+  auto remain_width = screen_width - 60 - 50 - 60 - 60;
+  double len_field_width = 0.22 * remain_width;
+  double material_width = 0.18 * remain_width;
+  int name_width = remain_width - (2 * len_field_width) - material_width;
+  lv_table_set_col_width(spool_table, 1, name_width); // name - product
+  lv_table_set_col_width(spool_table, 2, material_width); // material
+  lv_table_set_col_width(spool_table, 4, len_field_width);
+  lv_table_set_col_width(spool_table, 5, len_field_width);
+  
   // controls
   lv_obj_set_width(controls, LV_PCT(100));
   lv_obj_set_flex_flow(controls, LV_FLEX_FLOW_ROW);
@@ -209,11 +215,11 @@ void SpoolmanPanel::handle_active_id_update(json &j) {
 }
 
 void SpoolmanPanel::handle_callback(lv_event_t *event) {
-  lv_obj_t *btn = lv_event_get_target(event);
-  if (btn == back_btn.get_button()) {
+  lv_obj_t *btn = lv_event_get_current_target(event);
+  if (btn == back_btn.get_container()) {
     spdlog::trace("spoolman back button pressed");
     lv_obj_move_background(cont);
-  } else if (btn == reload_btn.get_button()) {
+  } else if (btn == reload_btn.get_container()) {
     spdlog::trace("spoolman reload button pressed");
     init();
   }

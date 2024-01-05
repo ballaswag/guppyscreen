@@ -75,7 +75,6 @@ std::atomic_bool is_sleeping(false);
 int main(void)
 {
     hlog_disable();
-
     // config
     Config *conf = Config::get_instance();
     spdlog::debug("current path {}", std::string(fs::canonical("/proc/self/exe").parent_path()));
@@ -83,19 +82,26 @@ int main(void)
     auto config_path = fs::canonical("/proc/self/exe").parent_path() / "guppyconfig.json";
     conf->init(config_path.string());
 
+    const std::string ll_path = conf->df() + "log_level";
+    auto ll = spdlog::level::from_str(conf->get<std::string>(ll_path));
+
     auto console_sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
-    console_sink->set_level(spdlog::level::debug);
+    // console_sink->set_level(spdlog::level::debug);
     auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
 			 conf->get<std::string>("/log_path"), 1048576 * 10, 3);
-    file_sink->set_level(spdlog::level::debug);    
+    // file_sink->set_level(spdlog::level::debug);    
 
     spdlog::sinks_init_list log_sinks{console_sink, file_sink};
     auto klogger = std::make_shared<spdlog::logger>("guppyscreen", log_sinks);
     spdlog::register_logger(klogger);
 
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(ll);
     spdlog::set_default_logger(klogger);
-    klogger->flush_on(spdlog::level::debug);
+    klogger->flush_on(ll);
+
+#ifdef GUPPYSCREEN_VERSION
+    spdlog::info("Guppy Screen Version: {}", GUPPYSCREEN_VERSION);
+#endif // GUPPYSCREEN_VERSION
 
     /*LittlevGL init*/
     lv_init();
@@ -238,8 +244,15 @@ static void hal_init(void) {
     
     disp_drv.hor_res    = width;
     disp_drv.ver_res    = height;
-    disp_drv.sw_rotate = 1;
-    disp_drv.rotated = LV_DISP_ROT_270;
+    Config *conf = Config::get_instance();
+    auto rotate = conf->get_json("/display_rotate");
+    if (!rotate.is_null()) {
+      auto rotate_value = rotate.template get<uint32_t>();
+      if (rotate_value > 0 && rotate_value < 4) {
+	disp_drv.sw_rotate = 1;
+	disp_drv.rotated = rotate_value;
+      }
+    }
     lv_disp_drv_register(&disp_drv);
 
     evdev_init();

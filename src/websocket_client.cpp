@@ -39,7 +39,7 @@ int KWebSocketClient::connect(const char* url,
   };
   onmessage = [this, connected, disconnected](const std::string& msg) {
     // if (msg.find("notify_proc_stat_update") == std::string::npos) {
-    //   spdlog::debug("onmessage(type={} len={}): {}", opcode() == WS_OPCODE_TEXT ? "text" : "binary",
+    //   spdlog::trace("onmessage(type={} len={}): {}", opcode() == WS_OPCODE_TEXT ? "text" : "binary",
     // 	     (int)msg.size(), msg);
     // }
     auto j = json::parse(msg);

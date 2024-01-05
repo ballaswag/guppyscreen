@@ -149,13 +149,13 @@ void ExtruderPanel::handle_callback(lv_event_t *e) {
 		  fmt::ptr(speed_selector.get_selector()));
     
   } else if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
-    lv_obj_t *btn = lv_event_get_target(e);
+    lv_obj_t *btn = lv_event_get_current_target(e);
 
-    if (btn == back_btn.get_button()) {
+    if (btn == back_btn.get_container()) {
       lv_obj_move_background(panel_cont);
     }
 
-    if (btn == extrude_btn.get_button()) {
+    if (btn == extrude_btn.get_container()) {
       const char * temp = lv_btnmatrix_get_btn_text(temp_selector.get_selector(),
 						   temp_selector.get_selected_idx());
       const char * len = lv_btnmatrix_get_btn_text(length_selector.get_selector(),
@@ -165,7 +165,7 @@ void ExtruderPanel::handle_callback(lv_event_t *e) {
       ws.gcode_script(fmt::format("M109 S{}\nM83\nG1 E{} F{}", temp, len, std::stoi(speed) * 60));
     }
 
-    if (btn == retract_btn.get_button()) {
+    if (btn == retract_btn.get_container()) {
       const char * temp = lv_btnmatrix_get_btn_text(temp_selector.get_selector(),
 						   temp_selector.get_selected_idx());
       const char * len = lv_btnmatrix_get_btn_text(length_selector.get_selector(),
@@ -175,19 +175,19 @@ void ExtruderPanel::handle_callback(lv_event_t *e) {
       ws.gcode_script(fmt::format("M109 S{}\nM83\nG1 E-{} F{}", temp, len, std::stoi(speed) * 60));
     }
 
-    if (btn == unload_btn.get_button()) {
+    if (btn == unload_btn.get_container()) {
       ws.gcode_script(unload_filament_macro);
     }
 
-    if (btn == load_btn.get_button()) {
+    if (btn == load_btn.get_container()) {
       ws.gcode_script(load_filament_macro);
     }
 
-    if (btn == cooldown_btn.get_button()) {
+    if (btn == cooldown_btn.get_container()) {
       ws.gcode_script(cooldown_macro);
     }
 
-    if (btn == spoolman_btn.get_button()) {
+    if (btn == spoolman_btn.get_container()) {
       spoolman_panel.foreground();
     }
   }

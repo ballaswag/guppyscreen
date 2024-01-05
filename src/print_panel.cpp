@@ -331,8 +331,8 @@ void PrintPanel::handle_metadata(Tree *f, json &j) {
 }
 
 void PrintPanel::handle_back_btn(lv_event_t *event) {
-  lv_obj_t *btn = lv_event_get_target(event);
-  if (btn == back_btn.get_button()) {
+  lv_obj_t *btn = lv_event_get_current_target(event);
+  if (btn == back_btn.get_container()) {
     lv_obj_move_background(files_cont);
     print_status.background();    
   }
@@ -378,7 +378,7 @@ void PrintPanel::handle_status_btn(lv_event_t *event) {
 void PrintPanel::handle_btns(lv_event_t *event) {
   lv_event_code_t code = lv_event_get_code(event);
   if (code == LV_EVENT_CLICKED) {
-    lv_obj_t *btn = lv_event_get_target(event);    
+    lv_obj_t *btn = lv_event_get_current_target(event);
     if (cur_file != NULL) {
       spdlog::trace("status prompt clicked");
       if (btn == queue_btn) {

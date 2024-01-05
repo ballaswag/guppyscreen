@@ -38,6 +38,12 @@ ssh into your K1/Max and run the follwow command:
 /usr/data/guppyscreen/reinstall-creality.sh
 ```
 
+### Install on aarch64 (Debian Bullseye) - Experimental
+Tested on a BTT Pad 7. Please install with care and make sure you're okay with resetting your setup if things break.
+```
+wget -O - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer-deb.sh | bash
+```
+
 ## Features
 :white_check_mark: Console/Macro Shell  
 :white_check_mark: Bedmesh  
@@ -48,7 +54,7 @@ ssh into your K1/Max and run the follwow command:
 :white_check_mark: Extrude/Retract  
 :white_check_mark: Temperature Control  
 :white_check_mark: Fans/LED/Move Control  
-:white_check_mark: Fine Tune (speed, flow, z-offset, Pressure Advance)
+:white_check_mark: Fine Tune (speed, flow, z-offset, Pressure Advance)  
 :white_check_mark: Limits (Velocity, Acel, Square Corner Velocity, etc.)  
 :white_check_mark: File Browser 
 

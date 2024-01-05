@@ -27,6 +27,7 @@ class State : public NotifyConsumer {
 
   std::vector<std::string> get_extruders();
   std::vector<std::string> get_heaters();
+  std::vector<std::string> get_sensors();
   std::vector<std::string> get_fans();
   std::vector<std::string> get_leds();
   std::vector<std::string> get_output_pins();

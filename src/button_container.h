@@ -18,6 +18,13 @@ class ButtonContainer {
   void enable();
   void hide();
 
+  void handle_callback(lv_event_t *event);
+
+  static void _handle_callback(lv_event_t *event) {
+    ButtonContainer *button_container = (ButtonContainer*)event->user_data;
+    button_container->handle_callback(event);
+  };
+
  private:
   lv_obj_t *btn_cont;
   lv_obj_t *btn;

@@ -23,7 +23,7 @@ WARNINGS		:= -Wall -Wextra -Wno-unused-function -Wno-error=strict-prototypes -Wp
 					-Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess -Wno-format-nonliteral -Wpointer-arith -Wno-cast-qual \
 					-Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wformat-security -Wno-sign-compare
 CFLAGS 			?= -O3 -g0 -MD -MP -I$(LVGL_DIR)/ $(WARNINGS) 
-LDFLAGS 		?= -lm -Llibhv/lib -l:libhv.a -latomic -lpthread -Lwpa_supplicant/wpa_supplicant/ -l:libwpa_client.a -lstdc++fs
+LDFLAGS 		?= -lm -Llibhv/lib -Lspdlog/build -l:libhv.a -latomic -lpthread -Lwpa_supplicant/wpa_supplicant/ -l:libwpa_client.a -lstdc++fs -l:libspdlog.a
 BIN 			= guppyscreen
 BUILD_DIR 		= ./build
 BUILD_OBJ_DIR 	= $(BUILD_DIR)/obj
@@ -33,7 +33,7 @@ prefix 			?= /usr
 bindir 			?= $(prefix)/bin
 
 #Collect the files to compile
-MAINSRC = 		$(wildcard $(LVGL_DIR)/src/*.cpp)
+MAINSRC = 		$(filter-out $(LVGL_DIR)/src/kd_graphic_mode.cpp, $(wildcard $(LVGL_DIR)/src/*.cpp))
 
 include $(LVGL_DIR)/lvgl/lvgl.mk
 include $(LVGL_DIR)/lv_drivers/lv_drivers.mk
@@ -65,7 +65,11 @@ TARGET 			= $(addprefix $(BUILD_OBJ_DIR)/, $(patsubst ./%, %, $(OBJS)))
 INC 				:= -I./ -I./lvgl/ -I./spdlog/include -Ilibhv/include -Iwpa_supplicant/src/common
 LDLIBS	 			:= -lm
 
-DEFINES				+= -D _GNU_SOURCE # -D SPDLOG_HEADER_ONLY
+DEFINES				+= -D _GNU_SOURCE -DSPDLOG_COMPILED_LIB
+
+ifdef EVDEV_CALIBRATE
+DEFINES +=  -D EVDEV_CALIBRATE
+endif
 
 ifdef SIMULATION
 DEFINES +=  -D LV_BUILD_TEST=0 -D SIMULATOR
@@ -94,6 +98,14 @@ $(BUILD_OBJ_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	@$(COMPILE_CC)  $(CFLAGS) -c $< -o $@
 	@echo "CC $<"
+
+$(BUILD_OBJ_DIR)/kd_graphic_mode.o: src/kd_graphic_mode.cpp
+	@mkdir -p $(dir $@)
+	@$(COMPILE_CC)  $(CFLAGS) -c $< -o $@
+	@echo "CC $<"
+
+kd_graphic_mode: $(BUILD_OBJ_DIR)/kd_graphic_mode.o
+	$(CC) -o $(BUILD_BIN_DIR)/kd_graphic_mode $(BUILD_OBJ_DIR)/kd_graphic_mode.o
 
 default: $(TARGET)
 	@mkdir -p $(dir $(BUILD_BIN_DIR)/)

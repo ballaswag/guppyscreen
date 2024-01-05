@@ -2,6 +2,30 @@
 #include "config.h"
 #include "utils.h"
 #include "spdlog/spdlog.h"
+#include "lvgl/lvgl.h"
+
+const uint32_t GUPPY_COLOR_SIZE = 19;
+const lv_palette_t GUPPY_COLORS[GUPPY_COLOR_SIZE] = {
+  LV_PALETTE_RED,
+  LV_PALETTE_PINK,
+  LV_PALETTE_PURPLE,
+  LV_PALETTE_DEEP_PURPLE,
+  LV_PALETTE_INDIGO,
+  LV_PALETTE_BLUE,
+  LV_PALETTE_LIGHT_BLUE,
+  LV_PALETTE_CYAN,
+  LV_PALETTE_TEAL,
+  LV_PALETTE_GREEN,
+  LV_PALETTE_LIGHT_GREEN,
+  LV_PALETTE_LIME,
+  LV_PALETTE_YELLOW,
+  LV_PALETTE_AMBER,
+  LV_PALETTE_ORANGE,
+  LV_PALETTE_DEEP_ORANGE,
+  LV_PALETTE_BROWN,
+  LV_PALETTE_BLUE_GREY,
+  LV_PALETTE_GREY
+};
 
 std::mutex State::lock;
 State *State::instance{NULL};
@@ -77,15 +101,30 @@ std::vector<std::string> State::get_heaters() {
     for (auto &o : objects) {
       const std::string &obj_name = o.template get<std::string>();
       if (obj_name == "heater_bed"
-	  || obj_name.rfind("heater_generic ", 0) == 0
-	  || obj_name.rfind("temperature_sensor ", 0) == 0
-	  || obj_name.rfind("temperature_fan ", 0) == 0) {
+	  || obj_name.rfind("heater_generic ", 0) == 0) {
 	heaters.push_back(obj_name);
       }
     }
   }
 
   return heaters;
+}
+
+std::vector<std::string> State::get_sensors() {
+  std::lock_guard<std::mutex> guard(lock);
+  auto &objects = data["/printer_objs/objects"_json_pointer];
+  std::vector<std::string> sensors;
+  if (!objects.is_null()) {
+    for (auto &o : objects) {
+      const std::string &obj_name = o.template get<std::string>();
+      if (obj_name.rfind("temperature_sensor ", 0) == 0
+	  || obj_name.rfind("temperature_fan ", 0) == 0) {
+	sensors.push_back(obj_name);
+      }
+    }
+  }
+
+  return sensors;
 }
 
 std::vector<std::string> State::get_fans() {
@@ -148,7 +187,7 @@ json State::get_display_sensors() {
       sensors_by_id[s["id"].template get<std::string>()] = s;
     }
   }
-		      
+
   json display_sensors;
   auto extruders = get_extruders();
   for (auto &e : extruders) {
@@ -166,8 +205,57 @@ json State::get_display_sensors() {
     }
   }
 
+  auto sensors = get_sensors();
+  for (auto &e : sensors) {
+    if (sensors_by_id.contains(e)) {
+      spdlog::debug("found user configured sensor {}", e);
+      display_sensors[e] = sensors_by_id[e];
+    }
+  }
+
   if (display_sensors.empty()) {
     // default to first extruders/heaters from printer objects
+    uint32_t color_idx = 0;
+    lv_palette_t color = GUPPY_COLORS[color_idx];
+    for (auto &e: extruders) {
+      spdlog::debug("default extruder {}", e);
+      color = GUPPY_COLORS[color_idx % GUPPY_COLOR_SIZE];
+      display_sensors[e] = {
+	{ "id", e },
+	{ "display_name", KUtils::to_title(e) },
+	{ "controllable", true },
+	{ "color", color }
+      };
+
+      color_idx++;
+    }
+
+    for (auto &e: heaters) {
+      spdlog::debug("default heaters {}", e);
+      color = GUPPY_COLORS[color_idx % GUPPY_COLOR_SIZE];
+      display_sensors[e] = {
+	{ "id", e },
+	{ "display_name", KUtils::to_title(e) },
+	{ "controllable", true },
+	{ "color", color }
+      };
+
+      color_idx++;
+    }
+
+    for (auto &e: sensors) {
+      spdlog::debug("default sensors {}", e);
+      color = GUPPY_COLORS[color_idx % GUPPY_COLOR_SIZE];
+      display_sensors[e] = {
+	{ "id", e },
+	{ "display_name", KUtils::to_title(e) },
+	{ "controllable", false },
+	{ "color", color }
+      };
+
+      color_idx++;
+    }
+    
   }
 
   return display_sensors;

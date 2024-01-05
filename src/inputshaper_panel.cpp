@@ -249,8 +249,8 @@ void InputShaperPanel::foreground() {
 
 
 void InputShaperPanel::handle_callback(lv_event_t *event) {
-  lv_obj_t *btn = lv_event_get_target(event);
-  if (btn == calibrate_btn.get_button()) {
+  lv_obj_t *btn = lv_event_get_current_target(event);
+  if (btn == calibrate_btn.get_container()) {
     bool x_requested = lv_obj_has_state(x_switch, LV_STATE_CHECKED);
     bool y_requested = lv_obj_has_state(y_switch, LV_STATE_CHECKED);
 
@@ -285,7 +285,7 @@ void InputShaperPanel::handle_callback(lv_event_t *event) {
     // ws.gcode_script(fmt::format("TEST_RESONANCES AXIS=X NAME=x FREQ_START={} FREQ_END={}\nM400", 5, 10));
     // ws.gcode_script(fmt::format("TEST_RESONANCES AXIS=X NAME=x\nM400\nTEST_RESONANCES AXIS=Y NAME=y\nM400"));
 
-  } else if (btn == save_btn.get_button()) {
+  } else if (btn == save_btn.get_container()) {
     double xhz = (double)lv_slider_get_value(xslider) / 10.0;
     double yhz = (double)lv_slider_get_value(yslider) / 10.0;
 
@@ -298,9 +298,9 @@ void InputShaperPanel::handle_callback(lv_event_t *event) {
     ws.gcode_script(fmt::format("SAVE_INPUT_SHAPER SHAPER_FREQ_X={} SHAPER_TYPE_X={} SHAPER_FREQ_Y={} SHAPER_TYPE_Y={}\nSAVE_CONFIG",
 				xhz, xbuf, yhz, ybuf));
 
-  } else if (btn == back_btn.get_button()) {
+  } else if (btn == back_btn.get_container()) {
     lv_obj_move_background(cont);
-  } else if (btn == emergency_btn.get_button()) {
+  } else if (btn == emergency_btn.get_container()) {
     ws.send_jsonrpc("printer.emergency_stop");
   }
 }
@@ -375,19 +375,22 @@ void InputShaperPanel::handle_macro_response(json &j) {
 
     } else if ("// Resonances data written to " Y_DATA " file" == resp) {
       auto config_root = KUtils::get_root_path("config");
+      auto screen_width = (double)lv_disp_get_physical_hor_res(NULL) / 100.0;
+      auto screen_height = (double)lv_disp_get_physical_ver_res(NULL) / 100.0;
       auto png_path = fmt::format("{}/{}", config_root.length() > 0 ? config_root : "/tmp" , Y_PNG);
       std::string arg = graph_requested
-	? fmt::format("{} -o {}", Y_DATA, png_path)
+	? fmt::format("{} -o {} -w {} -l {}", Y_DATA, png_path, screen_width, screen_height)
 	: Y_DATA;
 
       ws.gcode_script(fmt::format("RUN_SHELL_COMMAND CMD=guppy_input_shaper PARAMS={:?}", arg));
 
     } else if ("// Resonances data written to " X_DATA " file" == resp) {
       auto config_root = KUtils::get_root_path("config");
+      auto screen_width = (double)lv_disp_get_physical_hor_res(NULL) / 100.0;
+      auto screen_height = (double)lv_disp_get_physical_ver_res(NULL) / 100.0;
       auto png_path = fmt::format("{}/{}", config_root.length() > 0 ? config_root : "/tmp" , X_PNG);
-      
       std::string arg = graph_requested
-	? fmt::format("{} -o {}", X_DATA, png_path)
+	? fmt::format("{} -o {} -w {} -l {}", X_DATA, png_path, screen_width, screen_height)
 	: X_DATA;
 
       ws.gcode_script(fmt::format("RUN_SHELL_COMMAND CMD=guppy_input_shaper PARAMS={:?}", arg));

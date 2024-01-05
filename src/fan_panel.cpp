@@ -110,8 +110,8 @@ void FanPanel::foreground() {
 }
 
 void FanPanel::handle_callback(lv_event_t *event) {
-  lv_obj_t *btn = lv_event_get_target(event);
-  if (btn == back_btn.get_button()) {
+  lv_obj_t *btn = lv_event_get_current_target(event);
+  if (btn == back_btn.get_container()) {
     lv_obj_move_background(fanpanel_cont);
   }
   else {
@@ -135,6 +135,7 @@ void FanPanel::handle_fan_update(lv_event_t *event) {
       }
     }
   } else if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+    obj = lv_event_get_current_target(event);
     for (auto &f : fans) {
       if (obj == f.second->get_off()) {
 	std::string fan_name = KUtils::get_obj_name(f.first);
@@ -168,6 +169,8 @@ void FanPanel::handle_fan_update_part_fan(lv_event_t *event) {
     }
 
   } else if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+    obj = lv_event_get_current_target(event);
+    
     for (auto &f : fans) {
       if (obj == f.second->get_off()) {
 	ws.gcode_script("M106 S0");
@@ -198,6 +201,8 @@ void FanPanel::handle_fan_update_generic(lv_event_t *event) {
       }
     }
   } else if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+    obj = lv_event_get_current_target(event);
+
     for (auto &f : fans) {
       if (obj == f.second->get_off()) {
 	std::string fan_name = KUtils::get_obj_name(f.first);

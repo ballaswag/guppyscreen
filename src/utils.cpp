@@ -60,9 +60,15 @@ namespace KUtils {
     if (!thumbs.is_null() && !thumbs.empty()) {
       // assume square, look for closest to 300x300
       uint32_t closest_index = 0;
-      int closest = std::abs(300 - thumbs.at(0)["width"].template get<int>());
+      auto width = thumbs.at(0)["width"].is_number()
+	? thumbs.at(0)["width"].template get<int>()
+	: std::stoi(thumbs.at(0)["width"].template get<std::string>());
+      int closest = std::abs(300 - width);
       for (int i = 0; i < thumbs.size(); i++) {
-	int cur_diff = std::abs(300 - thumbs.at(i)["width"].template get<int>());
+	width = thumbs.at(i)["width"].is_number()
+	  ? thumbs.at(i)["width"].template get<int>()
+	  : std::stoi(thumbs.at(i)["width"].template get<std::string>());
+	int cur_diff = std::abs(300 - width);
 	if (cur_diff < closest) {
 	  closest = cur_diff;
 	  closest_index = i;

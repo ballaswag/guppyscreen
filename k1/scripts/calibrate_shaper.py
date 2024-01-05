@@ -142,6 +142,11 @@ def main():
                     help="maximum frequency to graph")
     opts.add_option("-s", "--max_smoothing", type="float", default=None,
                     help="maximum shaper smoothing to allow")
+    opts.add_option("-w", "--width", type="float", dest="width",
+                    default=8.3, help="width (inches) of the graph(s)")
+    opts.add_option("-l", "--height", type="float", dest="height",
+                    default=11.6, help="height (inches) of the graph(s)")
+
     options, args = opts.parse_args()
     if len(args) < 1:
         opts.error("Incorrect number of arguments")
@@ -168,7 +173,7 @@ def main():
         if options.output is None:
             matplotlib.pyplot.show()
         else:
-            fig.set_size_inches(8, 4.8)
+            fig.set_size_inches(options.width, options.height)
             fig.savefig(options.output)
             resp['png'] = options.output
 

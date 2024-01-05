@@ -6,6 +6,8 @@
 #include "lvgl/lvgl.h"
 
 #include <mutex>
+#include <map>
+#include <set>
 
 class WifiPanel {
  public:
@@ -19,7 +21,7 @@ class WifiPanel {
   void handle_wpa_event(const std::string &events);
   void handle_kb_input(lv_event_t *e);
   void connect(const char *);
-  std::string get_current_network();
+  bool find_current_network();
 
   static void _handle_back_btn(lv_event_t *event) {
     WifiPanel *panel = (WifiPanel*)event->user_data;
@@ -51,6 +53,9 @@ class WifiPanel {
   lv_obj_t *kb;
   std::string selected_network;
   std::string cur_network;
+  std::map<std::string, std::string> list_networks;
+  std::map<std::string, int> wifi_name_db;
+  
 };
 
 #endif // __WIFI_PANEL_H__

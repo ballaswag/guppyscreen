@@ -1,0 +1,24 @@
+{
+  "default_printer": "default_printer",
+  "display_rotate": 0,
+  "log_path": "<PRINTER_DATA_DIR>/logs/guppyscreen.log",
+  "printers": {
+    "default_printer": {
+      "default_macros": {
+        "cooldown": "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0",
+        "load_filament": "LOAD_MATERIAL",
+        "unload_filament": "UNLOAD_MATERIAL"
+      },
+      "display_sleep_sec": 600,
+      "fans": [],
+      "guppy_init_script": "service guppyscreen",
+      "log_level": "debug",
+      "monitored_sensors": [],
+      "moonraker_api_key": false,
+      "moonraker_host": "127.0.0.1",
+      "moonraker_port": 7125
+    }
+  },
+  "thumbnail_path": "<GUPPY_DIR>/thumbnails",
+  "wpa_supplicant": "/var/run/wpa_supplicant"
+}

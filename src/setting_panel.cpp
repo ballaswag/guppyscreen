@@ -76,24 +76,24 @@ lv_obj_t *SettingPanel::get_container() {
 
 void SettingPanel::handle_callback(lv_event_t *event) {
   if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
-    lv_obj_t *btn = lv_event_get_target(event);
+    lv_obj_t *btn = lv_event_get_current_target(event);
 
-    if (btn == wifi_btn.get_button()) {
+    if (btn == wifi_btn.get_container()) {
       spdlog::trace("wifi pressed");
       wifi_panel.foreground();
-    } else if (btn == sysinfo_btn.get_button()) {
+    } else if (btn == sysinfo_btn.get_container()) {
       spdlog::trace("setting system info pressed");
       sysinfo_panel.foreground();
-    } else if (btn == restart_klipper_btn.get_button()) {
+    } else if (btn == restart_klipper_btn.get_container()) {
       spdlog::trace("setting restart klipper pressed");
       ws.send_jsonrpc("printer.restart");
-    } else if (btn == restart_firmware_btn.get_button()) {
+    } else if (btn == restart_firmware_btn.get_container()) {
       spdlog::trace("setting restart klipper pressed");
       ws.send_jsonrpc("printer.firmware_restart");
-    } else if (btn == spoolman_btn.get_button()) {
+    } else if (btn == spoolman_btn.get_container()) {
       spdlog::trace("setting spoolman pressed");
       spoolman_panel.foreground();
-    } else if (btn == guppy_restart_btn.get_button()) {
+    } else if (btn == guppy_restart_btn.get_container()) {
       spdlog::trace("restart guppy pressed");
       Config *conf = Config::get_instance();
       auto init_script = conf->get<std::string>(conf->df() + "guppy_init_script");
@@ -103,7 +103,7 @@ void SettingPanel::handle_callback(lv_event_t *event) {
       } else {
 	spdlog::warn("Failed to restart Guppy Screen. Did not find restart script.");
       }
-    } else if (btn == guppy_update_btn.get_button()) {
+    } else if (btn == guppy_update_btn.get_container()) {
       spdlog::trace("update guppy pressed");
       // TODO: throw this inside the global threadpool to make it async
       auto update_script = fs::canonical("/proc/self/exe").parent_path() / "update.sh";

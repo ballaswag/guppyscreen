@@ -19,7 +19,8 @@ Config *Config::get_instance() {
   return instance;
 }
 
-void Config::init(const std::string config_path) {
+void Config::init(std::string config_path) {
+  path = config_path;
   struct stat buffer;
   json fans_conf = {
     {
@@ -71,7 +72,7 @@ void Config::init(const std::string config_path) {
       {"default_printer", "k1"},
       {"log_path", "/usr/data/printer_data/logs/guppyscreen.log"},
       {"thumbnail_path", "/usr/data/printer_data/thumbnails"},
-      {"wpa_supplicant", "/var/run/wpa_supplicant/wlan0"},
+      {"wpa_supplicant", "/var/run/wpa_supplicant"},
       {"printers", {{
 	    "k1", {
 	      {"moonraker_api_key", false},
@@ -80,7 +81,7 @@ void Config::init(const std::string config_path) {
 	      {"display_sleep_sec", 600},
 	      {"monitored_sensors", sensors_conf},
 	      {"fans", fans_conf},
-	      {"default_macros", default_macros_conf}
+	      {"default_macros", default_macros_conf},
 	    }
 	  }}
       }
@@ -116,6 +117,15 @@ void Config::init(const std::string config_path) {
     data[json::json_pointer(df() + "guppy_init_script")] = "/etc/init.d/S99guppyscreen";
   }
   
+  auto &ll = data[json::json_pointer(df() + "log_level")];
+  if (ll.is_null()) {
+    data[json::json_pointer(df() + "log_level")] = "debug";
+  }
+
+  auto &rotate = data["/display_rotate"_json_pointer];
+  if (rotate.is_null()) {
+    data["/display_rotate"_json_pointer] = 3; // LV_DISP_ROT_270
+  }
 
   std::ofstream o(config_path);
   o << std::setw(2) << data << std::endl;
@@ -137,4 +147,9 @@ std::string Config::get_wifi_interface() {
 
 json &Config::get_json(const std::string &json_path) {
   return data[json::json_pointer(json_path)];
+}
+
+void Config::save() {
+  std::ofstream o(path);
+  o << std::setw(2) << data << std::endl;
 }
