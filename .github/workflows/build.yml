@@ -47,6 +47,9 @@ jobs:
 
     - name: make libhv
       run: make libhv.a
+    
+    - name: make libspdlog
+      run: make libspdlog.a
 
     - name: make guppyscreen
       run: make -j
