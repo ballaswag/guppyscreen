@@ -54,6 +54,9 @@ fi
 K1_CONFIG_DIR=$(dirname "$K1_CONFIG_FILE")
 printf "${green} Found config dir: $K1_CONFIG_DIR ${white}\n"
 
+# kill pip cache to free up overlayfs
+rm -rf /root/.cache
+
 ## bootstrap for ssl support
 wget -q --no-check-certificate https://raw.githubusercontent.com/ballaswag/k1-discovery/main/bin/curl -O /tmp/curl
 chmod +x /tmp/curl
