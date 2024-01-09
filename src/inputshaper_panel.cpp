@@ -30,31 +30,45 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
   : ws(c)
   , lv_lock(l)
   , cont(lv_obj_create(lv_scr_act()))
-  , xgraph_cont(lv_img_create(cont))
+
+    // xgraph
+  , xgraph_cont(lv_obj_create(cont))
   , xgraph(lv_img_create(xgraph_cont))
   , xoutput(lv_label_create(cont))
   , xspinner(lv_spinner_create(cont, 1000, 60))
-  , ygraph_cont(lv_img_create(cont))
+
+    // ygraph
+  , ygraph_cont(lv_obj_create(cont))
   , ygraph(lv_img_create(ygraph_cont))
   , youtput(lv_label_create(cont))
   , yspinner(lv_spinner_create(cont, 1000, 60))
+
+    // x controls    
   , xcontrol(lv_obj_create(cont))
-  , xslider(lv_slider_create(xcontrol))
-  , xlabel(lv_label_create(xcontrol))
-  , xshaper_dd(lv_dropdown_create(xcontrol))
-  , ycontrol(lv_obj_create(cont))
-  , yslider(lv_slider_create(ycontrol))
-  , ylabel(lv_label_create(ycontrol))
-  , yshaper_dd(lv_dropdown_create(ycontrol))
-  , button_cont(lv_img_create(cont))
-  , switch_cont(lv_obj_create(button_cont))
-  , graph_switch(lv_switch_create(switch_cont))
+  , xaxis_label(lv_label_create(xcontrol))
   , x_switch(lv_switch_create(xcontrol))
+  , xslider_cont(lv_obj_create(xcontrol))
+  , xslider(lv_slider_create(xslider_cont))
+  , xlabel(lv_label_create(xslider_cont))
+  , xshaper_dd(lv_dropdown_create(xcontrol))
+
+    // y controls
+  , ycontrol(lv_obj_create(cont))
+  , yaxis_label(lv_label_create(ycontrol))
   , y_switch(lv_switch_create(ycontrol))
+  , yslider_cont(lv_obj_create(ycontrol))
+  , yslider(lv_slider_create(yslider_cont))
+  , ylabel(lv_label_create(yslider_cont))
+  , yshaper_dd(lv_dropdown_create(ycontrol))
+    
+  , button_cont(lv_obj_create(cont))
+  , switch_cont(lv_obj_create(button_cont))
+  , graph_switch_label(lv_label_create(switch_cont))
+  , graph_switch(lv_switch_create(switch_cont))
   , calibrate_btn(button_cont, &resume, "Calibrate", &InputShaperPanel::_handle_callback, this)
   , save_btn(button_cont, &sd_img, "Save", &InputShaperPanel::_handle_callback, this)
   , emergency_btn(button_cont, &emergency, "Stop", &InputShaperPanel::_handle_callback, this)
-  , back_btn(button_cont, &back, "Back", &InputShaperPanel::_handle_callback, this)
+  , back_btn(cont, &back, "Back", &InputShaperPanel::_handle_callback, this)
   , ximage_fullsized(false)
   , yimage_fullsized(false)
 {
@@ -70,6 +84,7 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
 
   lv_obj_set_style_pad_all(xgraph_cont, 0, 0);
   lv_obj_add_flag(xgraph_cont, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_clear_flag(xgraph_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_event_cb(xgraph_cont, &InputShaperPanel::_handle_image_clicked,
 		      LV_EVENT_CLICKED, this);
 
@@ -79,6 +94,7 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
 
   lv_obj_set_style_pad_all(ygraph_cont, 0, 0);
   lv_obj_add_flag(ygraph_cont, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_clear_flag(ygraph_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_event_cb(ygraph_cont, &InputShaperPanel::_handle_image_clicked,
 		      LV_EVENT_CLICKED, this);
 
@@ -90,7 +106,6 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
   lv_img_set_zoom(ygraph, 95);
   lv_obj_center(ygraph);
   // lv_img_set_src(ygraph, "A:/usr/data/printer_data/thumbnails/resonances_y.png");
-
   
   lv_obj_set_size(ygraph_cont, LV_PCT(40), LV_PCT(45));
   lv_obj_clear_flag(ygraph_cont, LV_OBJ_FLAG_SCROLLABLE);  
@@ -101,7 +116,6 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
   lv_obj_set_size(xoutput, LV_PCT(38), LV_PCT(45));
   lv_label_set_text(xoutput, "");
   lv_obj_set_style_text_font(xoutput, &dejavusans_mono_14, LV_STATE_DEFAULT);
-  
 
   lv_obj_set_size(youtput, LV_PCT(38), LV_PCT(45));
   lv_label_set_text(youtput, "");
@@ -115,85 +129,107 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
   lv_obj_set_size(yspinner, 100, 100);  
 
   // buttons
+  lv_obj_set_size(button_cont, LV_PCT(20), LV_PCT(100));
+  lv_obj_clear_flag(button_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_flex_flow(button_cont, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(button_cont, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_size(button_cont, LV_PCT(20), LV_PCT(100));
 
-  lv_obj_set_size(switch_cont, LV_PCT(100), 60);
-  lv_obj_t* label = lv_label_create(switch_cont);
-  lv_label_set_text(label, "Graph");
-  lv_obj_align(label, LV_ALIGN_LEFT_MID, 0, 0);
-  lv_obj_align(graph_switch, LV_ALIGN_RIGHT_MID, 0, 0);
+  lv_obj_set_size(switch_cont, LV_PCT(100), LV_SIZE_CONTENT);
+  lv_obj_set_style_pad_row(switch_cont, 0, 0);
+  lv_obj_set_flex_flow(switch_cont, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(switch_cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  
+  lv_obj_set_style_text_align(graph_switch_label, LV_TEXT_ALIGN_CENTER, 0);
+  lv_label_set_text(graph_switch_label, "Graph");
+  lv_obj_set_width(graph_switch_label, LV_PCT(100));
   lv_obj_clear_state(graph_switch, LV_STATE_CHECKED);
+  lv_obj_clear_flag(switch_cont, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_pad_all(switch_cont, 0, 0);
+
+  auto scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
 
   // controls
-  label = lv_label_create(xcontrol);
-  lv_label_set_text(label, "X Axis");
-  lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
-  lv_obj_align(x_switch, LV_ALIGN_LEFT_MID, 0, 0);
+  lv_obj_set_flex_flow(xcontrol, LV_FLEX_FLOW_ROW_WRAP);
+  lv_obj_set_flex_align(xcontrol, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_clear_flag(xcontrol, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_size(xcontrol, LV_PCT(62), LV_SIZE_CONTENT);
+  lv_obj_set_style_pad_row(xcontrol, 0, 0);
+  lv_obj_set_style_pad_all(xcontrol, 0, 0);
+
+  lv_obj_set_width(xaxis_label, LV_PCT(100));
+  lv_label_set_text(xaxis_label, "X Axis");
   lv_obj_add_state(x_switch, LV_STATE_CHECKED);
 
-  lv_obj_clear_flag(xcontrol, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_width(xcontrol, LV_PCT(80));
-  lv_obj_align(xslider, LV_ALIGN_LEFT_MID, 75, 0);
-  lv_obj_set_width(xslider, LV_PCT(60));
+  lv_obj_clear_flag(xslider_cont, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_size(xslider_cont, LV_PCT(53), LV_SIZE_CONTENT);
+  lv_obj_set_style_pad_all(xslider_cont, 0, 0);
+  
+  lv_obj_center(xslider);
+  lv_obj_set_width(xslider, LV_PCT(85));
   lv_slider_set_range(xslider, 0, 1400);
 
   lv_obj_add_event_cb(xslider, &InputShaperPanel::_handle_update_slider,
 		      LV_EVENT_VALUE_CHANGED, this);
   
 
-  lv_obj_align_to(xlabel, xslider, LV_ALIGN_BOTTOM_MID, 0, 35);
+  lv_obj_align_to(xlabel, xslider, LV_ALIGN_OUT_BOTTOM_MID, 0, 35 * scale);
   lv_label_set_text(xlabel, "0 Hz");
   
   lv_dropdown_set_options(xshaper_dd, fmt::format("{}", fmt::join(shapers, "\n")).c_str());
-  lv_obj_align(xshaper_dd, LV_ALIGN_RIGHT_MID, 0, 0);
 
-  label = lv_label_create(ycontrol);
-  lv_label_set_text(label, "Y Axis");
-  lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
-  lv_obj_align(y_switch, LV_ALIGN_LEFT_MID, 0, 0);
-  lv_obj_add_state(y_switch, LV_STATE_CHECKED);
-  
+  lv_obj_set_flex_flow(ycontrol, LV_FLEX_FLOW_ROW_WRAP);
+  lv_obj_set_flex_align(ycontrol, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_clear_flag(ycontrol, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_width(ycontrol, LV_PCT(80));
-  lv_obj_align(yslider, LV_ALIGN_LEFT_MID, 75, 0);
-  lv_obj_set_width(yslider, LV_PCT(60));
-  lv_slider_set_range(yslider, 0, 1400);
+  lv_obj_set_size(ycontrol, LV_PCT(62), LV_SIZE_CONTENT);
+  lv_obj_set_style_pad_all(ycontrol, 0, 0);
+  lv_obj_set_style_pad_row(ycontrol, 0, 0);
 
+  lv_obj_set_width(yaxis_label, LV_PCT(100));
+  lv_label_set_text(yaxis_label, "Y Axis");
+  lv_obj_add_state(y_switch, LV_STATE_CHECKED);
+
+  lv_obj_clear_flag(yslider_cont, LV_OBJ_FLAG_SCROLLABLE);    
+  lv_obj_set_size(yslider_cont, LV_PCT(53), LV_SIZE_CONTENT);
+  lv_obj_set_style_pad_all(yslider_cont, 0, 0);
+  
+  lv_obj_center(yslider);
+  lv_obj_set_width(yslider, LV_PCT(85));
+  lv_slider_set_range(yslider, 0, 1400);
+  
   lv_obj_add_event_cb(yslider, &InputShaperPanel::_handle_update_slider,
 		      LV_EVENT_VALUE_CHANGED, this);
   
-  lv_obj_align_to(ylabel, yslider, LV_ALIGN_BOTTOM_MID, 0, 35);
+  lv_obj_align_to(ylabel, yslider, LV_ALIGN_OUT_BOTTOM_MID, 0, 35 * scale);
   lv_label_set_text(ylabel, "0 Hz");
 
   lv_dropdown_set_options(yshaper_dd, fmt::format("{}", fmt::join(shapers, "\n")).c_str());
-  lv_obj_align(yshaper_dd, LV_ALIGN_RIGHT_MID, 0, 0);
 
-
-  static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(2),
+  static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(2), LV_GRID_FR(1), LV_GRID_FR(1),
     LV_GRID_TEMPLATE_LAST};
-  static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(7), LV_GRID_FR(7), LV_GRID_FR(3),
+  static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(3), LV_GRID_FR(7), LV_GRID_FR(7),
     LV_GRID_TEMPLATE_LAST};
   
   lv_obj_set_grid_dsc_array(cont, grid_main_col_dsc, grid_main_row_dsc);
 
-  // row 1, col 1 span 2
-  lv_obj_set_grid_cell(xcontrol, LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_CENTER, 0, 1);
+  // row 1, col 2/3
+  lv_obj_set_grid_cell(xspinner, LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+  lv_obj_set_grid_cell(yspinner, LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+  lv_obj_set_grid_cell(xgraph_cont, LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+  lv_obj_set_grid_cell(ygraph_cont, LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+  lv_obj_set_grid_cell(xoutput, LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+  lv_obj_set_grid_cell(youtput, LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
 
-  // row 2, col 1 span 2
-  lv_obj_set_grid_cell(ycontrol, LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_CENTER, 1, 1);
+  // row 2, col 2 span 2
+  lv_obj_set_grid_cell(xcontrol, LV_GRID_ALIGN_START, 1, 2, LV_GRID_ALIGN_START, 1, 1);
 
-  // row 1, col 3
-  lv_obj_set_grid_cell(button_cont, LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 0, 3);
+  // row 3, col 2 span 2
+  lv_obj_set_grid_cell(ycontrol, LV_GRID_ALIGN_START, 1, 2, LV_GRID_ALIGN_START, 2, 1);
 
-  // row 3
-  lv_obj_set_grid_cell(xspinner, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-  lv_obj_set_grid_cell(yspinner, LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-  lv_obj_set_grid_cell(xgraph_cont, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-  lv_obj_set_grid_cell(ygraph_cont, LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-  lv_obj_set_grid_cell(xoutput, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-  lv_obj_set_grid_cell(youtput, LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 2, 1);
+  // row 1, col 1
+  lv_obj_set_grid_cell(button_cont, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 3);
+
+  lv_obj_add_flag(back_btn.get_container(), LV_OBJ_FLAG_FLOATING);  
+  lv_obj_align(back_btn.get_container(), LV_ALIGN_BOTTOM_RIGHT, 0, -20);
   
   // TODO: show only register when issuing macros inputshaper cares about, then unregister after.
   // ws.register_gcode_resp([this](json& d) { this->handle_macro_response(d); });

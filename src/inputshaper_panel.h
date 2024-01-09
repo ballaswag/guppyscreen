@@ -47,27 +47,41 @@ class InputShaperPanel {
   KWebSocketClient &ws;
   std::mutex &lv_lock;
   lv_obj_t *cont;
+
+  // xgraph
   lv_obj_t *xgraph_cont;
   lv_obj_t *xgraph;
   lv_obj_t *xoutput; // calibrate shaper output x
   lv_obj_t *xspinner;
+
+  // y graph
   lv_obj_t *ygraph_cont;
   lv_obj_t *ygraph;
   lv_obj_t *youtput; // calibrate shaper output y
   lv_obj_t *yspinner;
+
+  // x controls
   lv_obj_t *xcontrol;
+  lv_obj_t *xaxis_label;
+  lv_obj_t *x_switch;
+  lv_obj_t *xslider_cont;
   lv_obj_t *xslider;
   lv_obj_t *xlabel;
   lv_obj_t *xshaper_dd;
+
+  // y controls
   lv_obj_t *ycontrol;
+  lv_obj_t *yaxis_label;
+  lv_obj_t *y_switch;
+  lv_obj_t *yslider_cont;
   lv_obj_t *yslider;
   lv_obj_t *ylabel;
   lv_obj_t *yshaper_dd;
+
   lv_obj_t *button_cont;
   lv_obj_t *switch_cont;
+  lv_obj_t *graph_switch_label;
   lv_obj_t *graph_switch;
-  lv_obj_t *x_switch;
-  lv_obj_t *y_switch;
   ButtonContainer calibrate_btn;
   ButtonContainer save_btn;
   ButtonContainer emergency_btn;

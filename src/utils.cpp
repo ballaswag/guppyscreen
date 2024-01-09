@@ -55,28 +55,32 @@ namespace KUtils {
     return "";
   }
 
-  std::string get_thumbnail(const std::string &gcode_file, json &j) {
+  std::pair<std::string, size_t> get_thumbnail(const std::string &gcode_file, json &j, double scale) {
     auto &thumbs = j["/result/thumbnails"_json_pointer];
     if (!thumbs.is_null() && !thumbs.empty()) {
       // assume square, look for closest to 300x300
+      auto scaled_width = scale * 300;
+      spdlog::debug("using thumb at scaled width {}", scaled_width);
       uint32_t closest_index = 0;
+      size_t thumb_width = 0;
       auto width = thumbs.at(0)["width"].is_number()
 	? thumbs.at(0)["width"].template get<int>()
 	: std::stoi(thumbs.at(0)["width"].template get<std::string>());
-      int closest = std::abs(300 - width);
+      int closest = std::abs(scaled_width - width);
       for (int i = 0; i < thumbs.size(); i++) {
 	width = thumbs.at(i)["width"].is_number()
 	  ? thumbs.at(i)["width"].template get<int>()
 	  : std::stoi(thumbs.at(i)["width"].template get<std::string>());
-	int cur_diff = std::abs(300 - width);
+	int cur_diff = std::abs(scaled_width - width);
 	if (cur_diff < closest) {
 	  closest = cur_diff;
 	  closest_index = i;
+	  thumb_width = width;
 	}
       }
 
       auto &thumb = thumbs.at(closest_index);
-      spdlog::trace("using thumb at index {}, {}", closest_index, thumb.dump());
+      spdlog::debug("using thumb at index {}, {}", closest_index, thumbs.dump());
 
       // metadata thumbnail paths are relative to the current gcode file directory
       std::string relative_path = thumb["relative_path"].template get<std::string>();
@@ -108,10 +112,10 @@ namespace KUtils {
 	spdlog::trace("downloaded size {}", size);
       }
 
-      return fullpath;    
+      return std::make_pair(fullpath, thumb_width);
     }
 
-    return "";
+    return std::make_pair("", 0);
   }
 
   std::string download_file(const std::string &root,

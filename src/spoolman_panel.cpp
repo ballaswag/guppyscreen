@@ -37,14 +37,15 @@ SpoolmanPanel::SpoolmanPanel(KWebSocketClient &c, std::mutex &l)
 
   lv_table_set_col_cnt(spool_table, 8);
   auto screen_width = lv_disp_get_physical_hor_res(NULL);
-  lv_table_set_col_width(spool_table, 0, 60); // id
-  lv_table_set_col_width(spool_table, 3, 50); // color
-  lv_table_set_col_width(spool_table, 6, 60); // set active
-  lv_table_set_col_width(spool_table, 7, 60); // archive
+  auto scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
+  lv_table_set_col_width(spool_table, 0, 60 * scale); // id
+  lv_table_set_col_width(spool_table, 3, 50 * scale); // color
+  lv_table_set_col_width(spool_table, 6, 60 * scale); // set active
+  lv_table_set_col_width(spool_table, 7, 60 * scale); // archive
 
-  auto remain_width = screen_width - 60 - 50 - 60 - 60;
-  double len_field_width = 0.22 * remain_width;
-  double material_width = 0.18 * remain_width;
+  auto remain_width = screen_width - scale * (60 + 50 + 60 + 60);
+  double len_field_width = 0.23 * remain_width;
+  double material_width = 0.17 * remain_width;
   int name_width = remain_width - (2 * len_field_width) - material_width;
   lv_table_set_col_width(spool_table, 1, name_width); // name - product
   lv_table_set_col_width(spool_table, 2, material_width); // material
@@ -182,7 +183,7 @@ void SpoolmanPanel::populate_spools(std::vector<json> &sorted_spools) {
 
       if (is_active) {
 	lv_table_add_cell_ctrl(spool_table, row_idx, 6, LV_TABLE_CELL_CTRL_MERGE_RIGHT);
-	lv_table_set_cell_value(spool_table, row_idx, 6, "(ACTIVE)");
+	lv_table_set_cell_value(spool_table, row_idx, 6, "(active)");
       } else {
 	if (is_archived) {
 	  lv_table_set_cell_value(spool_table, row_idx, 6, "");

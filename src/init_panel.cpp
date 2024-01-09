@@ -19,7 +19,7 @@ InitPanel::InitPanel(MainPanel &mp, BedMeshPanel &bmp, std::mutex& l)
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_style_bg_opa(cont, LV_OPA_70, 0);
 
-  lv_obj_set_size(label_cont, LV_PCT(40), LV_PCT(20));
+  lv_obj_set_size(label_cont, LV_PCT(50), LV_PCT(20));
   lv_obj_set_style_border_width(label_cont, 2, 0);
   lv_obj_set_style_bg_color(label_cont, lv_palette_darken(LV_PALETTE_GREY, 1), 0);
   

@@ -105,7 +105,8 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   lv_obj_set_flex_flow(buttons_cont, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(buttons_cont, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-  lv_obj_set_size(progress_bar, 280, 20);
+  auto bar_width = (double)lv_disp_get_physical_hor_res(NULL) * 0.35;
+  lv_obj_set_size(progress_bar, bar_width, 20);
   lv_bar_set_value(progress_bar, 0, LV_ANIM_OFF);
   lv_obj_align(progress_bar, LV_ALIGN_BOTTOM_MID, 0, 0);
 
@@ -254,14 +255,19 @@ void PrintStatusPanel::handle_metadata(const std::string &gcode_file, json &j) {
       update_time_progress(passed);
     }
   }
-  
-  std::string fullpath = KUtils::get_thumbnail(gcode_file, j);
+
+  auto width_scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
+  auto thumb_detail = KUtils::get_thumbnail(gcode_file, j, width_scale);
+  std::string fullpath = thumb_detail.first;
   if (fullpath.length() > 0) {
     spdlog::trace("thumb path: {}", fullpath);
     std::lock_guard<std::mutex> lock(lv_lock);
     const std::string img_path = "A:" + fullpath;
+
+    auto screen_width = lv_disp_get_physical_hor_res(NULL);
+    uint32_t normalized_thumb_scale = ((0.34 * (double)screen_width) / (double)thumb_detail.second) * 256;
     lv_img_set_src(thumbnail, img_path.c_str());
-    lv_img_set_zoom(thumbnail, 230);
+    lv_img_set_zoom(thumbnail, normalized_thumb_scale);
     mini_print_status.update_img(img_path);
   }
 }

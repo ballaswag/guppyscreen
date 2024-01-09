@@ -142,7 +142,7 @@ void MainPanel::create_panel() {
   lv_obj_set_style_border_side(tab_btns, 0, LV_PART_ITEMS | LV_STATE_CHECKED);
   lv_obj_set_style_text_font(tab_btns, &materialdesign_font_40, LV_STATE_DEFAULT);
 
-  lv_obj_set_style_text_font(lv_scr_act(), LV_FONT_DEFAULT, 0);
+  // lv_obj_set_style_text_font(lv_scr_act(), LV_FONT_DEFAULT, 0);
 
   lv_obj_set_style_pad_all(main_tab, 0, 0);
   lv_obj_set_style_pad_all(macros_tab, 0, 0);
@@ -214,7 +214,6 @@ void MainPanel::create_main(lv_obj_t * parent)
     lv_obj_set_size(temp_cont, LV_PCT(50), LV_PCT(50));
     
     lv_obj_set_flex_flow(temp_cont, LV_FLEX_FLOW_ROW_WRAP);
-
     lv_obj_set_grid_cell(temp_cont, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_CENTER, 0, 2);
     
     lv_obj_align(temp_chart, LV_ALIGN_CENTER, 0, 0);
@@ -222,7 +221,7 @@ void MainPanel::create_main(lv_obj_t * parent)
     lv_obj_set_style_size(temp_chart, 0, LV_PART_INDICATOR);
 
     lv_chart_set_range(temp_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 300);
-    lv_obj_set_grid_cell(temp_chart, LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_CENTER, 2, 1);
+    lv_obj_set_grid_cell(temp_chart, LV_GRID_ALIGN_END, 0, 2, LV_GRID_ALIGN_END, 2, 1);
     lv_chart_set_axis_tick(temp_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 6, 5, true, 50);
 
     lv_chart_set_div_line_count(temp_chart, 3, 8);

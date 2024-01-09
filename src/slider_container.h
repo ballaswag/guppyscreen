@@ -61,9 +61,11 @@ class SliderContainer {
  private:
   lv_obj_t *cont;
   lv_obj_t *label;
+  lv_obj_t *control_cont;
+  ButtonContainer off_btn;
+  lv_obj_t *slider_cont;
   lv_obj_t *slider;
   lv_obj_t *slider_value;
-  ButtonContainer off_btn;
   ButtonContainer max_btn;
   std::string unit;
 };

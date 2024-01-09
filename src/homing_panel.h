@@ -4,6 +4,7 @@
 #include "lvgl/lvgl.h"
 #include "button_container.h"
 #include "websocket_client.h"
+#include "selector.h"
 #include "notify_consumer.h"
 
 #include <mutex>
@@ -43,10 +44,11 @@ class HomingPanel : public NotifyConsumer {
   ButtonContainer emergency_btn;
   ButtonContainer motoroff_btn;
   ButtonContainer back_btn;
+  Selector distance_selector;
   
-  lv_obj_t *selector_label;
-  lv_obj_t *btnm;
-  uint32_t selector_index;
+  // lv_obj_t *selector_label;
+  // lv_obj_t *btnm;
+  // uint32_t selector_index;
 };
 
 #endif // __HOMING_PANEL_H__

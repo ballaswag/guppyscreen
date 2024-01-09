@@ -24,14 +24,16 @@ class Selector {
 	   void *cb_data);
   
   ~Selector();
+  lv_obj_t *get_container();
   lv_obj_t *get_selector();
   lv_obj_t *get_label();
   uint32_t get_selected_idx();
   void set_selected_idx(uint32_t idx);
 
  private:
-  lv_obj_t *btnm;
+  lv_obj_t *cont;
   lv_obj_t *label;
+  lv_obj_t *btnm;
   std::vector<const char*> map;
   uint32_t selector_idx;
 };

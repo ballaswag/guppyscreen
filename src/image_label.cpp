@@ -33,7 +33,9 @@ ImageLabel::ImageLabel(lv_obj_t *parent,
   lv_img_set_src(image, img);
   lv_label_set_text(label, value);
 
-  lv_obj_align(image, LV_ALIGN_LEFT_MID, -30, 0);
+  auto scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
+  
+  lv_obj_align(image, LV_ALIGN_LEFT_MID, -30 * scale, 0);
   lv_obj_align(label, LV_ALIGN_RIGHT_MID, 0, 0);
 }
 

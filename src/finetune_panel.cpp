@@ -65,8 +65,7 @@ FineTunePanel::FineTunePanel(KWebSocketClient &websocket_client, std::mutex &l)
   lv_obj_set_grid_cell(zreset_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 1);
   lv_obj_set_grid_cell(zup_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 1, 1);
   lv_obj_set_grid_cell(zdown_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-  lv_obj_set_grid_cell(zoffset_selector.get_label(), LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_START, 3, 1);
-  lv_obj_set_grid_cell(zoffset_selector.get_selector(), LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_CENTER, 3, 1); 
+  lv_obj_set_grid_cell(zoffset_selector.get_container(), LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_CENTER, 3, 1);
 
   // col 2
   lv_obj_set_grid_cell(pareset_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 0, 1);
@@ -77,8 +76,7 @@ FineTunePanel::FineTunePanel(KWebSocketClient &websocket_client, std::mutex &l)
   lv_obj_set_grid_cell(speed_reset_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
   lv_obj_set_grid_cell(speed_up_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 1, 1);
   lv_obj_set_grid_cell(speed_down_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-  lv_obj_set_grid_cell(multipler_selector.get_label(), LV_GRID_ALIGN_CENTER, 2, 2, LV_GRID_ALIGN_START, 3, 1);
-  lv_obj_set_grid_cell(multipler_selector.get_selector(), LV_GRID_ALIGN_CENTER, 2, 2, LV_GRID_ALIGN_CENTER, 3, 1);  
+  lv_obj_set_grid_cell(multipler_selector.get_container(), LV_GRID_ALIGN_CENTER, 2, 2, LV_GRID_ALIGN_CENTER, 3, 1);  
 
   // col 4
   lv_obj_set_grid_cell(flow_reset_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 0, 1);

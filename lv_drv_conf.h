@@ -97,8 +97,8 @@
 #endif
 
 #if USE_SDL || USE_SDL_GPU
-#  define SDL_HOR_RES     800
-#  define SDL_VER_RES     480
+#  define SDL_HOR_RES     480
+#  define SDL_VER_RES     272
 
 /* Scale window by this factor (useful when simulating small screens) */
 #  define SDL_ZOOM        1
@@ -124,8 +124,8 @@
 #endif
 
 #if USE_MONITOR
-#  define MONITOR_HOR_RES     800
-#  define MONITOR_VER_RES    480
+#  define MONITOR_HOR_RES     480
+#  define MONITOR_VER_RES    272
 
 /* Scale window by this factor (useful when simulating small screens) */
 #  define MONITOR_ZOOM        1
@@ -452,7 +452,7 @@
 #  define EVDEV_NAME   "/dev/input/event0"        /*You can use the "evtest" Linux tool to get the list of devices and test them*/
 #  define EVDEV_SWAP_AXES         0               /*Swap the x and y axes of the touchscreen*/
 
-/* #  define EVDEV_CALIBRATE         1               /\*Scale and offset the touchscreen coordinates by using maximum and minimum values for each axis*\/ */
+#  define EVDEV_CALIBRATE         1               /*Scale and offset the touchscreen coordinates by using maximum and minimum values for each axis*/
 
 #  if EVDEV_CALIBRATE
 #    define EVDEV_HOR_MIN         0               /*to invert axis swap EVDEV_XXX_MIN by EVDEV_XXX_MAX*/
@@ -585,8 +585,13 @@
 #endif
 
 #if USE_SDL || USE_SDL_GPU
-#  define SDL_HOR_RES     800
-#  define SDL_VER_RES     480
+    #ifdef GUPPY_SMALL_SCREEN
+      #  define SDL_HOR_RES     480
+      #  define SDL_VER_RES     272
+    #else
+      #  define SDL_HOR_RES     800
+      #  define SDL_VER_RES     480
+    #endif
 
 #define MONITOR_HOR_RES SDL_HOR_RES
 #define MONITOR_VER_RES SDL_VER_RES
@@ -616,7 +621,7 @@
 
 #if USE_MONITOR
 #  define MONITOR_HOR_RES     480
-#  define MONITOR_VER_RES     320
+#  define MONITOR_VER_RES     272
 
 /* Scale window by this factor (useful when simulating small screens) */
 #  define MONITOR_ZOOM        1
@@ -945,7 +950,7 @@
 #  define EVDEV_NAME   "/dev/input/event0"        /*You can use the "evtest" Linux tool to get the list of devices and test them*/
 #  define EVDEV_SWAP_AXES         0               /*Swap the x and y axes of the touchscreen*/
 
-/* #  define EVDEV_CALIBRATE         1               /\*Scale and offset the touchscreen coordinates by using maximum and minimum values for each axis*\/ */
+#  define EVDEV_CALIBRATE         1               /*Scale and offset the touchscreen coordinates by using maximum and minimum values for each axis*/
 
 #  if EVDEV_CALIBRATE
 #    define EVDEV_HOR_MIN         0               /*to invert axis swap EVDEV_XXX_MIN by EVDEV_XXX_MAX*/

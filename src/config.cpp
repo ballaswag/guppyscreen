@@ -124,9 +124,22 @@ void Config::init(std::string config_path) {
 
   auto &rotate = data["/display_rotate"_json_pointer];
   if (rotate.is_null()) {
+#ifdef GUPPY_ROTATE
     data["/display_rotate"_json_pointer] = 3; // LV_DISP_ROT_270
+#else
+    data["/display_rotate"_json_pointer] = 0; // LV_DISP_ROT_0
+#endif
   }
 
+  auto &touch_calibrated = data["/touch_calibrated"_json_pointer];
+  if (touch_calibrated.is_null()) {
+#ifdef EVDEV_CALIBRATE
+    data["/touch_calibrated"_json_pointer] = true; // EVDEV_CALIBRATE
+#else
+    data["/touch_calibrated"_json_pointer] = false; // EVDEV_CALIBRATE
+#endif
+  }
+  
   std::ofstream o(config_path);
   o << std::setw(2) << data << std::endl;
 }

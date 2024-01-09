@@ -118,7 +118,6 @@ void LimitsPanel::consume(json &j) {
 }
 
 void LimitsPanel::handle_callback(lv_event_t *e) {
-  lv_obj_t *obj = lv_event_get_target(e);
   lv_obj_t *btn = lv_event_get_current_target(e);
 
   if (btn == back_btn.get_container()) {
@@ -127,6 +126,7 @@ void LimitsPanel::handle_callback(lv_event_t *e) {
   }
 
   if (lv_event_get_code(e) == LV_EVENT_RELEASED) {
+    lv_obj_t *obj = lv_event_get_target(e);
     int v = lv_slider_get_value(obj);
 
     if (obj == velocity.get_slider()) {
@@ -144,16 +144,16 @@ void LimitsPanel::handle_callback(lv_event_t *e) {
     }
     
   } else if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
-    if (obj == velocity.get_off()) {
+    if (btn == velocity.get_off()) {
       ws.gcode_script(fmt::format("SET_VELOCITY_LIMIT VELOCITY={}", max_velocity_default));
 
-    } else if (obj == acceleration.get_off()) {
+    } else if (btn == acceleration.get_off()) {
       ws.gcode_script(fmt::format("SET_VELOCITY_LIMIT ACCEL={}", max_accel_default));
 
-    } else if (obj == accel_to_decel.get_off()) {
+    } else if (btn == accel_to_decel.get_off()) {
       ws.gcode_script(fmt::format("SET_VELOCITY_LIMIT ACCEL_TO_DECEL={}", max_accel_to_decel_default));
       
-    } else if (obj == square_corner.get_off()) {
+    } else if (btn == square_corner.get_off()) {
       ws.gcode_script(fmt::format("SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY={}", square_corner_default));
 
     }

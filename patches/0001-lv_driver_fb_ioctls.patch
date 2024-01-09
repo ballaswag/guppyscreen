@@ -1,5 +1,5 @@
 diff --git a/display/fbdev.c b/display/fbdev.c
-index fe8d2ff..2f056c8 100644
+index fe8d2ff..f4a3316 100644
 --- a/display/fbdev.c
 +++ b/display/fbdev.c
 @@ -140,6 +140,28 @@ void fbdev_init(void)
@@ -75,3 +75,170 @@ index b7f2c81..5e91f91 100644
  void fbdev_flush(lv_disp_drv_t * drv, const lv_area_t * area, lv_color_t * color_p);
  void fbdev_get_sizes(uint32_t *width, uint32_t *height, uint32_t *dpi);
  /**
+diff --git a/indev/evdev.c b/indev/evdev.c
+index 4d46b5b..84fb475 100644
+--- a/indev/evdev.c
++++ b/indev/evdev.c
+@@ -218,13 +218,137 @@ void evdev_read(lv_indev_drv_t * drv, lv_indev_data_t * data)
+         return ;
+     /*Store the collected data*/
+ 
+-#if EVDEV_CALIBRATE
+-    data->point.x = map(evdev_root_x, EVDEV_HOR_MIN, EVDEV_HOR_MAX, 0, drv->disp->driver->hor_res);
+-    data->point.y = map(evdev_root_y, EVDEV_VER_MIN, EVDEV_VER_MAX, 0, drv->disp->driver->ver_res);
+-#else
+     data->point.x = evdev_root_x;
+     data->point.y = evdev_root_y;
+-#endif
++    data->state = evdev_button;
++
++    if(data->point.x < 0)
++      data->point.x = 0;
++    if(data->point.y < 0)
++      data->point.y = 0;
++    if(data->point.x >= drv->disp->driver->hor_res)
++      data->point.x = drv->disp->driver->hor_res - 1;
++    if(data->point.y >= drv->disp->driver->ver_res)
++      data->point.y = drv->disp->driver->ver_res - 1;
++
++    return ;
++}
++
++void evdev_read_calibrated(lv_indev_drv_t * drv, lv_indev_data_t * data)
++{
++    struct input_event in;
++
++    while(read(evdev_fd, &in, sizeof(struct input_event)) > 0) {
++        if(in.type == EV_REL) {
++            if(in.code == REL_X)
++				#if EVDEV_SWAP_AXES
++					evdev_root_y += in.value;
++				#else
++					evdev_root_x += in.value;
++				#endif
++            else if(in.code == REL_Y)
++				#if EVDEV_SWAP_AXES
++					evdev_root_x += in.value;
++				#else
++					evdev_root_y += in.value;
++				#endif
++        } else if(in.type == EV_ABS) {
++            if(in.code == ABS_X)
++				#if EVDEV_SWAP_AXES
++					evdev_root_y = in.value;
++				#else
++					evdev_root_x = in.value;
++				#endif
++            else if(in.code == ABS_Y)
++				#if EVDEV_SWAP_AXES
++					evdev_root_x = in.value;
++				#else
++					evdev_root_y = in.value;
++				#endif
++            else if(in.code == ABS_MT_POSITION_X)
++                                #if EVDEV_SWAP_AXES
++                                        evdev_root_y = in.value;
++                                #else
++                                        evdev_root_x = in.value;
++                                #endif
++            else if(in.code == ABS_MT_POSITION_Y)
++                                #if EVDEV_SWAP_AXES
++                                        evdev_root_x = in.value;
++                                #else
++                                        evdev_root_y = in.value;
++                                #endif
++            else if(in.code == ABS_MT_TRACKING_ID) {
++                                if(in.value == -1)
++                                    evdev_button = LV_INDEV_STATE_REL;
++                                else if(in.value == 0)
++                                    evdev_button = LV_INDEV_STATE_PR;
++            }
++        } else if(in.type == EV_KEY) {
++            if(in.code == BTN_MOUSE || in.code == BTN_TOUCH) {
++                if(in.value == 0)
++                    evdev_button = LV_INDEV_STATE_REL;
++                else if(in.value == 1)
++                    evdev_button = LV_INDEV_STATE_PR;
++            } else if(drv->type == LV_INDEV_TYPE_KEYPAD) {
++#if USE_XKB
++                data->key = xkb_process_key(in.code, in.value != 0);
++#else
++                switch(in.code) {
++                    case KEY_BACKSPACE:
++                        data->key = LV_KEY_BACKSPACE;
++                        break;
++                    case KEY_ENTER:
++                        data->key = LV_KEY_ENTER;
++                        break;
++                    case KEY_PREVIOUS:
++                        data->key = LV_KEY_PREV;
++                        break;
++                    case KEY_NEXT:
++                        data->key = LV_KEY_NEXT;
++                        break;
++                    case KEY_UP:
++                        data->key = LV_KEY_UP;
++                        break;
++                    case KEY_LEFT:
++                        data->key = LV_KEY_LEFT;
++                        break;
++                    case KEY_RIGHT:
++                        data->key = LV_KEY_RIGHT;
++                        break;
++                    case KEY_DOWN:
++                        data->key = LV_KEY_DOWN;
++                        break;
++                    case KEY_TAB:
++                        data->key = LV_KEY_NEXT;
++                        break;
++                    default:
++                        data->key = 0;
++                        break;
++                }
++#endif /* USE_XKB */
++                if (data->key != 0) {
++                    /* Only record button state when actual output is produced to prevent widgets from refreshing */
++                    data->state = (in.value) ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
++                }
++                evdev_key_val = data->key;
++                evdev_button = data->state;
++                return;
++            }
++        }
++    }
++
++    if(drv->type == LV_INDEV_TYPE_KEYPAD) {
++        /* No data retrieved */
++        data->key = evdev_key_val;
++        data->state = evdev_button;
++        return;
++    }
++    if(drv->type != LV_INDEV_TYPE_POINTER)
++        return ;
++    /*Store the collected data*/
++
++    data->point.x = map(evdev_root_x, EVDEV_HOR_MIN, EVDEV_HOR_MAX, 0, drv->disp->driver->hor_res);
++    data->point.y = map(evdev_root_y, EVDEV_VER_MIN, EVDEV_VER_MAX, 0, drv->disp->driver->ver_res);
+ 
+     data->state = evdev_button;
+ 
+@@ -240,6 +364,7 @@ void evdev_read(lv_indev_drv_t * drv, lv_indev_data_t * data)
+     return ;
+ }
+ 
++
+ /**********************
+  *   STATIC FUNCTIONS
+  **********************/
+diff --git a/indev/evdev.h b/indev/evdev.h
+index c1b2280..7839fb4 100644
+--- a/indev/evdev.h
++++ b/indev/evdev.h
+@@ -58,6 +58,7 @@ bool evdev_set_file(char* dev_name);
+  */
+ void evdev_read(lv_indev_drv_t * drv, lv_indev_data_t * data);
+ 
++void evdev_read_calibrated(lv_indev_drv_t * drv, lv_indev_data_t * data);
+ 
+ /**********************
+  *      MACROS

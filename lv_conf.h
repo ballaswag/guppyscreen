@@ -101,7 +101,11 @@ extern uint32_t custom_tick_get(void);
 
 /*Default Dot Per Inch. Used to initialize default sizes such as widgets sized, style paddings.
  *(Not so important, you can adjust it to modify default sizes and spaces)*/
-#define LV_DPI_DEF 130     /*[px/inch]*/
+#ifdef GUPPY_SMALL_SCREEN
+    #define LV_DPI_DEF 90     /*[px/inch]*/
+#else
+    #define LV_DPI_DEF 130     /*[px/inch]*/
+#endif
 
 /*=======================
  * FEATURE CONFIGURATION
@@ -334,9 +338,9 @@ extern uint32_t custom_tick_get(void);
 
 /*Montserrat fonts with ASCII range and some symbols using bpp = 4
  *https://fonts.google.com/specimen/Montserrat*/
-#define LV_FONT_MONTSERRAT_8  0
+#define LV_FONT_MONTSERRAT_8  1
 #define LV_FONT_MONTSERRAT_10 1
-#define LV_FONT_MONTSERRAT_12 0
+#define LV_FONT_MONTSERRAT_12 1
 #define LV_FONT_MONTSERRAT_14 1
 #define LV_FONT_MONTSERRAT_16 1
 #define LV_FONT_MONTSERRAT_18 0
@@ -826,7 +830,11 @@ extern uint32_t custom_tick_get(void);
 
 /*Default Dot Per Inch. Used to initialize default sizes such as widgets sized, style paddings.
  *(Not so important, you can adjust it to modify default sizes and spaces)*/
-#define LV_DPI_DEF                  130     /*[px/inch]*/
+#ifdef GUPPY_SMALL_SCREEN
+    #define LV_DPI_DEF 90     /*[px/inch]*/
+#else
+    #define LV_DPI_DEF 130     /*[px/inch]*/
+#endif
 
 /*=======================
  * FEATURE CONFIGURATION

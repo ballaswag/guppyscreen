@@ -12,6 +12,8 @@
 
 namespace fs = std::experimental::filesystem;
 
+#define THUMBSCALE = 0.78
+
 FilePanel::FilePanel(lv_obj_t *parent)
   : file_cont(lv_obj_create(parent))
   , thumbnail(lv_img_create(file_cont))
@@ -67,13 +69,16 @@ void FilePanel::refresh_view(json &j, const std::string &gcode_path) {
 				   eta > 0 ? KUtils::eta_string(eta) : "(unknown)",
 				   KUtils::bytes_to_mb(j["result"]["size"].template get<size_t>()),
 				   time_stream.str());
-  
-  std::string fullpath = KUtils::get_thumbnail(gcode_path, j);
-  lv_label_set_text(detail_label, detail.c_str());
-  
+
+  auto width_scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
+  auto thumb_detail = KUtils::get_thumbnail(gcode_path, j, width_scale);
+  std::string fullpath = thumb_detail.first;    
   if (fullpath.length() > 0) {
+    lv_label_set_text(detail_label, detail.c_str());
+    auto screen_width = lv_disp_get_physical_hor_res(NULL);
+    uint32_t normalized_thumb_scale = ((0.29 * (double)screen_width) / (double)thumb_detail.second) * 256;
     lv_img_set_src(thumbnail, ("A:" + fullpath).c_str());
-    lv_img_set_zoom(thumbnail, 200);
+    lv_img_set_zoom(thumbnail, normalized_thumb_scale);
   }
 }
 

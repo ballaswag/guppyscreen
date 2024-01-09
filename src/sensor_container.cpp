@@ -34,28 +34,34 @@ SensorContainer::SensorContainer(KWebSocketClient &c,
     lv_obj_set_style_border_side(sensor_cont, LV_BORDER_SIDE_LEFT, LV_PART_MAIN);
     lv_obj_set_style_border_width(sensor_cont, 5, LV_PART_MAIN);
 
-    lv_obj_set_size(sensor_cont, 330, 60);
+    // auto cont_width = (double)lv_disp_get_physical_hor_res(NULL) * 0.4125;
+    // cont_width = cont_width > 330 ? 330 : cont_width;
+    // auto cont_height = (double)lv_disp_get_physical_ver_res(NULL) * 0.125;
+    // cont_height = cont_height > 60 ? 60 : cont_height;
+
+    auto width_scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
+    lv_obj_set_size(sensor_cont, 330 * width_scale, 60 * width_scale);
     lv_img_set_src(sensor_img, img);
-    lv_obj_align(sensor_img, LV_ALIGN_LEFT_MID, -25, 0);
+    lv_obj_align(sensor_img, LV_ALIGN_LEFT_MID, -25 * width_scale, 0);
 
     lv_label_set_text(sensor_label, text);
-    lv_obj_align_to(sensor_label, sensor_img, LV_ALIGN_OUT_RIGHT_MID, -7, 0);
+    lv_obj_align_to(sensor_label, sensor_img, LV_ALIGN_OUT_RIGHT_MID, -7 * width_scale, 0);
 
     lv_label_set_text(value_label, "0");
-    lv_obj_set_width(value_label, 50);
-      lv_obj_align(value_label, LV_ALIGN_RIGHT_MID, -70, 0);
-    lv_obj_set_style_pad_all(value_label, 8, 0);
+    lv_obj_set_width(value_label, 50 * width_scale);
+    lv_obj_align(value_label, LV_ALIGN_RIGHT_MID, -70 * width_scale, 0);
+    lv_obj_set_style_pad_all(value_label, 8 * width_scale, 0);
 
     lv_label_set_text(divider_label, "/");
-    lv_obj_set_width(divider_label, 50);
-    lv_obj_align(divider_label, LV_ALIGN_RIGHT_MID, -27, 0);
-    lv_obj_set_style_pad_all(divider_label, 8, 0);
+    lv_obj_set_width(divider_label, 50 * width_scale);
+    lv_obj_align(divider_label, LV_ALIGN_RIGHT_MID, -27 * width_scale, 0);
+    lv_obj_set_style_pad_all(divider_label, 8 * width_scale, 0);
 
     if (controllable) {
       lv_label_set_text(target_label, "0");
-      lv_obj_set_width(target_label, 55);
+      lv_obj_set_width(target_label, 55 * width_scale);
       lv_obj_align(target_label, LV_ALIGN_RIGHT_MID, 0, 0);
-      lv_obj_set_style_pad_all(target_label, 8, 0);
+      lv_obj_set_style_pad_all(target_label, 8 * width_scale, 0);
       
       lv_obj_set_style_border_width(target_label, 2, LV_PART_MAIN);
       lv_obj_set_style_radius(target_label, 6, LV_PART_MAIN);

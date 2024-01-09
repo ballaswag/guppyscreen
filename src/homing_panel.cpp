@@ -30,63 +30,39 @@ HomingPanel::HomingPanel(KWebSocketClient &websocket_client, std::mutex &lock)
   , emergency_btn(homing_cont, &emergency, "Stop", &HomingPanel::_handle_callback, this)
   , motoroff_btn(homing_cont, &motor_off_img, "Motor Off", &HomingPanel::_handle_callback, this)
   , back_btn(homing_cont, &back, "Back", &HomingPanel::_handle_callback, this)
-  , selector_label(lv_label_create(homing_cont))
-  , btnm(lv_btnmatrix_create(homing_cont))
-  , selector_index(2)
+  , distance_selector(homing_cont, "Move Distance (mm)",
+		     {".1", ".5", "1", "5", "10", "25", "50", ""}, 2, 70, 15, &HomingPanel::_handle_selector_cb, this)
 {
+  lv_obj_clear_flag(homing_cont, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_height(homing_cont, lv_pct(100));
+  lv_obj_set_width(homing_cont, lv_pct(100));
 
-    static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(5), LV_GRID_FR(5), LV_GRID_FR(1), LV_GRID_FR(1),
-      LV_GRID_FR(3), LV_GRID_TEMPLATE_LAST};
-    static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1),
-      LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+  static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(4), LV_GRID_FR(4), LV_GRID_FR(2), LV_GRID_TEMPLATE_LAST};
+  static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1),
+    LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 
-    lv_obj_clear_flag(homing_cont, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_height(homing_cont, lv_pct(100));
-    lv_obj_set_width(homing_cont, lv_pct(100));
+  lv_obj_set_grid_dsc_array(homing_cont, grid_main_col_dsc, grid_main_row_dsc);
 
-    lv_obj_set_flex_grow(homing_cont, 1);
+  // row 1
+  lv_obj_set_grid_cell(home_all_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+  lv_obj_set_grid_cell(y_up_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+  lv_obj_set_grid_cell(home_xy_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+  lv_obj_set_grid_cell(z_up_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 0, 1); 
+  lv_obj_set_grid_cell(emergency_btn.get_container(), LV_GRID_ALIGN_CENTER, 4, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+
+  // row 2
+  lv_obj_set_grid_cell(x_down_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 1, 1);
+  lv_obj_set_grid_cell(y_down_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 1, 1);
+  lv_obj_set_grid_cell(x_up_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 1, 1);
+  lv_obj_set_grid_cell(z_down_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 1, 1);
+  lv_obj_set_grid_cell(motoroff_btn.get_container(), LV_GRID_ALIGN_CENTER, 4, 1, LV_GRID_ALIGN_CENTER, 1, 1);
     
-    lv_obj_set_grid_dsc_array(homing_cont, grid_main_col_dsc, grid_main_row_dsc);
+  lv_obj_set_grid_cell(distance_selector.get_container(), LV_GRID_ALIGN_CENTER, 0, 5, LV_GRID_ALIGN_CENTER, 2, 1);
 
-    // row 1
-    lv_obj_set_grid_cell(home_all_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 1);
-    lv_obj_set_grid_cell(y_up_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 0, 1);
-    lv_obj_set_grid_cell(home_xy_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
-    lv_obj_set_grid_cell(z_up_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 0, 1); 
-    lv_obj_set_grid_cell(emergency_btn.get_container(), LV_GRID_ALIGN_CENTER, 4, 1, LV_GRID_ALIGN_CENTER, 0, 1);
+  lv_obj_add_flag(back_btn.get_container(), LV_OBJ_FLAG_FLOATING);  
+  lv_obj_align(back_btn.get_container(), LV_ALIGN_BOTTOM_RIGHT, 10, 0);
 
-    // row 2
-    lv_obj_set_grid_cell(x_down_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-    lv_obj_set_grid_cell(y_down_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-    lv_obj_set_grid_cell(x_up_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-    lv_obj_set_grid_cell(z_down_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-    lv_obj_set_grid_cell(motoroff_btn.get_container(), LV_GRID_ALIGN_CENTER, 4, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-    
-    lv_obj_set_grid_cell(back_btn.get_container(), LV_GRID_ALIGN_END, 4, 1, LV_GRID_ALIGN_END, 4, 1);
-
-    // lv_obj_t * selector_label = lv_label_create(homing_cont);
-    lv_label_set_text(selector_label, "Move Distance (mm)");
-
-    static const char * map[] = {".1", ".5", "1", "5", "10", "25", "50", ""};
-
-    lv_btnmatrix_set_map(btnm, map);
-    lv_obj_set_style_pad_all(btnm, 4, LV_PART_MAIN);
-    
-    lv_obj_set_style_outline_width(btnm, 0, LV_PART_ITEMS | LV_STATE_FOCUS_KEY);
-    
-    lv_obj_add_event_cb(btnm, &HomingPanel::_handle_selector_cb, LV_EVENT_VALUE_CHANGED, this);
-    lv_obj_set_size(btnm, LV_PCT(62), LV_PCT(15));
-
-    /*Allow selecting on one number at time*/
-    lv_btnmatrix_set_btn_ctrl_all(btnm, LV_BTNMATRIX_CTRL_CHECKABLE);
-
-    lv_btnmatrix_set_one_checked(btnm, true);
-    lv_btnmatrix_set_btn_ctrl(btnm, selector_index, LV_BTNMATRIX_CTRL_CHECKED);
-
-    lv_obj_set_grid_cell(selector_label, LV_GRID_ALIGN_CENTER, 0, 5, LV_GRID_ALIGN_CENTER, 2, 1);
-    lv_obj_set_grid_cell(btnm, LV_GRID_ALIGN_CENTER, 0, 5, LV_GRID_ALIGN_START, 3, 1);
-
-    ws.register_notify_update(this);
+  ws.register_notify_update(this);
 }
 
 HomingPanel::~HomingPanel() {
@@ -162,7 +138,8 @@ void HomingPanel::foreground() {
 
 void HomingPanel::handle_callback(lv_event_t *event) {
   lv_obj_t *btn = lv_event_get_current_target(event);  
-  float distance = distances[selector_index];
+  const char * distance = lv_btnmatrix_get_btn_text(distance_selector.get_selector(),
+						    distance_selector.get_selected_idx());
   std::string move_op;
 
   if (btn == home_all_btn.get_container()) {
@@ -177,32 +154,32 @@ void HomingPanel::handle_callback(lv_event_t *event) {
   }
   else if (btn == y_up_btn.get_container()) {
     spdlog::debug("y up pressed");
-    move_op = "G0 Y+" + std::to_string(distance) + " F1200";
+    move_op = fmt::format("G0 Y+{} F1200", distance);
 
   }
   else if (btn == y_down_btn.get_container()) {
     spdlog::debug("y down pressed");
-    move_op = "G0 Y-" + std::to_string(distance) + " F1200";
+    move_op = fmt::format("G0 Y-{} F1200", distance);
 
   }
   else if (btn == x_up_btn.get_container()) {
     spdlog::debug("x up pressed");
-    move_op = "G0 X+" + std::to_string(distance) + " F1200";
+    move_op = fmt::format("G0 X+{} F1200", distance);
 
   }
   else if (btn == x_down_btn.get_container()) {
     spdlog::debug("x down pressed");
-    move_op = "G0 X-" + std::to_string(distance) + " F1200";
+    move_op = fmt::format("G0 X-{} F1200", distance);
 
   }
   else if (btn == z_up_btn.get_container()) {
     spdlog::debug("z up pressed");
-    move_op = "G0 Z+" + std::to_string(distance) + " F1200";
+    move_op = fmt::format("G0 Z+{} F1200", distance);
 
   }
   else if (btn == z_down_btn.get_container()) {
     spdlog::debug("z down pressed");
-    move_op = "G0 Z-" + std::to_string(distance) + " F1200";
+    move_op = fmt::format("G0 Z-{} F1200", distance);
 
   } else if (btn == emergency_btn.get_container()) {
     spdlog::debug("emergency stop pressed");
@@ -228,6 +205,7 @@ void HomingPanel::handle_callback(lv_event_t *event) {
 void HomingPanel::handle_selector_cb(lv_event_t *event) {
   HomingPanel *panel = (HomingPanel*)event->user_data;
   lv_obj_t * obj = lv_event_get_target(event);
-  panel->selector_index = lv_btnmatrix_get_selected_btn(obj);
-  spdlog::debug("selector move distance index {}", panel->selector_index);
+  uint32_t idx = lv_btnmatrix_get_selected_btn(obj);
+  distance_selector.set_selected_idx(idx);
+  spdlog::debug("selector move distance index {}", idx);
 }

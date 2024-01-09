@@ -40,11 +40,24 @@ include $(LVGL_DIR)/lv_drivers/lv_drivers.mk
 
 CSRCS 			+= $(wildcard $(LVGL_DIR)/assets/*.c)
 
+
+ASSET_DIR		= material
+ifdef GUPPY_SMALL_SCREEN
+ASSET_DIR		= material_46
+DEFINES			+= -D GUPPY_SMALL_SCREEN
+endif
+
+
+ifdef GUPPY_ROTATE
+DEFINES			+= -D GUPPY_ROTATE
+endif
+
+
 ifeq ($(GUPPY_THEME),zbolt)
 CSRCS 			+= $(wildcard $(LVGL_DIR)/assets/zbolt/*.c)
 DEFINES			+= -D ZBOLT
 else
-CSRCS 			+= $(wildcard $(LVGL_DIR)/assets/material/*.c)
+CSRCS 			+= $(wildcard $(LVGL_DIR)/assets/$(ASSET_DIR)/*.c)
 endif
 
 ifdef GUPPYSCREEN_VERSION

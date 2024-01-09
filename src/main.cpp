@@ -103,6 +103,7 @@ int main(void)
     spdlog::info("Guppy Screen Version: {}", GUPPYSCREEN_VERSION);
 #endif // GUPPYSCREEN_VERSION
 
+    spdlog::info("DPI: {}", LV_DPI_DEF);
     /*LittlevGL init*/
     lv_init();
 
@@ -127,6 +128,7 @@ int main(void)
     lv_style_set_img_recolor_opa(&style_imgbtn_disabled, LV_OPA_100);
     lv_style_set_img_recolor(&style_imgbtn_disabled, lv_palette_darken(LV_PALETTE_GREY, 1));
     /*Initialize the new theme from the current theme*/
+    
     lv_theme_t * th_act = lv_disp_get_theme(NULL);
     static lv_theme_t th_new;
     th_new = *th_act;
@@ -261,7 +263,15 @@ static void hal_init(void) {
     indev_drv_1.type = LV_INDEV_TYPE_POINTER;
 
     /*This function will be called periodically (by the library) to get the mouse position and state*/
-    indev_drv_1.read_cb = evdev_read;
+    indev_drv_1.read_cb = evdev_read;    
+    auto touch_calibrated = conf->get_json("/touch_calibrated");
+    if (!touch_calibrated.is_null()) {
+      auto is_calibrated = touch_calibrated.template get<bool>();
+      if (is_calibrated) {
+	indev_drv_1.read_cb = evdev_read_calibrated;
+      }
+    }
+      
     lv_indev_t *mouse_indev = lv_indev_drv_register(&indev_drv_1);
 }
 
@@ -299,10 +309,11 @@ static void hal_init(void)
   disp_drv.antialiasing = 1;
 
   lv_disp_t * disp = lv_disp_drv_register(&disp_drv);
-
-  lv_theme_t * th = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), LV_THEME_DEFAULT_DARK, LV_FONT_DEFAULT);
+  lv_theme_t * th = MONITOR_HOR_RES <= 480
+    ? lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_12)
+    : lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_16);
   lv_disp_set_theme(disp, th);
-
+ 
   lv_group_t * g = lv_group_create();
   lv_group_set_default(g);
 

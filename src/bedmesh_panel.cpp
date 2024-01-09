@@ -49,24 +49,31 @@ BedMeshPanel::BedMeshPanel(KWebSocketClient &c, std::mutex &l)
   lv_obj_clear_flag(top_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_flex_flow(top_cont, LV_FLEX_FLOW_ROW);
 
-  lv_obj_set_style_text_font(mesh_table, &lv_font_montserrat_10, LV_STATE_DEFAULT);
+  auto screen_width = lv_disp_get_physical_hor_res(NULL);
+  if (screen_width < 800) {
+    lv_obj_set_style_text_font(mesh_table, &lv_font_montserrat_8, LV_STATE_DEFAULT);
+  } else {
+    lv_obj_set_style_text_font(mesh_table, &lv_font_montserrat_10, LV_STATE_DEFAULT);
+  }
+  auto scale = (double)screen_width / 800.0;
+  auto hscale = (double)lv_disp_get_physical_ver_res(NULL) / 480.0;
   
-  lv_obj_set_size(profile_cont, LV_PCT(50), 340);
+  lv_obj_set_size(profile_cont, LV_PCT(50), 340 * hscale);
   lv_obj_set_style_pad_all(profile_cont, 0, 0);
   lv_obj_set_style_border_width(profile_cont, 0, 0);  
   lv_obj_clear_flag(profile_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_flex_flow(profile_cont, LV_FLEX_FLOW_COLUMN);
 
   // profile table
-  lv_table_set_col_width(profile_table, 0, 260);
-  lv_table_set_col_width(profile_table, 1, 50);
-  lv_table_set_col_width(profile_table, 2, 50);
-  lv_obj_set_height(profile_table, 200);
+  lv_table_set_col_width(profile_table, 0, 260 * scale);
+  lv_table_set_col_width(profile_table, 1, 50 * scale);
+  lv_table_set_col_width(profile_table, 2, 50 * scale);
+  lv_obj_set_height(profile_table, 200 * hscale);
 
   // profile info
-  lv_table_set_col_width(profile_info, 0, 240);
-  lv_table_set_col_width(profile_info, 1, 120);
-  lv_obj_set_height(profile_info, 150);
+  lv_table_set_col_width(profile_info, 0, 240 * scale);
+  lv_table_set_col_width(profile_info, 1, 120 * scale);
+  lv_obj_set_height(profile_info, 150 * hscale);
   lv_obj_set_style_pad_top(profile_info, 5, LV_PART_ITEMS | LV_STATE_DEFAULT);
   lv_obj_set_style_pad_bottom(profile_info, 5, LV_PART_ITEMS | LV_STATE_DEFAULT);
   lv_obj_set_style_border_side(profile_info, LV_BORDER_SIDE_BOTTOM, 0);
@@ -180,7 +187,8 @@ void BedMeshPanel::refresh_views(json &bm) {
 
       // calculate cell width
       if (mesh.size() > 0 && mesh[0].size() > 0) {
-	int col_width = std::max(4, (int)(380 / mesh[0].size()));
+	auto scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
+	int col_width = std::max(4, (int)(380 * scale / mesh[0].size()));
 	int cel_height = std::max(1, (int)(col_width / 2 - 8));
 
 	lv_obj_set_style_pad_top(mesh_table, cel_height, LV_PART_ITEMS | LV_STATE_DEFAULT);

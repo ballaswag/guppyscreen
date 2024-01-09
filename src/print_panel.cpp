@@ -58,7 +58,7 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   lv_obj_t * label = NULL;
   
   label = lv_label_create(refresh_btn);
-  lv_label_set_text(label, LV_SYMBOL_REFRESH " Refresh");
+  lv_label_set_text(label, LV_SYMBOL_REFRESH " Reload");
   lv_obj_center(label);
 
   label = lv_label_create(modified_sort_btn);
@@ -73,8 +73,8 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   lv_obj_add_event_cb(modified_sort_btn, &PrintPanel::_handle_btns, LV_EVENT_CLICKED, this);
   lv_obj_add_event_cb(az_sort_btn, &PrintPanel::_handle_btns, LV_EVENT_CLICKED, this);
   
-  lv_obj_set_size(file_table_btns, LV_PCT(100), 60);
-  lv_obj_set_style_pad_all(file_table_btns, 0, 0);
+  lv_obj_set_size(file_table_btns, LV_PCT(100), LV_SIZE_CONTENT);
+  lv_obj_set_style_pad_all(file_table_btns, 2, 0);
 
   lv_obj_clear_flag(file_table_btns, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_flex_flow(file_table_btns, LV_FLEX_FLOW_ROW);
