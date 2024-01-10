@@ -8,6 +8,28 @@ white=`echo "\033[m"`
 BACKUP_DIR=/usr/data/guppyify-backup
 K1_GUPPY_DIR=/usr/data/guppyscreen
 FT2FONT_PATH=/usr/lib/python3.8/site-packages/matplotlib/ft2font.cpython-38-mipsel-linux-gnu.so
+ASSET_NAME="guppyscreen"
+
+if [ "$1" = "zbolt" ]; then
+    ASSET_NAME="$ASSET_NAME-zbolt"
+fi
+
+ARCH=`uname -m`
+if [ "$ARCH" = "mips" ] && [ -f /sys/class/graphics/fb0/virtual_size ]; then
+    res=`cat /sys/class/graphics/fb0/virtual_size`
+    x=${res%,*}
+    y=${res#*,}
+
+    printf "${green}Found screen virtual size $x, $y ${white}\n"
+    if [ $y -lt 800 ] && [ $x -lt 800 ]; then
+	printf "${green}Using smallscreen version ${white}\n"
+	ASSET_NAME="guppyscreen-smallscreen"
+    fi
+    
+else
+    printf "${red}Unable to find compatible platform/screen size (found platform: $ARCH) ${white}\n"
+    exit 1
+fi
 
 printf "${green}=== Installing Guppy Screen === ${white}\n"
 
@@ -58,12 +80,10 @@ printf "${green} Found config dir: $K1_CONFIG_DIR ${white}\n"
 wget -q --no-check-certificate https://raw.githubusercontent.com/ballaswag/k1-discovery/main/bin/curl -O /tmp/curl
 chmod +x /tmp/curl
 
+printf "${green} Downloading asset: $ASSET_NAME.tar.gz ${white}\n"
+
 # download/extract latest guppyscreen
-if [ x"$1" == x"zbolt" ]; then
-    /tmp/curl -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen-zbolt.tar.gz -o /tmp/guppyscreen.tar.gz
-else
-    /tmp/curl -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen.tar.gz -o /tmp/guppyscreen.tar.gz
-fi
+/tmp/curl -s -L "https://github.com/ballaswag/guppyscreen/releases/latest/download/$ASSET_NAME.tar.gz" -o /tmp/guppyscreen.tar.gz
 tar xf /tmp/guppyscreen.tar.gz -C /usr/data/
 
 if [ ! -f "$K1_GUPPY_DIR/guppyscreen" ]; then

@@ -257,6 +257,12 @@ static void hal_init(void) {
     }
     lv_disp_drv_register(&disp_drv);
 
+    lv_disp_t * disp = lv_disp_drv_register(&disp_drv);
+    lv_theme_t * th = width <= 480
+      ? lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_12)
+      : lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_16);
+    lv_disp_set_theme(disp, th);
+
     evdev_init();
     static lv_indev_drv_t indev_drv_1;
     lv_indev_drv_init(&indev_drv_1); /*Basic initialization*/

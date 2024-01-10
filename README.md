@@ -20,14 +20,14 @@ Guppy Screen is a touch UI for Klipper using APIs exposed by Moonraker. It build
 </p>
 
 ## Installation / Update
-Run the following interactive script via SSH on your K1/Max to install Guppy Screen.
+Run the following interactive script via SSH on your K1/Max/CR-10 SE/Ender 3 V3 KE/Nebula Pad to install Guppy Screen.
 
 #### Material Design Theme
 ```
 sh -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer.sh)"
 ```
 
-#### Z-Bolt Theme
+#### Z-Bolt Theme (Only for the K1/Max)
 ```
 sh -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer.sh)" -s zbolt
 ```
@@ -56,13 +56,13 @@ wget -O - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer
 :white_check_mark: Fans/LED/Move Control  
 :white_check_mark: Fine Tune (speed, flow, z-offset, Pressure Advance)  
 :white_check_mark: Limits (Velocity, Acel, Square Corner Velocity, etc.)  
-:white_check_mark: File Browser 
+:white_check_mark: File Browser  
+:white_check_mark: Supports multiple screen resolutions  
+:white_check_mark: Cross platform releases (MIPS/ARM/x86)  
 
 ## Roadmap
 :bangbang: Exclude Object  
-:bangbang: Cross platform releases (ARM)  
 :bangbang: Multi-Printer support  
-:bangbang: Vibration graphs  
 :bangbang: Firmware Retraction  
 
 Open for feature requests.
