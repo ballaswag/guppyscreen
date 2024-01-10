@@ -28,6 +28,7 @@ BIN 			= guppyscreen
 BUILD_DIR 		= ./build
 BUILD_OBJ_DIR 	= $(BUILD_DIR)/obj
 BUILD_BIN_DIR 	= $(BUILD_DIR)/bin
+SPDLOG_DIR		= spdlog
 
 prefix 			?= /usr
 bindir 			?= $(prefix)/bin
@@ -99,6 +100,11 @@ all: default
 libhv.a:
 	$(MAKE) -C libhv -j$(nproc) libhv
 
+libspdlog.a:
+	@mkdir -p $(SPDLOG_DIR)/build
+	@cmake -B $(SPDLOG_DIR)/build -S $(SPDLOG_DIR)/
+	$(MAKE) -C $(SPDLOG_DIR)/build -j$(nproc)
+
 wpaclient:
 	$(MAKE) -C wpa_supplicant/wpa_supplicant -j$(nproc) libwpa_client.a
 
@@ -125,6 +131,9 @@ default: $(TARGET)
 	$(CXX) -o $(BUILD_BIN_DIR)/$(BIN) $(TARGET) $(LDFLAGS) $(LDLIBS)
 	@echo "CXX $<"
 
+spdlogclean:
+	rm -rf $(SPDLOG_DIR)/build
+
 libhvclean:
 	$(MAKE) -C libhv clean
 
@@ -140,5 +149,15 @@ install:
 
 uninstall:
 	$(RM) -r $(addprefix $(DESTDIR)$(bindir)/,$(BIN))
+
+build:
+	$(MAKE) wpaclean
+	$(MAKE) wpaclient
+	$(MAKE) libhvclean
+	$(MAKE) libhv.a
+	$(MAKE) spdlogclean
+	$(MAKE) libspdlog.a
+	$(MAKE) clean
+	$(MAKE) -j$(nproc)
 
 -include			$(DEPS)

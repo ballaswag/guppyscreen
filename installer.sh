@@ -76,6 +76,9 @@ fi
 K1_CONFIG_DIR=$(dirname "$K1_CONFIG_FILE")
 printf "${green} Found config dir: $K1_CONFIG_DIR ${white}\n"
 
+# kill pip cache to free up overlayfs
+rm -rf /root/.cache
+
 ## bootstrap for ssl support
 wget -q --no-check-certificate https://raw.githubusercontent.com/ballaswag/k1-discovery/main/bin/curl -O /tmp/curl
 chmod +x /tmp/curl
@@ -146,7 +149,7 @@ cp $K1_GUPPY_DIR/k1_mods/S50dropbear /etc/init.d/S50dropbear
 
 printf "${white}=== Do you want to disable all Creality services (revertable) with GuppyScreen installation? ===\n"
 printf "${green}  Pros: Frees up system resources on your K1 for critical services such as Klipper (Recommended)\n"
-printf "${white}  Cons: Disabling all Creality services breaks Creality Cloud/Creality Slider.\n\n"
+printf "${white}  Cons: Disabling all Creality services breaks Creality Cloud/Creality Slicer.\n\n"
 printf "Disable all Creality Services? (y/n): "
 
 read confirm_decreality
