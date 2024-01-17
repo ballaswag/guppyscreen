@@ -9,6 +9,7 @@ SensorContainer::SensorContainer(KWebSocketClient &c,
 				 const char *text,
 				 lv_color_t color,
 				 bool can_edit,
+				 bool show_target,
 				 Numpad &np,
 				 std::string name,
 				 lv_obj_t *chart_chart,
@@ -16,7 +17,6 @@ SensorContainer::SensorContainer(KWebSocketClient &c,
   : ws(c)
   , sensor_cont(lv_obj_create(parent))
   , sensor_img(lv_img_create(sensor_cont))
-  , controllable(can_edit)
   , sensor_label(lv_label_create(sensor_cont))
   , value_label(lv_label_create(sensor_cont))
   , value(0)
@@ -57,12 +57,17 @@ SensorContainer::SensorContainer(KWebSocketClient &c,
     lv_obj_align(divider_label, LV_ALIGN_RIGHT_MID, -27 * width_scale, 0);
     lv_obj_set_style_pad_all(divider_label, 8 * width_scale, 0);
 
-    if (controllable) {
+    if (show_target || can_edit) {
       lv_label_set_text(target_label, "0");
       lv_obj_set_width(target_label, 55 * width_scale);
       lv_obj_align(target_label, LV_ALIGN_RIGHT_MID, 0, 0);
       lv_obj_set_style_pad_all(target_label, 8 * width_scale, 0);
-      
+    } else {
+      lv_obj_add_flag(target_label, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(divider_label, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    if (can_edit) {      
       lv_obj_set_style_border_width(target_label, 2, LV_PART_MAIN);
       lv_obj_set_style_radius(target_label, 6, LV_PART_MAIN);
       lv_obj_set_style_border_color(target_label, lv_palette_darken(LV_PALETTE_GREY, 1), LV_PART_MAIN);
@@ -70,10 +75,7 @@ SensorContainer::SensorContainer(KWebSocketClient &c,
       spdlog::debug("sensor cb registered name {}, cont {}, this {}, np {}",
 		    id, fmt::ptr(sensor_cont), fmt::ptr(this), fmt::ptr(&np));
       lv_obj_add_event_cb(sensor_cont, &SensorContainer::_handle_edit, LV_EVENT_CLICKED, this);
-    } else {
-      lv_obj_add_flag(target_label, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_add_flag(divider_label, LV_OBJ_FLAG_HIDDEN);
-    }
+    } 
 }
 
 SensorContainer::SensorContainer(KWebSocketClient &c,
@@ -83,15 +85,15 @@ SensorContainer::SensorContainer(KWebSocketClient &c,
 				 const char *text,
 				 lv_color_t color,
 				 bool can_edit,
+				 bool show_target,
 				 Numpad &np,
 				 std::string name,
 				 lv_obj_t *chart,
 				 lv_chart_series_t *chart_series)
-  : SensorContainer(c, parent, img, text, color, can_edit, np, name, chart, chart_series)
+  : SensorContainer(c, parent, img, text, color, can_edit, show_target, np, name, chart, chart_series)
 {
   lv_img_set_zoom(sensor_img, img_scale);
 }
-
 
 SensorContainer::~SensorContainer() {
   if (sensor_cont != NULL) {

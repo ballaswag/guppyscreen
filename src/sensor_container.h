@@ -15,6 +15,7 @@ class SensorContainer {
 		  const char *text,
 		  lv_color_t color,
 		  bool editable,
+		  bool show_target,
 		  Numpad &np,
 		  std::string name,
 		  lv_obj_t *chart,
@@ -27,6 +28,7 @@ class SensorContainer {
 		  const char *text,
 		  lv_color_t color,
 		  bool editable,
+		  bool show_target,
 		  Numpad &np,
 		  std::string name,
 		  lv_obj_t *chart,
@@ -49,7 +51,6 @@ class SensorContainer {
   KWebSocketClient &ws;
   lv_obj_t *sensor_cont;
   lv_obj_t *sensor_img;
-  bool controllable;
   lv_obj_t *sensor_label;
   lv_obj_t *value_label;
   int value;

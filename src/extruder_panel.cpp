@@ -23,7 +23,7 @@ ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
   , panel_cont(lv_obj_create(lv_scr_act()))
   , spoolman_panel(sm)
   , extruder_temp(ws, panel_cont, &extruder, 150,
-	  "Extruder", lv_palette_main(LV_PALETTE_RED), false, numpad, "extruder", NULL, NULL)
+	  "Extruder", lv_palette_main(LV_PALETTE_RED), false, true, numpad, "extruder", NULL, NULL)
   , temp_selector(panel_cont, "Extruder Temperature (C)",
 		  {"180", "190", "200", "210", "220", "230", "240", ""}, 6, &ExtruderPanel::_handle_callback, this)
   , length_selector(panel_cont, "Extrude Length (mm)",
@@ -134,8 +134,14 @@ void ExtruderPanel::enable_spoolman() {
 
 void ExtruderPanel::consume(json& j) {
   std::lock_guard<std::mutex> lock(lv_lock);
+  auto target_value = j["/params/0/extruder/target"_json_pointer];
+  if (!target_value.is_null()) {
+    int target = target_value.template get<int>();
+    extruder_temp.update_target(target);
+  }
+  
   auto temp_value = j["/params/0/extruder/temperature"_json_pointer];
-  if (!temp_value.is_null()) {
+  if (!temp_value.is_null()) {   
     int value = temp_value.template get<int>();
     extruder_temp.update_value(value);
   }

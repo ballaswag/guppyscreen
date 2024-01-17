@@ -36,13 +36,24 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   , finetune_btn(buttons_cont, &fine_tune_img, "Fine Tune", &PrintStatusPanel::_handle_callback, this)
   , pause_btn(buttons_cont, &pause_img, "Pause", &PrintStatusPanel::_handle_callback, this)
   , resume_btn(buttons_cont, &resume, "Resume", &PrintStatusPanel::_handle_callback, this)
-  , cancel_btn(buttons_cont, &cancel, "Cancel", &PrintStatusPanel::_handle_callback, this)
-  , emergency_btn(buttons_cont, &emergency, "Stop", &PrintStatusPanel::_handle_callback, this)
+  , cancel_btn(buttons_cont, &cancel, "Cancel", &PrintStatusPanel::_handle_callback, this,
+	       "Do you want to cancel the print?",
+	       [&websocket_client]() {
+		 spdlog::debug("cancel print prompt");
+		 websocket_client.send_jsonrpc("printer.print.cancel");
+	       })
+  , emergency_btn(buttons_cont, &emergency, "Stop", &PrintStatusPanel::_handle_callback, this,
+		  "Do you want to emergency stop?",
+		  [&websocket_client]() {
+		    spdlog::debug("emergency stop pressed");
+		    websocket_client.send_jsonrpc("printer.emergency_stop");
+		  })
   , back_btn(buttons_cont, &back, "Back", &PrintStatusPanel::_handle_callback, this)
-  , thumbnail_cont(lv_img_create(status_cont))
+  , thumbnail_cont(lv_obj_create(status_cont))
   , thumbnail(lv_img_create(thumbnail_cont))
-  , progress_bar(lv_bar_create(thumbnail_cont))
-  , progress_label(lv_label_create(thumbnail_cont))
+  , pbar_cont(lv_obj_create(thumbnail_cont))
+  , progress_bar(lv_bar_create(pbar_cont))
+  , progress_label(lv_label_create(pbar_cont))
   , detail_cont(lv_obj_create(status_cont))
   , extruder_temp(detail_cont, &extruder, 100, "20")
   , bed_temp(detail_cont, &bed, 100, "21")
@@ -105,17 +116,30 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   lv_obj_set_flex_flow(buttons_cont, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(buttons_cont, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
+  lv_obj_set_style_pad_all(pbar_cont, 0, 0);
+  lv_obj_set_style_pad_top(pbar_cont, 10, 0);
+  lv_obj_set_size(pbar_cont, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  // lv_obj_set_style_border_width(pbar_cont, 2, 0);
+  // lv_obj_set_style_border_width(thumbnail_cont, 2, 0);
+
   auto bar_width = (double)lv_disp_get_physical_hor_res(NULL) * 0.35;
-  lv_obj_set_size(progress_bar, bar_width, 20);
+  auto hscale = (double)lv_disp_get_physical_ver_res(NULL) / 480.0;
+
+  lv_obj_set_size(progress_bar, bar_width, 20 * hscale);
   lv_bar_set_value(progress_bar, 0, LV_ANIM_OFF);
-  lv_obj_align(progress_bar, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_center(progress_bar);
 
   lv_label_set_text(progress_label, "0%");
-  lv_obj_align(progress_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_center(progress_label);
+
+  lv_obj_set_flex_flow(thumbnail_cont, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(thumbnail_cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_size(thumbnail_cont, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_set_style_pad_all(thumbnail_cont, 0, 0);
+  lv_obj_set_style_pad_row(thumbnail_cont, 0, 0);
 
   // row 1
   lv_obj_set_grid_cell(thumbnail_cont, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 1);
-  lv_obj_set_grid_cell(progress_bar, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 1);
   lv_obj_set_grid_cell(detail_cont, LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 0, 1);  
 
   //row 2
@@ -268,7 +292,7 @@ void PrintStatusPanel::handle_metadata(const std::string &gcode_file, json &j) {
     uint32_t normalized_thumb_scale = ((0.34 * (double)screen_width) / (double)thumb_detail.second) * 256;
     lv_img_set_src(thumbnail, img_path.c_str());
     lv_img_set_zoom(thumbnail, normalized_thumb_scale);
-    mini_print_status.update_img(img_path);
+    mini_print_status.update_img(img_path, thumb_detail.second);
   }
 }
 

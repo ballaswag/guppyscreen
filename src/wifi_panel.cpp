@@ -146,7 +146,7 @@ void WifiPanel::handle_callback(lv_event_t *e) {
     } else if (list_networks.count(selected_network)) {
       auto nid = list_networks.find(selected_network)->second;
       wpa_event.send_command(fmt::format("SELECT_NETWORK {}", nid));
-      wpa_event.send_command("SAVE CONFIG");
+      wpa_event.send_command("SAVE_CONFIG");
     } else {
       lv_label_set_text(wifi_label, fmt::format("Enter password for {}", selected_network).c_str());
       lv_obj_clear_flag(password_input, LV_OBJ_FLAG_HIDDEN);
@@ -277,7 +277,7 @@ void WifiPanel::connect(const char *password) {
     wpa_event.send_command(fmt::format("SET_NETWORK {} psk {:?}", nid, password));
     wpa_event.send_command(fmt::format("ENABLE_NETWORK {}", nid));
     wpa_event.send_command(fmt::format("SELECT_NETWORK {}", nid));
-    wpa_event.send_command("SAVE CONFIG");
+    wpa_event.send_command("SAVE_CONFIG");
   }
 }
 

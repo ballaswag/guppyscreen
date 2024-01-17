@@ -262,7 +262,7 @@ void MainPanel::create_sensors(json &temp_sensors) {
       lv_chart_add_series(temp_chart, color_code, LV_CHART_AXIS_PRIMARY_Y);
 
     sensors.insert({key, std::make_shared<SensorContainer>(ws, temp_cont, sensor_img, 150,
-			   display_name.c_str(), color_code, controllable, numpad, key,
+			   display_name.c_str(), color_code, controllable, false, numpad, key,
         		   temp_chart, temp_series)});
   }
 }

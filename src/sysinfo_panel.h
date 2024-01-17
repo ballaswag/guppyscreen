@@ -22,9 +22,20 @@ class SysInfoPanel {
 
  private:
   lv_obj_t *cont;
+  lv_obj_t *left_cont;
+  lv_obj_t *right_cont;
   lv_obj_t *network_label;
+
+  lv_obj_t *disp_sleep_cont;
+  lv_obj_t *display_sleep_dd;
+
+  lv_obj_t *ll_cont;
   lv_obj_t *loglevel_dd;
   uint32_t loglevel;
+
+  lv_obj_t *estop_toggle_cont;
+  lv_obj_t *prompt_estop_toggle;
+  
   ButtonContainer back_btn;
 
   static std::vector<std::string> log_levels;

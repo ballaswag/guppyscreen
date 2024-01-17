@@ -27,7 +27,12 @@ HomingPanel::HomingPanel(KWebSocketClient &websocket_client, std::mutex &lock)
   , x_down_btn(homing_cont, &arrow_left, "X-", &HomingPanel::_handle_callback, this)
   , z_up_btn(homing_cont, &z_closer, "Z+", &HomingPanel::_handle_callback, this)
   , z_down_btn(homing_cont, &z_farther, "Z-", &HomingPanel::_handle_callback, this)
-  , emergency_btn(homing_cont, &emergency, "Stop", &HomingPanel::_handle_callback, this)
+  , emergency_btn(homing_cont, &emergency, "Stop", &HomingPanel::_handle_callback, this,
+		  "Do you want to emergency stop?",
+		  [&websocket_client]() {
+		    spdlog::debug("emergency stop pressed");
+		    websocket_client.send_jsonrpc("printer.emergency_stop");
+		  })
   , motoroff_btn(homing_cont, &motor_off_img, "Motor Off", &HomingPanel::_handle_callback, this)
   , back_btn(homing_cont, &back, "Back", &HomingPanel::_handle_callback, this)
   , distance_selector(homing_cont, "Move Distance (mm)",
@@ -181,11 +186,13 @@ void HomingPanel::handle_callback(lv_event_t *event) {
     spdlog::debug("z down pressed");
     move_op = fmt::format("G0 Z-{} F1200", distance);
 
-  } else if (btn == emergency_btn.get_container()) {
+  }
+  else if (btn == emergency_btn.get_container()) {
     spdlog::debug("emergency stop pressed");
     ws.send_jsonrpc("printer.emergency_stop");
 
-  } else if (btn == motoroff_btn.get_container()) {
+  }
+  else if (btn == motoroff_btn.get_container()) {
     spdlog::debug("motor off pressed");
     ws.gcode_script("M84");
 

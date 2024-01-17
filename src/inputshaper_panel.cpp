@@ -67,7 +67,12 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
   , graph_switch(lv_switch_create(switch_cont))
   , calibrate_btn(button_cont, &resume, "Calibrate", &InputShaperPanel::_handle_callback, this)
   , save_btn(button_cont, &sd_img, "Save", &InputShaperPanel::_handle_callback, this)
-  , emergency_btn(button_cont, &emergency, "Stop", &InputShaperPanel::_handle_callback, this)
+  , emergency_btn(button_cont, &emergency, "Stop", &InputShaperPanel::_handle_callback, this,
+		  "Do you want to emergency stop?",
+		  [&c]() {
+		    spdlog::debug("emergency stop pressed");
+		    c.send_jsonrpc("printer.emergency_stop");
+		  })
   , back_btn(cont, &back, "Back", &InputShaperPanel::_handle_callback, this)
   , ximage_fullsized(false)
   , yimage_fullsized(false)

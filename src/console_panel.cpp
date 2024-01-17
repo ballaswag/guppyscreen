@@ -35,6 +35,7 @@ ConsolePanel::ConsolePanel(KWebSocketClient &websocket_client, std::mutex &lock,
   lv_obj_set_flex_grow(input, 1);
   lv_obj_set_width(input, LV_PCT(100));
   lv_textarea_set_one_line(input, true);
+  lv_textarea_set_cursor_click_pos(output, false);
 
   lv_obj_set_flex_flow(input_cont, LV_FLEX_FLOW_ROW);
   lv_obj_set_style_pad_all(input_cont, 0, 0);

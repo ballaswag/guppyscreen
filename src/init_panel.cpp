@@ -46,7 +46,10 @@ void InitPanel::connected(KWebSocketClient &ws) {
 
 	ws.send_jsonrpc("server.files.roots",
 			[](json& j) { State::get_instance()->set_data("roots", j, "/result"); });
-		    
+
+	ws.send_jsonrpc("printer.info",
+			[](json& j) { State::get_instance()->set_data("printer_info", j, "/result"); });
+	
 	json h = {
 	  { "namespace", "fluidd" },
 	  { "key", "console" }

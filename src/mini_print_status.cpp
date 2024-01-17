@@ -18,8 +18,13 @@ MiniPrintStatus::MiniPrintStatus(lv_obj_t *parent,
   
   lv_obj_set_style_bg_color(cont, mixed, 0);  
   lv_obj_set_style_bg_opa(cont, LV_OPA_COVER, 0);
+  lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-  lv_obj_set_size(cont, LV_PCT(40), 50);
+  auto scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
+
+  
+  lv_obj_set_size(cont, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
   lv_obj_set_style_pad_top(cont, 0, 0);
   lv_obj_set_style_pad_bottom(cont, 0, 0);
   
@@ -28,22 +33,23 @@ MiniPrintStatus::MiniPrintStatus(lv_obj_t *parent,
   lv_obj_set_style_border_width(cont, 2, 0);
   lv_obj_set_style_radius(cont, 4, 0);
   
-  lv_obj_clear_flag(cont, LV_OBJ_FLAG_FLOATING);
-  lv_obj_align(cont, LV_ALIGN_TOP_LEFT, 0, -14);
+  lv_obj_add_flag(cont, LV_OBJ_FLAG_FLOATING);
+  lv_obj_align(cont, LV_ALIGN_TOP_LEFT, 0, -14 * scale);
   lv_obj_add_flag(cont, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(cont, cb, LV_EVENT_CLICKED, user_data);
 
   lv_label_set_text(status_label, fmt::format("ETA: {}\nStatus: {}", eta, status).c_str());
 
   lv_arc_set_rotation(progress_bar, 270);
-  lv_obj_set_size(progress_bar, 40, 40);
+  lv_obj_set_size(progress_bar, 40 * scale, 40 * scale);
+  lv_obj_set_style_arc_width(progress_bar, 10 * scale, LV_PART_MAIN);
+  lv_obj_set_style_arc_width(progress_bar, 10 * scale, LV_PART_INDICATOR);
   lv_arc_set_bg_angles(progress_bar, 0, 360);
   lv_obj_remove_style(progress_bar, NULL, LV_PART_KNOB);
   lv_obj_clear_flag(progress_bar, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_center(progress_bar);
 
   lv_img_set_size_mode(thumb, LV_IMG_SIZE_MODE_REAL);
-  lv_img_set_zoom(thumb, 30);
   
 }
 
@@ -83,7 +89,10 @@ void MiniPrintStatus::update_progress(int p) {
   lv_arc_set_value(progress_bar, p);
 }
 
-void MiniPrintStatus::update_img(const std::string &img_path) {
+void MiniPrintStatus::update_img(const std::string &img_path, size_t twidth) {
+  auto screen_width = lv_disp_get_physical_hor_res(NULL);
+  uint32_t normalized_thumb_scale = ((0.05 * (double)screen_width) / (double)twidth) * 256;
+  lv_img_set_zoom(thumb, normalized_thumb_scale);  
   lv_img_set_src(thumb, img_path.c_str());
 }
 

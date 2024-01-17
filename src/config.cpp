@@ -139,6 +139,11 @@ void Config::init(std::string config_path) {
     data["/touch_calibrated"_json_pointer] = false; // EVDEV_CALIBRATE
 #endif
   }
+
+  auto &estop = data["/prompt_emergency_stop"_json_pointer];
+  if (estop.is_null()) {
+    data["/prompt_emergency_stop"_json_pointer] = true;
+  }
   
   std::ofstream o(config_path);
   o << std::setw(2) << data << std::endl;

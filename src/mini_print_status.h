@@ -19,7 +19,7 @@ class MiniPrintStatus {
   void update_eta(std::string &eta_str);
   void update_status(std::string &status_str);
   void update_progress(int p);
-  void update_img(const std::string &img_path);
+  void update_img(const std::string &img_path, size_t twidth);
   void reset();
 
  private:

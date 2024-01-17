@@ -31,7 +31,12 @@ BeltsCalibrationPanel::BeltsCalibrationPanel(KWebSocketClient &c, std::mutex &l)
   , button_cont(lv_obj_create(cont))
   , calibrate_btn(button_cont, &resume, "Shake Belts", &BeltsCalibrationPanel::_handle_callback, this)
   , excite_btn(button_cont, &inputshaper_img, "Excitate", &BeltsCalibrationPanel::_handle_callback, this)
-  , emergency_btn(button_cont, &emergency, "Stop", &BeltsCalibrationPanel::_handle_callback, this)
+  , emergency_btn(button_cont, &emergency, "Stop", &BeltsCalibrationPanel::_handle_callback, this,
+		  "Do you want to emergency stop?",
+		  [&c]() {
+		    spdlog::debug("emergency stop pressed");
+		    c.send_jsonrpc("printer.emergency_stop");
+		  })
   , back_btn(button_cont, &back, "Back", &BeltsCalibrationPanel::_handle_callback, this)
   , image_fullsized(false)
 {
@@ -122,11 +127,11 @@ void BeltsCalibrationPanel::handle_callback(lv_event_t *event) {
 
     auto screen_width = (double)lv_disp_get_physical_hor_res(NULL) / 100.0;
     auto screen_height = (double)lv_disp_get_physical_ver_res(NULL) / 100.0;
-    // ws.gcode_script(fmt::format("GUPPY_BELTS_SHAPER_CALIBRATION PNG_OUT_PATH={} PNG_WIDTH={} PNG_HEIGHT={}",
-    // 				png_path, screen_width, screen_height));
-
-    ws.gcode_script(fmt::format("GUPPY_BELTS_SHAPER_CALIBRATION PNG_OUT_PATH={} PNG_WIDTH={} PNG_HEIGHT={} FREQ_START=5 FREQ_END=10",
+    ws.gcode_script(fmt::format("GUPPY_BELTS_SHAPER_CALIBRATION PNG_OUT_PATH={} PNG_WIDTH={} PNG_HEIGHT={}",
 				png_path, screen_width, screen_height));
+
+    // ws.gcode_script(fmt::format("GUPPY_BELTS_SHAPER_CALIBRATION PNG_OUT_PATH={} PNG_WIDTH={} PNG_HEIGHT={} FREQ_START=5 FREQ_END=10",
+    // 				png_path, screen_width, screen_height));
     
 
     lv_obj_add_flag(graph, LV_OBJ_FLAG_HIDDEN);

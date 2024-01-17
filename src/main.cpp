@@ -157,14 +157,13 @@ int main(void)
 				     conf->get<std::string>(conf->df() + "moonraker_host"),
 				     conf->get<uint32_t>(conf->df() + "moonraker_port"));
     
-    spdlog::info("connecting to printer at {}", ws_url);
-
-    uint32_t display_sleep = conf->get<uint32_t>(conf->df() + "display_sleep_sec") * 1000;
+    spdlog::info("connecting to printer at {}", ws_url);    
+    int32_t display_sleep = conf->get<int32_t>(conf->df() + "display_sleep_sec") * 1000;
 
     ws.connect(ws_url.c_str(),
 	       [&init_panel, &ws]() { init_panel.connected(ws); },
 	       [&init_panel, &ws]() { init_panel.disconnected(ws); });
-
+    
     screen_saver = lv_obj_create(lv_scr_act());
     lv_obj_set_size(screen_saver, LV_PCT(100), LV_PCT(100));
     lv_obj_set_style_bg_opa(screen_saver, LV_OPA_100, 0);
@@ -176,21 +175,23 @@ int main(void)
       lv_timer_handler();
       lv_lock.unlock();
 
-#ifndef SIMULATOR      
-      if (lv_disp_get_inactive_time(NULL) > display_sleep) {
-	if (!is_sleeping.load()) {
-	  spdlog::debug("putting display to sleeping");
-	  fbdev_blank();
-	  lv_obj_move_foreground(screen_saver);
-	  // spdlog::debug("screen saver foreground");
-	  is_sleeping = true;
-	}
-      } else {
-	if (is_sleeping.load()) {
-	  spdlog::debug("waking up display");
-	  fbdev_unblank();
-	  lv_obj_move_background(screen_saver);
-	  is_sleeping = false;
+#ifndef SIMULATOR
+      if (display_sleep != -1) {
+	if (lv_disp_get_inactive_time(NULL) > display_sleep) {
+	  if (!is_sleeping.load()) {
+	    spdlog::debug("putting display to sleeping");
+	    fbdev_blank();
+	    lv_obj_move_foreground(screen_saver);
+	    // spdlog::debug("screen saver foreground");
+	    is_sleeping = true;
+	  }
+	} else {
+	  if (is_sleeping.load()) {
+	    spdlog::debug("waking up display");
+	    fbdev_unblank();
+	    lv_obj_move_background(screen_saver);
+	    is_sleeping = false;
+	  }
 	}
       }
 #endif // SIMULATOR
