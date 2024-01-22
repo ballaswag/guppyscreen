@@ -41,6 +41,8 @@ fi
 echo "Updated Guppy Screen to version $latest_version"
 if grep -Fqs "ID=buildroot" /etc/os-release
 then
+    [ -f /etc/init.d/S99guppyscreen ] && /etc/init.d/S99guppyscreen stop &> /dev/null
+    killall -q guppyscreen
     /etc/init.d/S99guppyscreen restart &> /dev/null
 fi
 
