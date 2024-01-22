@@ -16,7 +16,7 @@ Numpad::Numpad(lv_obj_t *parent)
   lv_obj_clear_flag(edit_cont, LV_OBJ_FLAG_SCROLLABLE);
   
   lv_obj_move_background(edit_cont);
-  lv_obj_set_size(edit_cont, LV_PCT(48), LV_PCT(90));
+  lv_obj_set_size(edit_cont, LV_PCT(48), LV_PCT(100));
 
   lv_obj_set_flex_align(edit_cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_align(edit_cont, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -27,7 +27,11 @@ Numpad::Numpad(lv_obj_t *parent)
   lv_obj_set_size(input, LV_PCT(100), LV_SIZE_CONTENT);
   lv_textarea_set_one_line(input, true);
 
-  lv_obj_set_size(kb, LV_PCT(100), LV_PCT(70));
+  lv_obj_set_size(kb, LV_PCT(100), LV_PCT(85));
+  static const char * kb_map[] = {"1", "2", "3", "\n", "4", "5", "6", "\n", "7", "8", "9", "\n", LV_SYMBOL_BACKSPACE, "0", LV_SYMBOL_OK, NULL };
+  static const lv_btnmatrix_ctrl_t kb_ctrl[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+  lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_NUMBER, kb_map, kb_ctrl);
+  
   lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_NUMBER);
   lv_keyboard_set_textarea(kb, input);
 

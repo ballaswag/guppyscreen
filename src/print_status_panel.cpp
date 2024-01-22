@@ -117,7 +117,6 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   lv_obj_set_flex_align(buttons_cont, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
   lv_obj_set_style_pad_all(pbar_cont, 0, 0);
-  lv_obj_set_style_pad_top(pbar_cont, 10, 0);
   lv_obj_set_size(pbar_cont, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
   // lv_obj_set_style_border_width(pbar_cont, 2, 0);
   // lv_obj_set_style_border_width(thumbnail_cont, 2, 0);
@@ -133,10 +132,10 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   lv_obj_center(progress_label);
 
   lv_obj_set_flex_flow(thumbnail_cont, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_flex_align(thumbnail_cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_flex_align(thumbnail_cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
   lv_obj_set_size(thumbnail_cont, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
   lv_obj_set_style_pad_all(thumbnail_cont, 0, 0);
-  lv_obj_set_style_pad_row(thumbnail_cont, 0, 0);
+  lv_obj_set_style_pad_row(thumbnail_cont, 20, 0);
 
   // row 1
   lv_obj_set_grid_cell(thumbnail_cont, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 1);
@@ -158,7 +157,7 @@ PrintStatusPanel::~PrintStatusPanel() {
 }
 
 void PrintStatusPanel::foreground() {
-  populate();
+  // populate();
   lv_obj_move_foreground(status_cont);
 }
 
@@ -183,6 +182,11 @@ void PrintStatusPanel::reset() {
   flow = 0.0;
   extruder_target = -1;
   heater_bed_target = -1;
+
+  // free src
+  lv_img_set_src(thumbnail, NULL);
+  // hack to color in empty space.
+  ((lv_img_t*)thumbnail)->src_type = LV_IMG_SRC_SYMBOL;
 
   mini_print_status.reset();
 }
@@ -212,6 +216,7 @@ void PrintStatusPanel::init(json &fans) {
 
   fan0.update_label(fmt::format("{}", fmt::join(values, ", ")).c_str());
 
+  reset();
   populate();
   json &pstat_state = State::get_instance()
     ->get_data("/printer_state/print_stats/state"_json_pointer);
@@ -230,7 +235,6 @@ void PrintStatusPanel::init(json &fans) {
 void PrintStatusPanel::populate() {
   State* s = State::get_instance();
   json& printfile = s->get_data("/printer_state/print_stats/filename"_json_pointer);
-
   if (!printfile.is_null()) {
     const std::string fname = printfile.template get<std::string>();
     if (fname.length() > 0) {
@@ -254,13 +258,10 @@ void PrintStatusPanel::populate() {
   // progress percentage
   auto v = s->get_data("/printer_state/virtual_sdcard/progress"_json_pointer);
   if (!v.is_null()) {
-    int cur_value = (int)lv_bar_get_value(progress_bar);
     int new_value = static_cast<int>(v.template get<double>() * 100);
-    if (new_value >= cur_value + 1) {
-      lv_bar_set_value(progress_bar, new_value, LV_ANIM_ON);
-      lv_label_set_text(progress_label, fmt::format("{}%", new_value).c_str());
-      mini_print_status.update_progress(new_value);
-    }
+    lv_bar_set_value(progress_bar, new_value, LV_ANIM_ON);
+    lv_label_set_text(progress_label, fmt::format("{}%", new_value).c_str());
+    mini_print_status.update_progress(new_value);
   }
 }
 
@@ -303,8 +304,8 @@ void PrintStatusPanel::consume(json &j) {
   auto printfile = j["/params/0/print_stats/filename"_json_pointer];
   if (!printfile.is_null()) {
     // filename change indicates a start of a print
-    // populate();
     reset();
+    populate();
     foreground(); // auto move to front when print is detected
   }
 
@@ -397,13 +398,10 @@ void PrintStatusPanel::consume(json &j) {
   // progress percentage
   v = j["/params/0/virtual_sdcard/progress"_json_pointer];
   if (!v.is_null()) {
-    int cur_value = (int)lv_bar_get_value(progress_bar);
     int new_value = static_cast<int>(v.template get<double>() * 100);
-    if (new_value >= cur_value + 1) {
-      lv_bar_set_value(progress_bar, new_value, LV_ANIM_ON);
-      lv_label_set_text(progress_label, fmt::format("{}%", new_value).c_str());
-      mini_print_status.update_progress(new_value);
-    }
+    lv_bar_set_value(progress_bar, new_value, LV_ANIM_ON);
+    lv_label_set_text(progress_label, fmt::format("{}%", new_value).c_str());
+    mini_print_status.update_progress(new_value);
   }
 
   // flow
@@ -518,7 +516,7 @@ void PrintStatusPanel::update_flow_rate(double filament_used) {
       flow = filament_xsection * filament_delta / delta;
       
       spdlog::trace("caculated flow {}", flow); 
-      flow_rate.update_label(fmt::format("{:.4} mm3/s", flow).c_str());
+      flow_rate.update_label(fmt::format("{:.3f} mm3/s", flow).c_str());
     }
 
     last_filament_used = filament_used;

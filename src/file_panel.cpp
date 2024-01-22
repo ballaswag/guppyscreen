@@ -79,6 +79,11 @@ void FilePanel::refresh_view(json &j, const std::string &gcode_path) {
     uint32_t normalized_thumb_scale = ((0.29 * (double)screen_width) / (double)thumb_detail.second) * 256;
     lv_img_set_src(thumbnail, ("A:" + fullpath).c_str());
     lv_img_set_zoom(thumbnail, normalized_thumb_scale);
+  } else {
+    // free src
+    lv_img_set_src(thumbnail, NULL);
+    // hack to color in empty space.
+    ((lv_img_t*)thumbnail)->src_type = LV_IMG_SRC_SYMBOL;
   }
 }
 

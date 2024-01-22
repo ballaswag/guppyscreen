@@ -107,7 +107,8 @@ void ButtonContainer::handle_prompt() {
 
   lv_obj_t *mbox1 = lv_msgbox_create(NULL, NULL, prompt_text.c_str(), btns, false);
   lv_obj_t *msg = ((lv_msgbox_t*)mbox1)->text;
-  lv_obj_set_width(msg, LV_SIZE_CONTENT);
+  lv_obj_set_style_text_align(msg, LV_TEXT_ALIGN_CENTER, 0);  
+  lv_obj_set_width(msg, LV_PCT(100));
   lv_obj_center(msg);
   
   lv_obj_t *btnm = lv_msgbox_get_btns(mbox1);
@@ -119,7 +120,7 @@ void ButtonContainer::handle_prompt() {
   auto hscale = (double)lv_disp_get_physical_ver_res(NULL) / 480.0;
 
   lv_obj_set_size(btnm, LV_PCT(90), 50 *hscale);
-  lv_obj_set_size(mbox1, LV_PCT(50), LV_PCT(30));
+  lv_obj_set_size(mbox1, LV_PCT(50), LV_PCT(35));
 
   lv_obj_add_event_cb(mbox1, [](lv_event_t *e) {
     lv_obj_t *obj = lv_obj_get_parent(lv_event_get_target(e));

@@ -96,6 +96,7 @@ fi
 
 #### let's see if guppyscreen starts before doing anything more
 printf "${green} Test starting Guppy Screen ${white}\n"
+[ -f /etc/init.d/S99guppyscreen ] && /etc/init.d/S99guppyscreen stop &> /dev/null
 killall -q guppyscreen
 $K1_GUPPY_DIR/guppyscreen &> /dev/null &
 
@@ -175,6 +176,10 @@ else
     printf "${green}Replacing mathplotlib ft2font module for plotting PSD graphs ${white}\n"
     cp $K1_GUPPY_DIR/k1_mods/ft2font.cpython-38-mipsel-linux-gnu.so $FT2FONT_PATH
 fi
+
+ln -sf $K1_GUPPY_DIR/k1_mods/respawn/libeinfo.so.1 /lib/libeinfo.so.1
+ln -sf $K1_GUPPY_DIR/k1_mods/respawn/librc.so.1 /lib/librc.so.1
+
 
 sync
 

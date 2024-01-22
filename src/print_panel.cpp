@@ -357,7 +357,6 @@ void PrintPanel::handle_print_callback(lv_event_t *event) {
 
       json fname_input = {{"filename", cur_file->full_path }};
       ws.send_jsonrpc("printer.print.start", fname_input);
-      print_status.reset();
       print_status.foreground();
 
     } else {

@@ -98,6 +98,12 @@ void MiniPrintStatus::update_img(const std::string &img_path, size_t twidth) {
 
 void MiniPrintStatus::reset() {
   lv_arc_set_value(progress_bar, 0);
+
+  // free src
+  lv_img_set_src(thumb, NULL);
+  // hack to color in empty space.
+  ((lv_img_t*)thumb)->src_type = LV_IMG_SRC_SYMBOL;
+
   eta = "...";
   status = "n/a";  
 }

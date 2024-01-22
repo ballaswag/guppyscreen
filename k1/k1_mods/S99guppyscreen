@@ -1,16 +1,29 @@
 #!/bin/sh
 
-GUPPYSCREEN_PATH=/usr/data/guppyscreen/guppyscreen
+GUPPY_DIR=/usr/data/guppyscreen
+GUPPYSCREEN=$GUPPY_DIR/guppyscreen
+LIBEINFO=$GUPPY_DIR/k1_mods/respawn/libeinfo.so.1
+LIBRC=$GUPPY_DIR/k1_mods/respawn/librc.so.1
+GUPPYSCREEN_LOG=/usr/data/printer_data/logs/guppyscreen.log
+PID_FILE=/var/run/guppyscreen.pid
+RC_DIR=/run/openrc
+SUPERVISE_DAEMON=/usr/data/guppyscreen/k1_mods/respawn/supervise-daemon
+SVC_NAME=guppyscreen
 
 start_server(){
 
-    export HOME=/root
     sync && echo 3 > /proc/sys/vm/drop_caches
-    [ -x "$GUPPYSCREEN_PATH" ] && $GUPPYSCREEN_PATH &
+    mkdir -p $RC_DIR
+
+    # need to check for now if installers skips the symlink
+    [ ! -f $LIBEINFO ] && ln -sf $LIBEINFO /lib/libeinfo.so.1
+    [ ! -f $LIBRC ] && ln -sf $LIBRC /lib/librc.so.1
+    
+    RC_SVCNAME=$SVC_NAME $SUPERVISE_DAEMON $SVC_NAME --start --stderr $GUPPYSCREEN_LOG --pidfile $PID_FILE $GUPPYSCREEN
 }
 
 stop_server(){
-    killall guppyscreen
+    RC_SVCNAME=$SVC_NAME $SUPERVISE_DAEMON $SVC_NAME --stop --pidfile $PID_FILE
 }
 
 

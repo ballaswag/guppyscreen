@@ -302,9 +302,12 @@ void InputShaperPanel::handle_callback(lv_event_t *event) {
     if (x_requested) {
       // ws.gcode_script(fmt::format("TEST_RESONANCES AXIS=X NAME=x FREQ_START={} FREQ_END={}\nM400", 5, 10));
       ws.gcode_script(fmt::format("TEST_RESONANCES AXIS=X NAME=x\nM400"));
-      
+
+      // free src      
       lv_img_set_src(xgraph, NULL);
-      lv_obj_invalidate(xgraph);
+      // hack to color in empty space.
+      ((lv_img_t*)xgraph)->src_type = LV_IMG_SRC_SYMBOL;
+      
       lv_label_set_text(xoutput, "");
       lv_obj_add_flag(xgraph_cont, LV_OBJ_FLAG_HIDDEN);      
       lv_obj_clear_flag(xspinner, LV_OBJ_FLAG_HIDDEN);
@@ -315,8 +318,11 @@ void InputShaperPanel::handle_callback(lv_event_t *event) {
       // ws.gcode_script(fmt::format("TEST_RESONANCES AXIS=Y NAME=y FREQ_START={} FREQ_END={}\nM400", 5, 10));
       ws.gcode_script(fmt::format("TEST_RESONANCES AXIS=Y NAME=y\nM400"));
 
+      // free src
       lv_img_set_src(ygraph, NULL);
-      lv_obj_invalidate(ygraph);
+      // hack to color in empty space.
+      ((lv_img_t*)ygraph)->src_type = LV_IMG_SRC_SYMBOL;
+      
       lv_label_set_text(youtput, ""); 
       lv_obj_add_flag(ygraph_cont, LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(yspinner, LV_OBJ_FLAG_HIDDEN);
