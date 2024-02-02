@@ -11,7 +11,7 @@
 ################ !!! DO NOT EDIT BELOW THIS LINE !!! ################
 #####################################################################
 
-import optparse, matplotlib, sys, importlib, os
+import optparse, matplotlib, sys, importlib, os, pathlib
 from collections import namedtuple
 import numpy as np
 import matplotlib.pyplot, matplotlib.dates, matplotlib.font_manager
@@ -565,6 +565,7 @@ def main():
 
     fig = belts_calibration(args, options.klipperdir, options.max_freq, options.no_spectogram,
                             options.width, options.height)
+    pathlib.Path(options.output).unlink(missing_ok=True) 
     fig.savefig(options.output)
 
 

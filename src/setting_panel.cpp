@@ -19,13 +19,14 @@ LV_IMG_DECLARE(info_img);
 LV_IMG_DECLARE(sysinfo_img);
 #endif
 
+LV_IMG_DECLARE(print);
 
 SettingPanel::SettingPanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent, SpoolmanPanel &sm)
   : ws(c)
   , cont(lv_obj_create(parent))
   , wifi_panel(l)
   , sysinfo_panel()
-  , spoolman_panel(sm)    
+  , spoolman_panel(sm)
   , wifi_btn(cont, &network_img, "WIFI", &SettingPanel::_handle_callback, this)
   , restart_klipper_btn(cont, &refresh_img, "Restart Klipper", &SettingPanel::_handle_callback, this)
   , restart_firmware_btn(cont, &refresh_img, "Restart\nFirmware", &SettingPanel::_handle_callback, this)
@@ -37,6 +38,7 @@ SettingPanel::SettingPanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent,
   , spoolman_btn(cont, &spoolman_img, "Spoolman", &SettingPanel::_handle_callback, this)
   , guppy_restart_btn(cont, &refresh_img, "Restart Guppy", &SettingPanel::_handle_callback, this)
   , guppy_update_btn(cont, &update_img, "Update Guppy", &SettingPanel::_handle_callback, this)
+  , printer_select_btn(cont, &print, "Printers", &SettingPanel::_handle_callback, this)
 {
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(cont, LV_PCT(100), LV_PCT(100));
@@ -59,7 +61,7 @@ SettingPanel::SettingPanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent,
   lv_obj_set_grid_cell(spoolman_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_START, 2, 1);
   lv_obj_set_grid_cell(guppy_restart_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_START, 2, 1);
   lv_obj_set_grid_cell(guppy_update_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_START, 2, 1);
-  // lv_obj_set_grid_cell(restart_firmware_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 1, 1);
+  lv_obj_set_grid_cell(printer_select_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_START, 2, 1);
   
 }
 
@@ -96,7 +98,7 @@ void SettingPanel::handle_callback(lv_event_t *event) {
     } else if (btn == guppy_restart_btn.get_container()) {
       spdlog::trace("restart guppy pressed");
       Config *conf = Config::get_instance();
-      auto init_script = conf->get<std::string>(conf->df() + "guppy_init_script");
+      auto init_script = conf->get<std::string>("/guppy_init_script");
       const fs::path script(init_script);
       if (fs::exists(script)) {
 	sp::call({init_script, "restart"});
@@ -113,6 +115,9 @@ void SettingPanel::handle_callback(lv_event_t *event) {
       } else {
 	spdlog::warn("Failed to update Guppy Screen. Did not find update script.");
       }
+    } else if (btn == printer_select_btn.get_container()) {
+      spdlog::trace("setting printers pressed");
+      printer_select_panel.foreground();
     }
   }
 }

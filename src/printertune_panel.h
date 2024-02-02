@@ -7,6 +7,7 @@
 #include "inputshaper_panel.h"
 #include "belts_calibration_panel.h"
 #include "tmc_tune_panel.h"
+#include "tmc_status_panel.h"
 #include "button_container.h"
 #include "lvgl/lvgl.h"
 
@@ -34,12 +35,14 @@ class PrinterTunePanel {
   InputShaperPanel inputshaper_panel;
   BeltsCalibrationPanel belts_calibration_panel;
   TmcTunePanel tmc_tune_panel;
+  TmcStatusPanel tmc_status_panel;
   ButtonContainer bedmesh_btn;  
   ButtonContainer finetune_btn;
   ButtonContainer inputshaper_btn;
   ButtonContainer belts_calibration_btn;
   ButtonContainer limits_btn;
   ButtonContainer tmc_tune_btn;
+  ButtonContainer tmc_status_btn;
   
 };
 

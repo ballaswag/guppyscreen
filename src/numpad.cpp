@@ -30,9 +30,9 @@ Numpad::Numpad(lv_obj_t *parent)
   lv_obj_set_size(kb, LV_PCT(100), LV_PCT(85));
   static const char * kb_map[] = {"1", "2", "3", "\n", "4", "5", "6", "\n", "7", "8", "9", "\n", LV_SYMBOL_BACKSPACE, "0", LV_SYMBOL_OK, NULL };
   static const lv_btnmatrix_ctrl_t kb_ctrl[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-  lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_NUMBER, kb_map, kb_ctrl);
+  lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_USER_1, kb_map, kb_ctrl);
   
-  lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_NUMBER);
+  lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_USER_1);
   lv_keyboard_set_textarea(kb, input);
 
   lv_obj_add_event_cb(input, &Numpad::_handle_input, LV_EVENT_ALL, this);

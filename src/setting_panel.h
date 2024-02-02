@@ -4,6 +4,7 @@
 #include "wifi_panel.h"
 #include "sysinfo_panel.h"
 #include "spoolman_panel.h"
+#include "printer_select_panel.h"
 #include "button_container.h"
 #include "websocket_client.h"
 #include "lvgl/lvgl.h"
@@ -31,6 +32,7 @@ class SettingPanel {
   WifiPanel wifi_panel;
   SysInfoPanel sysinfo_panel;
   SpoolmanPanel &spoolman_panel;
+  PrinterSelectPanel printer_select_panel;
   ButtonContainer wifi_btn;
   ButtonContainer restart_klipper_btn;
   ButtonContainer restart_firmware_btn;
@@ -38,6 +40,8 @@ class SettingPanel {
   ButtonContainer spoolman_btn;
   ButtonContainer guppy_restart_btn;
   ButtonContainer guppy_update_btn;
+  ButtonContainer printer_select_btn;
+  
 };
 
 #endif // __SETTING_PANEL_H__

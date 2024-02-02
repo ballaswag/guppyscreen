@@ -86,7 +86,7 @@ SysInfoPanel::SysInfoPanel()
 			  "1 Hour\n"
 			  "5 Hours");
 
-  auto v = conf->get_json(conf->df() + "display_sleep_sec");
+  auto v = conf->get_json("/display_sleep_sec");
   if (!v.is_null()) {
     auto sleep_sec = v.template get<int32_t>();
     const auto &el = sleepsec_to_dd_idx.find(sleep_sec);
@@ -201,7 +201,7 @@ void SysInfoPanel::handle_callback(lv_event_t *e) {
       std::string sleep_label = std::string(buf);
       const auto &el = sleep_label_to_sec.find(sleep_label);
       if (el != sleep_label_to_sec.end()) {
-	conf->set<int32_t>(conf->df() + "display_sleep_sec", el->second);
+	conf->set<int32_t>("/display_sleep_sec", el->second);
 	conf->save();
       }
     }

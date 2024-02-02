@@ -155,16 +155,16 @@ std::string AutoTmcContainer::get_config_macro() {
   lv_dropdown_get_selected_str(motors_dd, buf, sizeof(buf));
   std::string motor = std::string(buf);
   if (motor == "Not Configured") {
-    return fmt::format("GUPPY_DELETE_CONFIG SECTION=\"autotune_tmc {}\"", name);
+    return fmt::format("_GUPPY_DELETE_CONFIG SECTION=\"autotune_tmc {}\"", name);
   }
 
   lv_dropdown_get_selected_str(tuning_goal_dd, buf, sizeof(buf));
   if (has_sg) {
     auto sg_value = lv_spinbox_get_value(sensorless_threshold);
-    return fmt::format("GUPPY_SAVE_CONFIG SECTION=\"autotune_tmc {}\" KEY_VALUE=\"motor:{},tuning_goal:{},{}:{}\"",
+    return fmt::format("_GUPPY_SAVE_CONFIG SECTION=\"autotune_tmc {}\" KEY_VALUE=\"motor:{},tuning_goal:{},{}:{}\"",
 		       name, motor, buf, sg_range.first == 0 ? "sg4_thrs" : "sgt", sg_value);
   } else {
-    return fmt::format("GUPPY_SAVE_CONFIG SECTION=\"autotune_tmc {}\" KEY_VALUE=\"motor:{},tuning_goal:{}\"",
+    return fmt::format("_GUPPY_SAVE_CONFIG SECTION=\"autotune_tmc {}\" KEY_VALUE=\"motor:{},tuning_goal:{}\"",
 		       name, motor, buf);
   }
 }

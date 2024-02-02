@@ -225,7 +225,9 @@ void MainPanel::create_main(lv_obj_t * parent)
     lv_chart_set_axis_tick(temp_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 6, 5, true, 50);
 
     lv_chart_set_div_line_count(temp_chart, 3, 8);
-    lv_chart_set_point_count(temp_chart, 250);
+    lv_chart_set_point_count(temp_chart, 5000);
+    lv_chart_set_zoom_x(temp_chart, 5000);
+    lv_obj_scroll_to_x(temp_chart, LV_COORD_MAX, LV_ANIM_OFF);
 }
 
 void MainPanel::create_sensors(json &temp_sensors) {

@@ -421,7 +421,7 @@ void BedMeshPanel::mesh_draw_cb(lv_event_t * e)
 {
   lv_obj_t * obj = lv_event_get_target(e);
   lv_obj_draw_part_dsc_t * dsc = lv_event_get_draw_part_dsc(e);
-  if(dsc->part == LV_PART_ITEMS) {
+  if(dsc->part == LV_PART_ITEMS && !mesh.empty()) {
     uint32_t row = dsc->id /  lv_table_get_col_cnt(obj);
     uint32_t col = dsc->id - row * lv_table_get_col_cnt(obj);
 

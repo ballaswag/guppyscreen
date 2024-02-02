@@ -4,8 +4,8 @@ class GuppyConfigHelper:
         
         # Register commands
         gcode = config.get_printer().lookup_object('gcode')
-        gcode.register_command("GUPPY_SAVE_CONFIG", self.cmd_guppy_save_config)
-        gcode.register_command("GUPPY_DELETE_CONFIG", self.cmd_guppy_delete_config)
+        gcode.register_command("_GUPPY_SAVE_CONFIG", self.cmd_guppy_save_config)
+        gcode.register_command("_GUPPY_DELETE_CONFIG", self.cmd_guppy_delete_config)
 
     def cmd_guppy_save_config(self, gcmd):
         self.section = gcmd.get('SECTION', None)

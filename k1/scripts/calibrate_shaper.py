@@ -7,7 +7,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from __future__ import print_function
-import importlib, optparse, os, sys
+import importlib, optparse, os, sys, pathlib
 from textwrap import wrap
 import numpy as np, matplotlib
 import shaper_calibrate
@@ -173,6 +173,7 @@ def main():
         if options.output is None:
             matplotlib.pyplot.show()
         else:
+            pathlib.Path(options.output).unlink(missing_ok=True)
             fig.set_size_inches(options.width, options.height)
             fig.savefig(options.output)
             resp['png'] = options.output

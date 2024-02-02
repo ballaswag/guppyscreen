@@ -11,6 +11,7 @@ LV_IMG_DECLARE(fine_tune_img);
 LV_IMG_DECLARE(inputshaper_img);
 LV_IMG_DECLARE(limit_img);
 LV_IMG_DECLARE(motor_img);
+LV_IMG_DECLARE(chart_img);
 
 #ifndef ZBOLT
 LV_IMG_DECLARE(belts_calibration_img);
@@ -24,6 +25,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   , inputshaper_panel(c, l)
   , belts_calibration_panel(c, l)
   , tmc_tune_panel(c)
+  , tmc_status_panel(c, l)
   , bedmesh_btn(cont, &bedmesh_img, "Bed Mesh", &PrinterTunePanel::_handle_callback, this)
   , finetune_btn(cont, &fine_tune_img, "Fine Tune", &PrinterTunePanel::_handle_callback, this)
   , inputshaper_btn(cont, &inputshaper_img, "Input Shaper", &PrinterTunePanel::_handle_callback, this)
@@ -34,6 +36,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
 #endif
   , limits_btn(cont, &limit_img, "Limits", &PrinterTunePanel::_handle_callback, this)
   , tmc_tune_btn(cont, &motor_img, "TMC Autotune", &PrinterTunePanel::_handle_callback, this)
+  , tmc_status_btn(cont, &chart_img, "TMC Metrics", &PrinterTunePanel::_handle_callback, this)
 {
   lv_obj_move_background(cont);
 
@@ -57,7 +60,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   // row 2
   lv_obj_set_grid_cell(limits_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_START, 2, 1);
   lv_obj_set_grid_cell(tmc_tune_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_START, 2, 1);
-  // lv_obj_set_grid_cell(restart_klipper_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_START, 2, 1);
+  lv_obj_set_grid_cell(tmc_status_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_START, 2, 1);
   // lv_obj_set_grid_cell(restart_firmware_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_START, 2, 1);
 }
 
@@ -78,6 +81,8 @@ BedMeshPanel& PrinterTunePanel::get_bedmesh_panel() {
 
 void PrinterTunePanel::init(json &j) {
   limits_panel.init(j);
+
+  tmc_status_panel.init(j);
 
   // TODO: handle remote guppy instance
   State *s = State::get_instance();
@@ -115,6 +120,9 @@ void PrinterTunePanel::handle_callback(lv_event_t *event) {
     } else if (btn == tmc_tune_btn.get_container()) {
       spdlog::trace("tmc auto tune pressed");
       tmc_tune_panel.foreground();
+    } else if (btn == tmc_status_btn.get_container()) {
+      spdlog::trace("tmc metrics pressed");
+      tmc_status_panel.foreground();
     }
   }
 }

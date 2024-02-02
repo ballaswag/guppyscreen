@@ -158,7 +158,7 @@ int main(void)
 				     conf->get<uint32_t>(conf->df() + "moonraker_port"));
     
     spdlog::info("connecting to printer at {}", ws_url);    
-    int32_t display_sleep = conf->get<int32_t>(conf->df() + "display_sleep_sec") * 1000;
+    int32_t display_sleep = conf->get<int32_t>("/display_sleep_sec") * 1000;
 
     ws.connect(ws_url.c_str(),
 	       [&init_panel, &ws]() { init_panel.connected(ws); },

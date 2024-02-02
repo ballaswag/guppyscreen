@@ -15,17 +15,19 @@ InitPanel::InitPanel(MainPanel &mp, BedMeshPanel &bmp, std::mutex& l)
   , bedmesh_panel(bmp)
   , lv_lock(l)
 {
-  lv_obj_set_size(cont, LV_PCT(100), LV_PCT(100));
+  lv_obj_set_size(cont, LV_PCT(55), LV_PCT(30));
+  lv_obj_align(cont, LV_ALIGN_TOP_MID, 0, 0);  
+  
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_style_bg_opa(cont, LV_OPA_70, 0);
+  // lv_obj_set_style_bg_opa(cont, LV_OPA_70, 0);
 
-  lv_obj_set_size(label_cont, LV_PCT(50), LV_PCT(20));
+  lv_obj_set_size(label_cont, LV_PCT(100), LV_PCT(100));
   lv_obj_set_style_border_width(label_cont, 2, 0);
   lv_obj_set_style_bg_color(label_cont, lv_palette_darken(LV_PALETTE_GREY, 1), 0);
   
   lv_obj_align(label_cont, LV_ALIGN_CENTER, 0, 0);  
 
-  lv_label_set_text(label, "Waiting for printer to initialize...");
+  lv_label_set_text(label, LV_SYMBOL_WARNING " Waiting for printer to initialize...");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
 }
 
@@ -99,6 +101,8 @@ void InitPanel::connected(KWebSocketClient &ws) {
 	      sub_objs[obj_name] = nullptr;
 	    }
 	  }
+
+	  sub_objs["tmcstatus"] = nullptr;
 
 	  json subs = {{ "objects", sub_objs }};
 	  spdlog::debug("subcribing to {}", subs.dump());
