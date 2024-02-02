@@ -59,10 +59,11 @@ wget -O - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer
 :white_check_mark: File Browser  
 :white_check_mark: Supports multiple screen resolutions  
 :white_check_mark: Cross platform releases (MIPS/ARM/x86)  
+:white_check_mark: TMC Metrics  
+:white_check_mark: Multi-Printer support  
 
 ## Roadmap
 :bangbang: Exclude Object  
-:bangbang: Multi-Printer support  
 :bangbang: Firmware Retraction  
 
 Open for feature requests.
