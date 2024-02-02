@@ -96,7 +96,6 @@ void LimitsPanel::consume(json &j) {
   std::lock_guard<std::mutex> lock(lv_lock);
   auto v = j["/params/0/toolhead/max_velocity"_json_pointer];
   if (!v.is_null()) {
-    spdlog::debug("updaing velocity {}", v.template get<int>());
     velocity.update_value(v.template get<int>());
   }
 

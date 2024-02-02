@@ -22,6 +22,7 @@ PrinterSelectContainer::PrinterSelectContainer(PrinterSelectPanel &ps,
 {
   lv_obj_set_size(cont, LV_PCT(100), LV_SIZE_CONTENT);
   lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_ROW);
+  lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);  
   lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);  
   lv_obj_set_style_border_width(cont, 2, 0);
   
