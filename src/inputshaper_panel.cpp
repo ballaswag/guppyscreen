@@ -84,7 +84,7 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
   lv_obj_set_style_pad_all(cont, 0, 0);
   
   lv_obj_t *graph_label = lv_label_create(xgraph_cont);
-  lv_label_set_text(graph_label, "X Frequence Response");
+  lv_label_set_text(graph_label, "X Frequency Response");
   lv_obj_align(graph_label, LV_ALIGN_BOTTOM_MID, 0, 0);
 
   lv_obj_set_style_pad_all(xgraph_cont, 0, 0);
@@ -94,7 +94,7 @@ InputShaperPanel::InputShaperPanel(KWebSocketClient &c, std::mutex &l)
 		      LV_EVENT_CLICKED, this);
 
   graph_label = lv_label_create(ygraph_cont);
-  lv_label_set_text(graph_label, "Y Frequence Response");  
+  lv_label_set_text(graph_label, "Y Frequency Response");  
   lv_obj_align(graph_label, LV_ALIGN_BOTTOM_MID, 0, 0);
 
   lv_obj_set_style_pad_all(ygraph_cont, 0, 0);
