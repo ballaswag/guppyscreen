@@ -14,6 +14,10 @@ if [ "$1" = "zbolt" ]; then
     ASSET_NAME="$ASSET_NAME-zbolt"
 fi
 
+if [ -z "$GUPPYSCREEN_CONFIRM_PROMPTS" ]; then
+    GUPPYSCREEN_CONFIRM_PROMPTS="y"
+fi
+
 ARCH=`uname -m`
 if [ "$ARCH" = "mips" ] && [ -f /sys/class/graphics/fb0/virtual_size ]; then
     res=`cat /sys/class/graphics/fb0/virtual_size`
@@ -148,17 +152,23 @@ fi
 ## dropbear early to ensure ssh is started with display-server
 cp $K1_GUPPY_DIR/k1_mods/S50dropbear /etc/init.d/S50dropbear
 
-printf "${white}=== Do you want to disable all Creality services (revertable) with GuppyScreen installation? ===\n"
-printf "${green}  Pros: Frees up system resources on your K1 for critical services such as Klipper (Recommended)\n"
-printf "${white}  Cons: Disabling all Creality services breaks Creality Cloud/Creality Slicer.\n\n"
-printf "Disable all Creality Services? (y/n): "
+if [ "$GUPPYSCREEN_CONFIRM_PROMPTS" = "y" ]; then
+    printf "${white}=== Do you want to disable all Creality services (revertable) with GuppyScreen installation? ===\n"
+    printf "${green}  Pros: Frees up system resources on your K1 for critical services such as Klipper (Recommended)\n"
+    printf "${white}  Cons: Disabling all Creality services breaks Creality Cloud/Creality Slicer.\n\n"
+    printf "Disable all Creality Services? (y/n): "
 
-read confirm_decreality
-echo
+    read confirm_decreality
+    echo
+else
+    confirm_decreality=y
+fi
 
 if [ "$confirm_decreality" = "y" -o "$confirm_decreality" = "Y" ]; then
     printf "${green}Disabling Creality services ${white}\n"
-    rm /etc/init.d/S99start_app
+    if [ -f /etc/init.d/S99start_app ]; then
+        rm /etc/init.d/S99start_app
+    fi
 else
     # disables only display-server and Monitor
     mv /usr/bin/Monitor /usr/bin/Monitor.disable
@@ -199,10 +209,14 @@ if ! diff $K1_GUPPY_DIR/k1_mods/S50dropbear /etc/init.d/S50dropbear > /dev/null 
     exit 1
 fi
 
-## request to reboot
-printf "Restart Klipper now to pick up the new changes (y/n): "
-read confirm
-echo
+if [ "$GUPPYSCREEN_CONFIRM_PROMPTS" = "y" ]; then
+    ## request to reboot
+    printf "Restart Klipper now to pick up the new changes (y/n): "
+    read confirm
+    echo
+else
+    confirm=y
+fi
 
 if [ "$confirm" = "y" -o "$confirm" = "Y" ]; then
     echo "Restarting Klipper"
