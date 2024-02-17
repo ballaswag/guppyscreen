@@ -47,10 +47,10 @@ if [ "$MRK_KPY_OK" != "true" ]; then
     echo
 
     if [ "$confirm" = "y" -o "$confirm" = "Y" ]; then
-	echo "Continuing to install GuppyScreen"
+	    echo "Continuing to install GuppyScreen"
     else
-	echo "Please fix Moonraker and restart this script."
-	exit 1
+	    echo "Please fix Moonraker and restart this script."
+    	exit 1
     fi
 fi
 
@@ -65,7 +65,6 @@ printf "${green} Found klipper path: $KLIPPER_PATH ${white}\n"
 KLIPPY_EXTRA_DIR=$KLIPPER_PATH/klippy/extras
 GCODE_SHELL_CMD=$KLIPPY_EXTRA_DIR/gcode_shell_command.py
 SHAPER_CONFIG=$KLIPPY_EXTRA_DIR/calibrate_shaper_config.py
-
 
 K1_CONFIG_FILE=`curl localhost:7125/printer/info | jq -r .result.config_file`
 if [ x"$K1_CONFIG_FILE" == x"null" ]; then    
@@ -148,21 +147,31 @@ fi
 ## dropbear early to ensure ssh is started with display-server
 cp $K1_GUPPY_DIR/k1_mods/S50dropbear /etc/init.d/S50dropbear
 
-printf "${white}=== Do you want to disable all Creality services (revertable) with GuppyScreen installation? ===\n"
-printf "${green}  Pros: Frees up system resources on your K1 for critical services such as Klipper (Recommended)\n"
-printf "${white}  Cons: Disabling all Creality services breaks Creality Cloud/Creality Slicer.\n\n"
-printf "Disable all Creality Services? (y/n): "
+if [ -z "$GS_DECREALITY" ]; then
+    printf "${white}=== Do you want to disable all Creality services (revertable) with GuppyScreen installation? ===\n"
+    printf "${green}  Pros: Frees up system resources on your K1 for critical services such as Klipper (Recommended)\n"
+    printf "${white}  Cons: Disabling all Creality services breaks Creality Cloud/Creality Slicer.\n\n"
+    printf "Disable all Creality Services? (y/n): "
 
-read confirm_decreality
-echo
+    read confirm_decreality
+    echo
+else
+    confirm_decreality=$GS_DECREALITY
+fi
 
 if [ "$confirm_decreality" = "y" -o "$confirm_decreality" = "Y" ]; then
     printf "${green}Disabling Creality services ${white}\n"
-    rm /etc/init.d/S99start_app
+    if [ -f /etc/init.d/S99start_app ]; then
+        rm /etc/init.d/S99start_app
+    fi
 else
     # disables only display-server and Monitor
-    mv /usr/bin/Monitor /usr/bin/Monitor.disable
-    mv /usr/bin/display-server /usr/bin/display-server.disable
+    if [ -f /usr/bin/Monitor ]; then
+        mv /usr/bin/Monitor /usr/bin/Monitor.disable
+    fi
+    if [ -f /usr/bin/display-server ]; then
+        mv /usr/bin/display-server /usr/bin/display-server.disable
+    fi
 fi
 
 printf "${green}Setting up GuppyScreen ${white}\n"
@@ -185,7 +194,6 @@ fi
 ln -sf $K1_GUPPY_DIR/k1_mods/respawn/libeinfo.so.1 /lib/libeinfo.so.1
 ln -sf $K1_GUPPY_DIR/k1_mods/respawn/librc.so.1 /lib/librc.so.1
 
-
 sync
 
 if [ ! -f $K1_GUPPY_DIR/guppyscreen ]; then
@@ -199,10 +207,14 @@ if ! diff $K1_GUPPY_DIR/k1_mods/S50dropbear /etc/init.d/S50dropbear > /dev/null 
     exit 1
 fi
 
-## request to reboot
-printf "Restart Klipper now to pick up the new changes (y/n): "
-read confirm
-echo
+if [ -z "$GS_RESTART_KLIPPER" ]; then
+    ## request to reboot
+    printf "Restart Klipper now to pick up the new changes (y/n): "
+    read confirm
+    echo
+else
+    confirm=$GS_RESTART_KLIPPER
+fi
 
 if [ "$confirm" = "y" -o "$confirm" = "Y" ]; then
     echo "Restarting Klipper"
@@ -240,3 +252,4 @@ else
     /etc/init.d/S99start_app restart &> /dev/null
     exit 1
 fi
+
