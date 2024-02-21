@@ -4,7 +4,7 @@ This repository contains the Guppy Screen source code and all its external depen
 
 Dependencies:
  - [lvgl](https://github.com/lvgl/lvgl)
-   An embeded graphics library
+   An embedded graphics library
  - [libhv](https://github.com/ithewei/libhv)
    A network library
  - [spdlog](https://github.com/gabime/spdlog)
@@ -52,22 +52,20 @@ Clone the guppyscreen repo (and submodules) and apply a couple of patches locall
 ### Mipsel (Ingenic X2000E) - specific to the K1 SoC
 Building for the K1/Max
 
-1. `unset SIMULATION && export CROSS_COMPILE=mips-linux-gnu-`
-2. `make wpaclean && make wpaclient`
-3. `make libhvclean && make libhv.a`
-4. `make spdlogclean && make libspdlog.a`
-5. `make clean && make -j$(nproc)`
+1. `export CROSS_COMPILE=mips-linux-gnu-`
+2. `make clean && make -j$(nproc) build`
+
+After an initial `make build`, you can make changes to src guppy files and then use `make` to compile the files that need compiling.
 
 The executable is ./build/bin/guppyscreen
 
 ### x86_64 (Intel/AMD)
-Building and running Guppy Screen on your local machine speeds up development. Changes can tested on the local machine before rebuilding for the other architectures.
+Building and running Guppy Screen on your local machine speeds up development. Changes can be tested on the local machine before rebuilding for the other architectures.
 
-1. `unset CROSS_COMPILE && export SIMULATION=1`
-2. `make wpaclean && make wpaclient`
-3. `make libhvclean && make libhv.a`
-4. `make spdlogclean && make libspdlog.a`
-5. `make clean && make -j$(nproc)`
+1. `unset CROSS_COMPILE`
+2. `make clean && make -j$(nproc) build`
+
+After an initial `make build`, you can make changes to src guppy files and then use `make` to compile the files that need compiling.
 
 The executable is ./build/bin/guppyscreen
 
@@ -75,7 +73,7 @@ The executable is ./build/bin/guppyscreen
 Guppy Screen default configurations (guppyconfig.json) is configured for the K1/Max. In order to run it remotely as a simulator build, a few thing needs to be setup.
 The following attributes need to be configured in `build/bin/guppyconfig.json`
 
-1. `log_path` - Absolute path to `guppyscreen.log`. Directory must exists locally.
+1. `log_path` - Absolute path to `guppyscreen.log`. Directory must exist locally.
 2. `thumbnail_path` - Absolute path to a local directory for storing gcode thumbnails.
 3. `moonraker_host` - Moonraker IP address
 4. `moonraker_port` - Moonraker Port
