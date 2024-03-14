@@ -516,7 +516,7 @@ void PrintStatusPanel::update_flow_rate(double filament_used) {
       flow = filament_xsection * filament_delta / delta;
       
       spdlog::trace("caculated flow {}", flow); 
-      flow_rate.update_label(fmt::format("{:.3f} mm3/s", flow).c_str());
+      flow_rate.update_label(fmt::format("{:.2f} mm3/s", flow).c_str());
     }
 
     last_filament_used = filament_used;
@@ -538,7 +538,7 @@ void PrintStatusPanel::update_layers(json &info) {
     new_total_layer = v.template get<int>();
   }
 
-  if (new_total_layer > total_layer || new_cur_layer > cur_layer) {
+  if (new_total_layer != total_layer || new_cur_layer != cur_layer) {
     total_layer = new_total_layer;
     cur_layer = new_cur_layer;
 

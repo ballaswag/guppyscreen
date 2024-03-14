@@ -25,8 +25,8 @@ HomingPanel::HomingPanel(KWebSocketClient &websocket_client, std::mutex &lock)
   , y_down_btn(homing_cont, &arrow_down, "Y-", &HomingPanel::_handle_callback, this)    
   , x_up_btn(homing_cont, &arrow_right, "X+", &HomingPanel::_handle_callback, this)
   , x_down_btn(homing_cont, &arrow_left, "X-", &HomingPanel::_handle_callback, this)
-  , z_up_btn(homing_cont, &z_closer, "Z+", &HomingPanel::_handle_callback, this)
-  , z_down_btn(homing_cont, &z_farther, "Z-", &HomingPanel::_handle_callback, this)
+  , z_up_btn(homing_cont, &z_farther, "Z+", &HomingPanel::_handle_callback, this)
+  , z_down_btn(homing_cont, &z_closer, "Z-", &HomingPanel::_handle_callback, this)
   , emergency_btn(homing_cont, &emergency, "Stop", &HomingPanel::_handle_callback, this,
 		  "Do you want to emergency stop?",
 		  [&websocket_client]() {

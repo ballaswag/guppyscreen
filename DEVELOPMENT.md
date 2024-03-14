@@ -45,20 +45,35 @@ To build guppyscreen for Mipsel (Ingenic X2000E) - specific to the K1 SoC, you w
 
 Clone the guppyscreen repo (and submodules) and apply a couple of patches locally.
 
-1. `git clone --recursive https://github.com/ballaswag/guppyscreen && cd guppyscreen`
+1. `git clone --recursive https://github.com/ballaswag/guppyscreen && cd guppyscreen` (or appropriate link and path)
 2. `(cd lv_drivers/ && git apply ../patches/0001-lv_driver_fb_ioctls.patch)`
 3. `(cd spdlog/ && git apply ../patches/0002-spdlog_fmt_initializer_list.patch)`
 
-### Mipsel (Ingenic X2000E) - specific to the K1 SoC
-Building for the K1/Max
+### Mipsel (Ingenic X2000E) - specific to the K1 SoC or KE (Nebula)
+Building for the Nebula
 
-1. `unset SIMULATION && export CROSS_COMPILE=mips-linux-gnu-`
-2. `make wpaclean && make wpaclient`
-3. `make libhvclean && make libhv.a`
-4. `make spdlogclean && make libspdlog.a`
-5. `make clean && make -j$(nproc)`
+Environment and toolchain
+
+```
+export PATH=<path-to-mips-toolchain>:$PATH
+export CROSS_COMPILE=mips-linux-gnu-
+export CC=mips-linux-gnu-gcc
+export CXX=mips-linux-gnu-g++
+export GUPPY_SMALL_SCREEN=1
+export EVDEV_CALIBRATE=1
+```
+
+Build libraries and executable
+
+1. `make wpaclean && make wpaclient`
+1. `make libhvclean && make libhv.a`
+1. `cd spdlog && rm -rf build && mkdir build && cd build && cmake .. && make && cd ../..`
+1. `make clean && make`
+1. `<path>/mips-linux-gnu-strip build/bin/guppyscreen`
 
 The executable is ./build/bin/guppyscreen
+
+Changes to files in src/ can be followed by `make`. Changes to lv_conf.h require `make clean && make`.
 
 ### x86_64 (Intel/AMD)
 Building and running Guppy Screen on your local machine speeds up development. Changes can tested on the local machine before rebuilding for the other architectures.
@@ -67,7 +82,7 @@ Building and running Guppy Screen on your local machine speeds up development. C
 2. `make wpaclean && make wpaclient`
 3. `make libhvclean && make libhv.a`
 4. `make spdlogclean && make libspdlog.a`
-5. `make clean && make -j$(nproc)`
+5. `make clean && make`
 
 The executable is ./build/bin/guppyscreen
 

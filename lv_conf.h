@@ -376,7 +376,7 @@ extern uint32_t custom_tick_get(void);
 #define LV_FONT_CUSTOM_DECLARE
 
 /*Always set a default font*/
-#define LV_FONT_DEFAULT &lv_font_montserrat_16
+#define LV_FONT_DEFAULT &lv_font_montserrat_12  // Appropriate size for Nebula Pad
 
 /*Enable handling large font and/or fonts with a lot of characters.
  *The limit depends on the font size, font face and bpp.
