@@ -69,18 +69,28 @@ void InitPanel::connected(KWebSocketClient &ws) {
 	this->main_panel.subscribe();
 
 	// spoolman
-	ws.send_jsonrpc("server.info", [this](json &j) {
-	  spdlog::debug("server_info {}", j.dump());
-	  State::get_instance()->set_data("server_info", j, "/result");
-	  
-	  auto &components = j["/result/components"_json_pointer];
-	  if (!components.is_null()) {
-	    const auto &has_spoolman = components.template get<std::vector<std::string>>();
-	    if (std::find(has_spoolman.begin(), has_spoolman.end(), "spoolman") != has_spoolman.end()) {
-	      this->main_panel.enable_spoolman();
-	    }
+	Config *conf = Config::get_instance();
+  	auto v = conf->get_json(conf->df() + "disable_spoolman");
+	auto disable_spoolman = false;
+  	if (!v.is_null()) {
+    	  if (v.template get<bool>()) {
+            disable_spoolman = true;
 	  }
-	});
+  	}
+	if (!disable_spoolman) {
+	  ws.send_jsonrpc("server.info", [this](json &j) {
+	    spdlog::debug("server_info {}", j.dump());
+	    State::get_instance()->set_data("server_info", j, "/result");
+
+	    auto &components = j["/result/components"_json_pointer];
+	    if (!components.is_null()) {
+	      const auto &has_spoolman = components.template get<std::vector<std::string>>();
+	      if (std::find(has_spoolman.begin(), has_spoolman.end(), "spoolman") != has_spoolman.end()) {
+	        this->main_panel.enable_spoolman();
+	      }
+	    }
+	  });
+	}
 
 	auto display_sensors = state->get_display_sensors();
 	this->main_panel.create_sensors(display_sensors);
