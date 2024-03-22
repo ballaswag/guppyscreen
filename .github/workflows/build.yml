@@ -15,7 +15,7 @@ jobs:
 
     runs-on: ubuntu-22.04
     container:
-      image: ballaswag/guppydev:latest
+      image: pellcorp/guppydev:latest
       options: --user 1001
   
     env:
