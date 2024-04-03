@@ -10,8 +10,6 @@ jobs:
   build:
     strategy:
       matrix:
-        arch: [mips-linux-gnu-, aarch64-none-linux-gnu-]
-        theme: [zbolt, material]
         include:
           - arch: mips-linux-gnu-
             theme: zbolt
