@@ -1,0 +1,25 @@
+diff --git a/src/core/lv_disp.c b/src/core/lv_disp.c
+index cacade51d..846b14b0d 100644
+--- a/src/core/lv_disp.c
++++ b/src/core/lv_disp.c
+@@ -131,7 +131,7 @@ void lv_disp_set_theme(lv_disp_t * disp, lv_theme_t * th)
+ 
+     disp->theme = th;
+ 
+-    if(disp->screen_cnt == 3 &&
++    if(disp->screen_cnt == 4 &&
+        lv_obj_get_child_cnt(disp->screens[0]) == 0 &&
+        lv_obj_get_child_cnt(disp->screens[1]) == 0 &&
+        lv_obj_get_child_cnt(disp->screens[2]) == 0) {
+diff --git a/src/extra/themes/default/lv_theme_default.c b/src/extra/themes/default/lv_theme_default.c
+index 47392b0d1..4839c5f28 100644
+--- a/src/extra/themes/default/lv_theme_default.c
++++ b/src/extra/themes/default/lv_theme_default.c
+@@ -252,6 +252,7 @@ static void style_init(void)
+     lv_style_set_bg_opa(&styles->scr, LV_OPA_COVER);
+     lv_style_set_bg_color(&styles->scr, color_scr);
+     lv_style_set_text_color(&styles->scr, color_text);
++    lv_style_set_text_font(&styles->scr, theme.font_normal);
+     lv_style_set_pad_row(&styles->scr, PAD_SMALL);
+     lv_style_set_pad_column(&styles->scr, PAD_SMALL);
+ 
