@@ -11,7 +11,34 @@ jobs:
     strategy:
       matrix:
         arch: [mips-linux-gnu-, aarch64-none-linux-gnu-]
-        theme: [zbolt, material]
+        include:
+          - arch: mips-linux-gnu-
+            theme: zbolt
+            small: false
+            rotate: true
+            calibrate: false
+            asset: guppyscreen-zbolt
+
+          - arch: mips-linux-gnu-
+            theme: material
+            small: false
+            rotate: true
+            calibrate: false
+            asset: guppyscreen
+
+          - arch: mips-linux-gnu-
+            theme: material
+            small: true
+            rotate: false
+            calibrate: true
+            asset: guppyscreen-smallscreen
+
+          - arch: aarch64-none-linux-gnu-
+            theme: material
+            small: false
+            rotate: false
+            calibrate: true
+            asset: guppyscreen-arm
 
     runs-on: ubuntu-22.04
     container:
@@ -20,6 +47,8 @@ jobs:
   
     env:
       CROSS_COMPILE: ${{ matrix.arch }}
+      CC: ${{ matrix.arch }}
+      CXX: ${{ matrix.arch }}
       GUPPY_THEME: ${{ matrix.theme }}
   
     steps:
@@ -32,6 +61,21 @@ jobs:
         chmod +x ./version.sh
         ./version.sh >> $GITHUB_ENV
 
+    - if: matrix.small
+      name: export screen size
+      run: |
+        echo "GUPPY_SMALL_SCREEN=${{ matrix.small }}" >> $GITHUB_ENV
+
+    - if: matrix.rotate
+      name: export screen rotate
+      run: |
+        echo "GUPPY_ROTATE=${{ matrix.rotate }}" >> $GITHUB_ENV
+
+    - if: matrix.calibrate
+      name: export touch calibrate
+      run: |
+        echo "EVDEV_CALIBRATE=${{ matrix.calibrate }}" >> $GITHUB_ENV
+
     - name: patch lv_drivers
       run: |
         git apply ../patches/0001-lv_driver_fb_ioctls.patch
@@ -41,6 +85,11 @@ jobs:
       run: |
         git apply ../patches/0002-spdlog_fmt_initializer_list.patch
       working-directory: ./spdlog
+
+    - name: patch dpi text scale in lvgl
+      run: |
+        git apply ../patches/0003-lvgl-dpi-text-scale.patch
+      working-directory: ./lvgl
 
     - name: make wpaclient
       run: make wpaclient
@@ -54,12 +103,15 @@ jobs:
     - name: make guppyscreen
       run: make -j
 
+    - name: make kd_graphic_mode
+      run: make kd_graphic_mode
+
     - name: package release
       run: |
         chmod +x ./release.sh
-        ./release.sh >> $GITHUB_ENV
+        ./release.sh ${{ matrix.asset }}
 
     - uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.GUPPY_ARCHIVE_NAME }}
-        path: ./${{ env.GUPPY_ARCHIVE_NAME }}.tar.gz
+        name: ${{ matrix.asset }}
+        path: ./${{ matrix.asset }}.tar.gz
