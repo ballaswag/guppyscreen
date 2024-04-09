@@ -88,8 +88,13 @@ WifiPanel::WifiPanel(std::mutex &l)
   lv_textarea_set_one_line(password_input, true);
 
   lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_event_cb(password_input, &WifiPanel::_handle_kb_input, LV_EVENT_ALL, this);
+  lv_obj_add_event_cb(password_input, &WifiPanel::_handle_kb_input, LV_EVENT_FOCUSED, this);
+  lv_obj_add_event_cb(password_input, &WifiPanel::_handle_kb_input, LV_EVENT_DEFOCUSED, this);
+  lv_obj_add_event_cb(password_input, &WifiPanel::_handle_kb_input, LV_EVENT_READY, this);
 
+  // allow clicks on non-clickables to hide the keyboard
+  lv_obj_add_event_cb(prompt_cont, &WifiPanel::_handle_kb_input, LV_EVENT_CLICKED, this);
+  lv_obj_add_event_cb(wifi_label, &WifiPanel::_handle_kb_input, LV_EVENT_CLICKED, this);
   lv_obj_move_background(cont);
   lv_obj_move_foreground(spinner);
 
@@ -150,6 +155,12 @@ void WifiPanel::handle_callback(lv_event_t *e) {
     } else {
       lv_label_set_text(wifi_label, fmt::format("Enter password for {}", selected_network).c_str());
       lv_obj_clear_flag(password_input, LV_OBJ_FLAG_HIDDEN);
+      // lv_obj_add_state(password_input, LV_STATE_FOCUSED | LV_STATE_PRESSED);
+      // lv_obj_clear_flag(kb, LV_OBJ_FLAG_HIDDEN);
+      // lv_keyboard_set_textarea(kb, password_input);
+      lv_event_send(password_input, LV_EVENT_CLICKED, NULL);
+      lv_event_send(password_input, LV_EVENT_FOCUSED, NULL);
+      lv_group_focus_obj(password_input);
     }
 
     lv_obj_clear_flag(prompt_cont, LV_OBJ_FLAG_HIDDEN);
@@ -250,14 +261,12 @@ void WifiPanel::handle_kb_input(lv_event_t *e)
   if(code == LV_EVENT_FOCUSED) {
     lv_keyboard_set_textarea(kb, password_input);
     lv_obj_clear_flag(kb, LV_OBJ_FLAG_HIDDEN);
-  }
-  
-  if(code == LV_EVENT_DEFOCUSED) {
+  } else if(code == LV_EVENT_DEFOCUSED) {
     lv_keyboard_set_textarea(kb, NULL);
+    lv_label_set_text(wifi_label, "Please select your wifi network");
     lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
-  }
-
-  if (code == LV_EVENT_READY) {
+    lv_obj_add_flag(password_input, LV_OBJ_FLAG_HIDDEN);
+  } else if (code == LV_EVENT_READY) {
     const char *password = lv_textarea_get_text(password_input);
     if (password == NULL || password[0] == 0) {
       return;
@@ -266,6 +275,15 @@ void WifiPanel::handle_kb_input(lv_event_t *e)
     // add network, set password, save wpa
     connect(password);
     lv_textarea_set_text(password_input, "");
+    lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
+    lv_label_set_text(wifi_label, fmt::format("Connecting to {} ...", selected_network).c_str());
+    lv_obj_clear_state(password_input, LV_STATE_FOCUSED);
+    lv_obj_add_flag(password_input, LV_OBJ_FLAG_HIDDEN);
+  } else if (code == LV_EVENT_CLICKED) {
+      lv_obj_t *target = lv_event_get_target(e);
+      if (target != kb && target != password_input) {  
+        lv_event_send(password_input, LV_EVENT_DEFOCUSED, NULL);
+      }
   }
 }
 
