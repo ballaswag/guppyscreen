@@ -155,12 +155,7 @@ void WifiPanel::handle_callback(lv_event_t *e) {
     } else {
       lv_label_set_text(wifi_label, fmt::format("Enter password for {}", selected_network).c_str());
       lv_obj_clear_flag(password_input, LV_OBJ_FLAG_HIDDEN);
-      // lv_obj_add_state(password_input, LV_STATE_FOCUSED | LV_STATE_PRESSED);
-      // lv_obj_clear_flag(kb, LV_OBJ_FLAG_HIDDEN);
-      // lv_keyboard_set_textarea(kb, password_input);
-      lv_event_send(password_input, LV_EVENT_CLICKED, NULL);
       lv_event_send(password_input, LV_EVENT_FOCUSED, NULL);
-      lv_group_focus_obj(password_input);
     }
 
     lv_obj_clear_flag(prompt_cont, LV_OBJ_FLAG_HIDDEN);
