@@ -95,8 +95,10 @@ void SpoolmanPanel::init() {
     if (!s.is_null() && !s.empty()) {
       spools.clear();
       for (auto &e : s) {
-	uint32_t spool_id = e["id"].template get<uint32_t>();
-	spools.insert({spool_id, e});
+        if (e.contains("id")) {
+          uint32_t spool_id = e["id"].template get<uint32_t>();
+          spools.insert({spool_id, e});
+        }
       }
 
       std::vector<json> sorted_spools;
@@ -155,11 +157,22 @@ void SpoolmanPanel::populate_spools(std::vector<json> &sorted_spools) {
       auto id = el["/id"_json_pointer].template get<uint32_t>();
       bool is_active = id == active_id;
 
-      auto vendor = el["/filament/vendor/name"_json_pointer].template get<std::string>();
-      auto filament_name = el["/filament/name"_json_pointer].template get<std::string>();
-      auto material = el["/filament/material"_json_pointer].template get<std::string>();
-      auto remaining_weight = el["/remaining_weight"_json_pointer].template get<double>();
-      auto remaining_len = el["/remaining_length"_json_pointer].template get<double>() / 100; // mm to m;
+      auto vendor_json = el["/filament/vendor/name"_json_pointer];
+      auto vendor = !vendor_json.is_null() ? vendor_json.template get<std::string>() : "";
+
+      auto filament_name_json =  el["/filament/name"_json_pointer];
+      auto filament_name = !filament_name_json.is_null() ? filament_name_json.template get<std::string>() : "";
+
+      auto material_json = el["/filament/material"_json_pointer];
+      auto material = !material_json.is_null() ? material_json.template get<std::string>(): "";
+
+      auto remaining_weight_json = el["/remaining_weight"_json_pointer];
+      auto remaining_weight = !remaining_weight_json.is_null() ? remaining_weight_json.template get<double>() : 0.0;
+
+      auto remaining_len_json = el["/remaining_length"_json_pointer];
+      auto remaining_len = !remaining_len_json.is_null()
+      ? remaining_len_json.template get<double>() / 100 // mm to m;
+      : 0.0;
 
       lv_table_set_cell_value(spool_table, row_idx, 0, std::to_string(id).c_str());
       lv_table_set_cell_value(spool_table, row_idx, 1,

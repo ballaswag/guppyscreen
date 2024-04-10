@@ -1,6 +1,9 @@
 #include "lvgl/lvgl.h"
 #include "lv_drivers/display/fbdev.h"
 #include "lv_drivers/indev/evdev.h"
+#include "lv_tc.h"
+#include "lv_tc_screen.h"
+
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
@@ -65,6 +68,19 @@ static void new_theme_apply_cb(lv_theme_t * th, lv_obj_t * obj)
       lv_obj_add_style(obj, &style_imgbtn_pressed, LV_STATE_PRESSED);
       lv_obj_add_style(obj, &style_imgbtn_disabled, LV_STATE_DISABLED);
     }
+}
+
+static void handle_calibrated(lv_event_t *event) {
+  spdlog::info("finished calibration");
+  lv_obj_t *main_screen = (lv_obj_t*)event->user_data;
+  lv_disp_load_scr(main_screen);
+}
+
+static void save_calibration_coeff(lv_tc_coeff_t coeff) {
+  Config *conf = Config::get_instance();
+  conf->set<std::vector<float>>("/touch_calibration_coeff",
+                                {coeff.a, coeff.b, coeff.c, coeff.d, coeff.e, coeff.f});
+  conf->save();
 }
 
 #ifndef SIMULATOR
@@ -169,6 +185,31 @@ int main(void)
     lv_obj_set_style_bg_opa(screen_saver, LV_OPA_100, 0);
     lv_obj_move_background(screen_saver);
 
+    lv_obj_t *main_screen = lv_disp_get_scr_act(NULL);
+    auto touch_calibrated = conf->get_json("/touch_calibrated");
+    if (!touch_calibrated.is_null()) {
+      auto is_calibrated = touch_calibrated.template get<bool>();
+      if (is_calibrated) {
+        auto calibration_coeff = conf->get_json("/touch_calibration_coeff");
+        if (calibration_coeff.is_null()) {
+          lv_tc_register_coeff_save_cb(save_calibration_coeff);
+          lv_obj_t *touch_calibrate_scr = lv_tc_screen_create();
+
+          lv_disp_load_scr(touch_calibrate_scr);
+
+          lv_tc_screen_start(touch_calibrate_scr);
+          lv_obj_add_event_cb(touch_calibrate_scr, handle_calibrated, LV_EVENT_READY, main_screen);
+          spdlog::info("running touch calibration");
+        } else {
+          // load calibration data
+          auto c = calibration_coeff.template get<std::vector<float>>();
+          lv_tc_coeff_t coeff = { true, c[0], c[1], c[2], c[3], c[4], c[5] };
+          lv_tc_set_coeff(coeff, false);
+          spdlog::info("loaded calibration coefficients");
+        }
+      }
+    }
+
     /*Handle LitlevGL tasks (tickless mode)*/
     while(1) {
       lv_lock.lock();
@@ -252,14 +293,12 @@ static void hal_init(void) {
     if (!rotate.is_null()) {
       auto rotate_value = rotate.template get<uint32_t>();
       if (rotate_value > 0 && rotate_value < 4) {
-	disp_drv.sw_rotate = 1;
-	disp_drv.rotated = rotate_value;
+        disp_drv.sw_rotate = 1;
+        disp_drv.rotated = rotate_value;
       }
     }
-    lv_disp_drv_register(&disp_drv);
 
     spdlog::debug("resolution {} x {}", width, height);
-    
     lv_disp_t * disp = lv_disp_drv_register(&disp_drv);
     lv_theme_t * th = height <= 480
       ? lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_12)
@@ -268,20 +307,19 @@ static void hal_init(void) {
 
     evdev_init();
     static lv_indev_drv_t indev_drv_1;
-    lv_indev_drv_init(&indev_drv_1); /*Basic initialization*/
+    indev_drv_1.read_cb = evdev_read; // no calibration
     indev_drv_1.type = LV_INDEV_TYPE_POINTER;
 
-    /*This function will be called periodically (by the library) to get the mouse position and state*/
-    indev_drv_1.read_cb = evdev_read;    
     auto touch_calibrated = conf->get_json("/touch_calibrated");
     if (!touch_calibrated.is_null()) {
       auto is_calibrated = touch_calibrated.template get<bool>();
       if (is_calibrated) {
-	indev_drv_1.read_cb = evdev_read_calibrated;
+        spdlog::info("using touch calibration");
+        lv_tc_indev_drv_init(&indev_drv_1, evdev_read);
       }
     }
       
-    lv_indev_t *mouse_indev = lv_indev_drv_register(&indev_drv_1);
+    lv_indev_drv_register(&indev_drv_1);
 }
 
 #else // SIMULATOR

@@ -210,7 +210,6 @@ void HomingPanel::handle_callback(lv_event_t *event) {
 }
 
 void HomingPanel::handle_selector_cb(lv_event_t *event) {
-  HomingPanel *panel = (HomingPanel*)event->user_data;
   lv_obj_t * obj = lv_event_get_target(event);
   uint32_t idx = lv_btnmatrix_get_selected_btn(obj);
   distance_selector.set_selected_idx(idx);

@@ -199,11 +199,25 @@ void ExtruderPanel::handle_callback(lv_event_t *e) {
     }
 
     if (btn == unload_btn.get_container()) {
-      ws.gcode_script(unload_filament_macro);
+      if (unload_filament_macro == "_GUPPY_QUIT_MATERIAL") {
+        const char *temp = lv_btnmatrix_get_btn_text(temp_selector.get_selector(),
+                                                     temp_selector.get_selected_idx());
+        ws.gcode_script(fmt::format("{} EXTRUDER_TEMP={}", unload_filament_macro, temp));
+      } else {
+        ws.gcode_script(unload_filament_macro);
+      }
     }
 
     if (btn == load_btn.get_container()) {
-      ws.gcode_script(load_filament_macro);
+      if (load_filament_macro == "_GUPPY_LOAD_MATERIAL") {
+        const char *temp = lv_btnmatrix_get_btn_text(temp_selector.get_selector(),
+                                                     temp_selector.get_selected_idx());
+        const char *len = lv_btnmatrix_get_btn_text(length_selector.get_selector(),
+                                                    length_selector.get_selected_idx());
+        ws.gcode_script(fmt::format("{} EXTRUDER_TEMP={} EXTRUDE_LEN={}", load_filament_macro, temp, len));
+      } else {
+        ws.gcode_script(load_filament_macro);
+      }
     }
 
     if (btn == cooldown_btn.get_container()) {

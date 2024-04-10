@@ -60,8 +60,8 @@ void Config::init(std::string config_path) {
 
   json cooldown_conf = {{ "cooldown", "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0"}};
   json default_macros_conf = {
-    {"load_filament", "LOAD_MATERIAL"},
-    {"unload_filament", "QUIT_MATERIAL"}
+    {"load_filament", "_GUPPY_LOAD_MATERIAL"},
+    {"unload_filament", "_GUPPY_QUIT_MATERIAL"}
   };
 
   if (stat(config_path.c_str(), &buffer) == 0) {
