@@ -162,6 +162,12 @@ lv_point_t lv_tc_transform_point(lv_point_t point) {
             transformedPoint.y = transformedPoint.x;
             transformedPoint.x = lv_disp_get_ver_res(NULL) - tmp - 1;
         }
+
+        if (disp->driver->rotated == LV_DISP_ROT_180) {
+            lv_coord_t tmp = transformedPoint.y;
+            transformedPoint.y = lv_disp_get_ver_res(NULL) - transformedPoint.y;
+            transformedPoint.x = lv_disp_get_hor_res(NULL) - transformedPoint.x;
+        }
     }
 
     return transformedPoint;
