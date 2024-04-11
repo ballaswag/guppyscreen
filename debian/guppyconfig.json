@@ -11,7 +11,6 @@
       },
       "display_sleep_sec": 600,
       "fans": [],
-      "guppy_init_script": "service guppyscreen",
       "log_level": "debug",
       "monitored_sensors": [],
       "moonraker_api_key": false,
@@ -19,6 +18,7 @@
       "moonraker_port": 7125
     }
   },
+  "guppy_init_script": "service guppyscreen",
   "thumbnail_path": "<GUPPY_DIR>/thumbnails",
   "wpa_supplicant": "/var/run/wpa_supplicant"
 }

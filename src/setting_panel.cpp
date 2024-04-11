@@ -100,10 +100,10 @@ void SettingPanel::handle_callback(lv_event_t *event) {
       Config *conf = Config::get_instance();
       auto init_script = conf->get<std::string>("/guppy_init_script");
       const fs::path script(init_script);
-      if (fs::exists(script)) {
-	sp::call({init_script, "restart"});
+      if (fs::exists(script) || init_script.rfind("service guppyscreen", 0) == 0) {
+        sp::call({init_script, "restart"});
       } else {
-	spdlog::warn("Failed to restart Guppy Screen. Did not find restart script.");
+        	spdlog::warn("Failed to restart Guppy Screen. Did not find restart script.");
       }
     } else if (btn == guppy_update_btn.get_container()) {
       spdlog::trace("update guppy pressed");
