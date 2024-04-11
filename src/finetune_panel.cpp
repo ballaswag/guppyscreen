@@ -22,8 +22,13 @@ FineTunePanel::FineTunePanel(KWebSocketClient &websocket_client, std::mutex &l)
   , panel_cont(lv_obj_create(lv_scr_act()))
   , values_cont(lv_obj_create(panel_cont))
   , zreset_btn(panel_cont, &refresh_img, "Reset Z", &FineTunePanel::_handle_zoffset, this)
+#ifdef Z_PLUS_UPARROW
+  , zup_btn(panel_cont, &z_farther, "Z+", &FineTunePanel::_handle_zoffset, this)
+  , zdown_btn(panel_cont, &z_closer, "Z-", &FineTunePanel::_handle_zoffset, this)
+#else
   , zup_btn(panel_cont, &z_closer, "Z+", &FineTunePanel::_handle_zoffset, this)
   , zdown_btn(panel_cont, &z_farther, "Z-", &FineTunePanel::_handle_zoffset, this)
+#endif
   , pareset_btn(panel_cont, &refresh_img, "Reset PA", &FineTunePanel::_handle_pa, this)
   , paup_btn(panel_cont, &pa_plus_img, "PA+", &FineTunePanel::_handle_pa, this)
   , padown_btn(panel_cont, &pa_minus_img, "PA-", &FineTunePanel::_handle_pa, this)

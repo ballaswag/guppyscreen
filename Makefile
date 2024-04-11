@@ -85,6 +85,10 @@ ifdef EVDEV_CALIBRATE
 DEFINES +=  -D EVDEV_CALIBRATE
 endif
 
+ifdef Z_PLUS_UPARROW
+DEFINES += -D Z_PLUS_UPARROW
+endif
+
 # SIMULATION is enabled by default, need CROSS_COMPILE variable to do MIPS build
 ifndef CROSS_COMPILE
 DEFINES +=  -D LV_BUILD_TEST=0 -D SIMULATOR
