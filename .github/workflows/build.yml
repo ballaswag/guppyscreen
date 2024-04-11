@@ -114,3 +114,12 @@ jobs:
       with:
         name: ${{ matrix.asset }}
         path: ./${{ matrix.asset }}.tar.gz
+
+    - name: nightly release
+      uses: softprops/action-gh-release@v2
+      with:
+        prerelease: true
+        name: nightly
+        tag_name: nightly
+        files: ${{ matrix.asset }}.tar.gz
+        fail_on_unmatched_files: true
