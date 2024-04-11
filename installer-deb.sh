@@ -98,13 +98,18 @@ restart_services() {
 
 
 ARCH=`uname -m`
-CODENAME=`lsb_release -c -s` # expect debian bulleye for now
-echo "Found arch $ARCH, OS code name $CODENAME"
+echo "Found arch $ARCH"
 
-if [ "$ARCH" = "aarch64" ] && [ "$CODENAME" = "bullseye" ]; then
+if [ "$ARCH" = "aarch64" ]; then
     printf "${green}Installing Guppy Screen ${white}\n"
+
+    ASSET_URL="https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen-arm.tar.gz"
+    if [ "$1" = "nightly" ]; then
+        printf "${yellow}Installing nightly build ${white}\n"
+        ASSET_URL="https://github.com/ballaswag/guppyscreen/releases/download/nightly/guppyscreen-arm.tar.gz"
+    fi
     
-    curl -s -L https://github.com/ballaswag/guppyscreen/releases/latest/download/guppyscreen-arm.tar.gz -o /tmp/guppyscreen.tar.gz
+    curl -s -L $ASSET_URL -o /tmp/guppyscreen.tar.gz
     tar xf /tmp/guppyscreen.tar.gz -C ${HOME}
 
     has_moonraker

@@ -32,17 +32,34 @@ sh -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/bal
 sh -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer.sh)" -s zbolt
 ```
 
+### Install on a PI (Debian/Raspbian)
+Tested on a BTT Pad 7. Please install with care and make sure you're okay with resetting your setup if things break.
+```
+wget -O - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer-deb.sh | bash
+```
+
+### Nightly Builds
+#### Material (Nightly)
+```
+sh -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer.sh)" -s nightly
+```
+
+#### Z-Bolt (Nightly)
+```
+sh -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer.sh)" -s zbolt nightly
+```
+
+#### Raspbian Variant (Nightly)
+```
+wget -O - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer-deb.sh | bash -s nightly
+```
+
 ## Uninstall
 ssh into your K1/Max and run the follwow command:
 ```
 /usr/data/guppyscreen/reinstall-creality.sh
 ```
 
-### Install on aarch64 (Debian Bullseye) - Experimental
-Tested on a BTT Pad 7. Please install with care and make sure you're okay with resetting your setup if things break.
-```
-wget -O - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer-deb.sh | bash
-```
 
 ## Features
 :white_check_mark: Console/Macro Shell  

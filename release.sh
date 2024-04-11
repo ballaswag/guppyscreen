@@ -21,5 +21,5 @@ cp -r ./debian $RELEASES_DIR
 cp ./build/bin/kd_graphic_mode $RELEASES_DIR/debian
 
 
-echo "{\"version\": \"$VERSION_STR\", \"theme\": \"$GUPPY_THEME\", \"asset_name\": \"$ASSET_NAME.tar.gz\"}" > $RELEASES_DIR/.version
+echo "{\"version\": \"$GUPPYSCREEN_VERSION\", \"theme\": \"$GUPPY_THEME\", \"asset_name\": \"$ASSET_NAME.tar.gz\"}" > $RELEASES_DIR/.version
 tar czf $ASSET_NAME.tar.gz -C releases .

@@ -83,10 +83,17 @@ rm -rf /root/.cache
 wget -q --no-check-certificate https://raw.githubusercontent.com/ballaswag/k1-discovery/main/bin/curl -O /tmp/curl
 chmod +x /tmp/curl
 
+ASSET_URL="https://github.com/ballaswag/guppyscreen/releases/latest/download/$ASSET_NAME.tar.gz"
+
+if [ "$1" = "nightly" ] || [ "$2" = "nightly" ]; then
+    printf "${yellow}Installing nightly build ${white}\n"
+    ASSET_URL="https://github.com/ballaswag/guppyscreen/releases/download/nightly/$ASSET_NAME.tar.gz"
+fi
+
 printf "${green} Downloading asset: $ASSET_NAME.tar.gz ${white}\n"
 
 # download/extract latest guppyscreen
-/tmp/curl -s -L "https://github.com/ballaswag/guppyscreen/releases/latest/download/$ASSET_NAME.tar.gz" -o /tmp/guppyscreen.tar.gz
+/tmp/curl -s -L $ASSET_URL -o /tmp/guppyscreen.tar.gz
 tar xf /tmp/guppyscreen.tar.gz -C /usr/data/
 
 if [ ! -f "$K1_GUPPY_DIR/guppyscreen" ]; then
