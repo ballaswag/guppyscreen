@@ -3,6 +3,8 @@ name: guppy build
 on:
   push:
     branches: [ "dev", "main" ]
+    tags:
+      - "*"
   pull_request:
     branches: [ "main" ]
 
