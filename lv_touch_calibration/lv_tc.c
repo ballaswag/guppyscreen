@@ -141,7 +141,7 @@ void lv_tc_compute_coeff(lv_point_t *scrP, lv_point_t *tchP, bool save) {   //Th
 }
 
 lv_point_t _lv_tc_transform_point_indev(lv_indev_data_t *data) {
-    if(data->state == LV_INDEV_STATE_PRESSED) {
+    if(data->state == LV_INDEV_STATE_PRESSED || data->state == LV_INDEV_STATE_RELEASED) {
         return lv_tc_transform_point(data->point);
     } else {
         //Reject invalid points if the touch panel is in released state
