@@ -26,6 +26,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   , belts_calibration_panel(c, l)
   , tmc_tune_panel(c)
   , tmc_status_panel(c, l)
+  , power_panel(c, l)
   , bedmesh_btn(cont, &bedmesh_img, "Bed Mesh", &PrinterTunePanel::_handle_callback, this)
   , finetune_btn(cont, &fine_tune_img, "Fine Tune", &PrinterTunePanel::_handle_callback, this)
   , inputshaper_btn(cont, &inputshaper_img, "Input Shaper", &PrinterTunePanel::_handle_callback, this)
@@ -37,6 +38,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   , limits_btn(cont, &limit_img, "Limits", &PrinterTunePanel::_handle_callback, this)
   , tmc_tune_btn(cont, &motor_img, "TMC Autotune", &PrinterTunePanel::_handle_callback, this)
   , tmc_status_btn(cont, &chart_img, "TMC Metrics", &PrinterTunePanel::_handle_callback, this)
+  , power_devices_btn(cont, &chart_img, "Power Devices", &PrinterTunePanel::_handle_callback, this)
 {
   lv_obj_move_background(cont);
 
@@ -61,6 +63,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   lv_obj_set_grid_cell(limits_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_START, 2, 1);
   lv_obj_set_grid_cell(tmc_tune_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_START, 2, 1);
   lv_obj_set_grid_cell(tmc_status_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_START, 2, 1);
+  lv_obj_set_grid_cell(power_devices_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_START, 2, 1);
   // lv_obj_set_grid_cell(restart_firmware_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_START, 2, 1);
 }
 
@@ -77,6 +80,10 @@ lv_obj_t *PrinterTunePanel::get_container() {
 
 BedMeshPanel& PrinterTunePanel::get_bedmesh_panel() {
   return bedmesh_panel;
+}
+
+PowerPanel& PrinterTunePanel::get_power_panel() {
+  return power_panel;
 }
 
 void PrinterTunePanel::init(json &j) {
@@ -123,6 +130,9 @@ void PrinterTunePanel::handle_callback(lv_event_t *event) {
     } else if (btn == tmc_status_btn.get_container()) {
       spdlog::trace("tmc metrics pressed");
       tmc_status_panel.foreground();
+    } else if (btn == power_devices_btn.get_container()) {
+      spdlog::trace("power devices pressed");
+      power_panel.foreground();
     }
   }
 }
