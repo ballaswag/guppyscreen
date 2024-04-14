@@ -6,6 +6,8 @@
 
 #include "math.h"
 
+#include <stdio.h>
+
 #ifdef ESP_PLATFORM
     #include "esp_log.h"
 #endif
@@ -140,14 +142,22 @@ void lv_tc_compute_coeff(lv_point_t *scrP, lv_point_t *tchP, bool save) {   //Th
     #endif
 }
 
+static lv_point_t last_pressed_point = {0,0};
+static lv_indev_state_t last_state = 0;
 lv_point_t _lv_tc_transform_point_indev(lv_indev_data_t *data) {
     if(data->state == LV_INDEV_STATE_PRESSED) {
+        // Pressed - just return coordinates
+        last_pressed_point = data->point;
+        last_state = data->state;
         return lv_tc_transform_point(data->point);
-    } else {
-        //Reject invalid points if the touch panel is in released state
-        lv_point_t point = {0, 0};
-        return point;
+    } else if(data->state == LV_INDEV_STATE_RELEASED && last_state == LV_INDEV_STATE_PRESSED) {
+        // Released - ensure reporting of coordinates where the touch was last seen
+        last_state = data->state;
+        return lv_tc_transform_point(last_pressed_point);
     }
+    // Invalid state
+    lv_point_t point = {0, 0};
+    return point;
 }
 
 lv_point_t lv_tc_transform_point(lv_point_t point) {
