@@ -1,6 +1,7 @@
 #include "homing_panel.h"
 #include "state.h"
 #include "spdlog/spdlog.h"
+#include "config.h"
 
 static const float distances[] = {0.1, 0.5, 1, 5, 10, 25, 50};
 
@@ -129,6 +130,10 @@ void HomingPanel::foreground() {
       y_down_btn.disable();
     }
 
+    //Set the Z axis buttons
+    z_up_btn.set_image(&z_farther);
+    z_down_btn.set_image(&z_closer);
+
     if (homed_axes.find("z") != std::string::npos) {
       z_up_btn.enable();
       z_down_btn.enable();
@@ -136,6 +141,20 @@ void HomingPanel::foreground() {
       z_up_btn.disable();
       z_down_btn.disable();
     }
+  }
+
+  //Set the Z axis buttons
+
+  v = Config::get_instance()->get_json("/invert_z_icon");
+  bool inverted = !v.is_null() && v.template get<bool>();
+  if (inverted) {
+    // UP arrow
+    z_up_btn.set_image(&z_farther);
+    z_down_btn.set_image(&z_closer);
+  } else {
+    // DOWN arrow
+    z_up_btn.set_image(&z_closer);
+    z_down_btn.set_image(&z_farther);
   }
 
   lv_obj_move_foreground(homing_cont);

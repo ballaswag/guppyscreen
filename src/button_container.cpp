@@ -93,6 +93,10 @@ void ButtonContainer::hide() {
   lv_obj_add_flag(btn_cont, LV_OBJ_FLAG_HIDDEN);
 }
 
+void ButtonContainer::set_image(const void *img) {
+  lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, img, NULL);
+}
+
 void ButtonContainer::handle_callback(lv_event_t *e) {
   const lv_event_code_t code = lv_event_get_code(e);
   if (code == LV_EVENT_PRESSED) {
