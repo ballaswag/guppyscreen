@@ -7,6 +7,7 @@
 #include "image_label.h"
 #include "websocket_client.h"
 #include "notify_consumer.h"
+#include "config.h"
 
 #include <mutex>
 
@@ -71,6 +72,7 @@ class FineTunePanel : public NotifyConsumer {
   ImageLabel pa;
   ImageLabel speed_factor;
   ImageLabel flow_factor;
+  Config *conf;
 };
 
 #endif  // __FINETINE_PANEL_H__

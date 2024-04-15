@@ -88,6 +88,8 @@ FineTunePanel::FineTunePanel(KWebSocketClient &websocket_client, std::mutex &l)
   lv_obj_set_grid_cell(back_btn.get_container(), LV_GRID_ALIGN_CENTER, 4, 1, LV_GRID_ALIGN_CENTER, 3, 1);
 
   ws.register_notify_update(this);
+
+  conf = Config::get_instance();
 }
 
 FineTunePanel::~FineTunePanel() {
@@ -123,6 +125,22 @@ void FineTunePanel::foreground() {
   if (!v.is_null()) {
     flow_factor.update_label(fmt::format("{}%",
 	   static_cast<int>(v.template get<double>() * 100)).c_str());
+  }
+
+  //Set the Z axis buttons
+  v = conf->get_json("/z_plus_uparrow");
+  bool uparrow = false;
+  if (!v.is_null()) {
+    uparrow = v.template get<bool>();
+  } 
+  if (uparrow) {
+    // UP arrow
+    zup_btn.set_image(&z_farther);
+    zdown_btn.set_image(&z_closer);
+  } else {
+    // DOWN arrow
+    zup_btn.set_image(&z_closer);
+    zdown_btn.set_image(&z_farther);
   }
   
   lv_obj_move_foreground(panel_cont);

@@ -6,6 +6,8 @@
 
 #include "math.h"
 
+#include <stdio.h>
+
 #ifdef ESP_PLATFORM
     #include "esp_log.h"
 #endif
