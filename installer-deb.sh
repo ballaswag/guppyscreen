@@ -47,6 +47,8 @@ get_klipper_paths() {
 }
 
 install_services() {
+    sed -i "s|<USER>|$USER|g" ${HOME}/guppyscreen/debian/guppyscreen.service
+
     sudo cp ${HOME}/guppyscreen/debian/disable_blinking_cursor.service /etc/systemd/system
     sudo cp ${HOME}/guppyscreen/debian/guppyscreen.service /etc/systemd/system
     sudo systemctl enable disable_blinking_cursor.service

@@ -1,13 +1,8 @@
-name: guppy build
+name: validate pull request
 
 on:
-  push:
-    branches: [ "develop", "main" ]
-    tags:
-      - "*"
-
-permissions:
-  contents: write
+  pull_request:
+    branches: [ "main", "develop" ]
 
 jobs:
   build:
@@ -58,13 +53,7 @@ jobs:
       with:
         submodules: recursive
 
-    - if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
-      name: set guppyscreen nightly version
-      run: |
-        echo "GUPPYSCREEN_VERSION=nightly-${{ github.sha }}" >> $GITHUB_ENV
-
-    - if: startsWith(github.ref, 'refs/tags/')
-      name: set guppyscreen nightly version
+    - name: set guppyscreen version
       run: |
         echo "GUPPYSCREEN_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
 
@@ -77,7 +66,7 @@ jobs:
       name: export screen rotate
       run: |
         echo "GUPPY_ROTATE=${{ matrix.rotate }}" >> $GITHUB_ENV
-
+        
     - if: matrix.calibrate
       name: export touch calibrate
       run: |
@@ -122,20 +111,3 @@ jobs:
       with:
         name: ${{ matrix.asset }}
         path: ./${{ matrix.asset }}.tar.gz
-
-    - name: nightly release
-      uses: softprops/action-gh-release@v2
-      with:
-        prerelease: true
-        name: nightly
-        tag_name: nightly
-        files: ${{ matrix.asset }}.tar.gz
-        fail_on_unmatched_files: true
-
-    - name: stable release
-      uses: softprops/action-gh-release@v2
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        files: ${{ matrix.asset }}.tar.gz
-        generate_release_notes: true
-        fail_on_unmatched_files: true

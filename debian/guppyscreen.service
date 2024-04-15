@@ -7,9 +7,9 @@ StartLimitIntervalSec=0
 Type=simple
 Restart=always
 RestartSec=1
-User=biqu
-WorkingDirectory=/home/biqu/guppyscreen
-ExecStart="/home/biqu/guppyscreen/guppyscreen"
+User=<USER>
+WorkingDirectory=/home/<USER>/guppyscreen
+ExecStart="/home/<USER>/guppyscreen/guppyscreen"
 
 [Install]
 WantedBy=multi-user.target

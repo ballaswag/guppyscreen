@@ -35,6 +35,9 @@ class SysInfoPanel {
 
   lv_obj_t *estop_toggle_cont;
   lv_obj_t *prompt_estop_toggle;
+
+  lv_obj_t *z_icon_toggle_cont;
+  lv_obj_t *z_icon_toggle;
   
   ButtonContainer back_btn;
 
