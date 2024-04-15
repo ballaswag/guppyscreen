@@ -62,7 +62,11 @@ void PowerPanel::create_device(json &j) {
 void PowerPanel::create_devices(json &j) {
   std::lock_guard<std::mutex> lock(lv_lock);
 
+  for (auto &device : devices) {
+    lv_obj_clean(device.second);
+  }
   devices.clear();
+
   if (j.contains("result")) {
     json result = j["result"];
     if (result.contains("devices")) {
