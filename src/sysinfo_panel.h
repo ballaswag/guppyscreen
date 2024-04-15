@@ -7,6 +7,11 @@
 #include <vector>
 #include <string>
 
+const std::vector<std::string> z_plus_types = {
+  "UP arrow",
+  "DOWN arrow"
+};
+
 class SysInfoPanel {
  public:
   SysInfoPanel();
@@ -35,10 +40,15 @@ class SysInfoPanel {
 
   lv_obj_t *estop_toggle_cont;
   lv_obj_t *prompt_estop_toggle;
+
+  lv_obj_t *z_icon_toggle_cont;
+  lv_obj_t *z_icon_toggle;
   
   ButtonContainer back_btn;
 
   static std::vector<std::string> log_levels;
+
+  static std::vector<std::string> z_plus_types;
   
 };
 

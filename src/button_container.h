@@ -23,6 +23,8 @@ class ButtonContainer {
   void enable();
   void hide();
 
+  void set_image(const void *img);
+
   void handle_callback(lv_event_t *event);
 
   void handle_prompt();

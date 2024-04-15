@@ -25,13 +25,8 @@ HomingPanel::HomingPanel(KWebSocketClient &websocket_client, std::mutex &lock)
   , y_down_btn(homing_cont, &arrow_down, "Y-", &HomingPanel::_handle_callback, this)    
   , x_up_btn(homing_cont, &arrow_right, "X+", &HomingPanel::_handle_callback, this)
   , x_down_btn(homing_cont, &arrow_left, "X-", &HomingPanel::_handle_callback, this)
-#ifdef Z_PLUS_UPARROW
-  , z_up_btn(homing_cont, &z_farther, "Z+", &HomingPanel::_handle_callback, this)
-  , z_down_btn(homing_cont, &z_closer, "Z-", &HomingPanel::_handle_callback, this)
-#else
   , z_up_btn(homing_cont, &z_closer, "Z+", &HomingPanel::_handle_callback, this)
   , z_down_btn(homing_cont, &z_farther, "Z-", &HomingPanel::_handle_callback, this)
-#endif
   , emergency_btn(homing_cont, &emergency, "Stop", &HomingPanel::_handle_callback, this,
 		  "Do you want to emergency stop?",
 		  [&websocket_client]() {
@@ -134,6 +129,10 @@ void HomingPanel::foreground() {
       y_down_btn.disable();
     }
 
+    //Set the Z axis buttons
+    z_up_btn.set_image(&z_farther);
+    z_down_btn.set_image(&z_closer);
+
     if (homed_axes.find("z") != std::string::npos) {
       z_up_btn.enable();
       z_down_btn.enable();
@@ -141,6 +140,23 @@ void HomingPanel::foreground() {
       z_up_btn.disable();
       z_down_btn.disable();
     }
+  }
+
+  //Set the Z axis buttons
+  conf = Config::get_instance();
+  v = conf->get_json("/z_plus_uparrow");
+  bool uparrow = false;
+  if (!v.is_null()) {
+    uparrow = v.template get<bool>();
+  } 
+  if (uparrow) {
+    // UP arrow
+    z_up_btn.set_image(&z_farther);
+    z_down_btn.set_image(&z_closer);
+  } else {
+    // DOWN arrow
+    z_up_btn.set_image(&z_closer);
+    z_down_btn.set_image(&z_farther);
   }
 
   lv_obj_move_foreground(homing_cont);
