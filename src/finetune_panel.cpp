@@ -1,6 +1,7 @@
 #include "finetune_panel.h"
 #include "state.h"
 #include "spdlog/spdlog.h"
+#include "config.h"
 
 #include <algorithm>
 
@@ -123,6 +124,19 @@ void FineTunePanel::foreground() {
   if (!v.is_null()) {
     flow_factor.update_label(fmt::format("{}%",
 	   static_cast<int>(v.template get<double>() * 100)).c_str());
+  }
+
+  //Set the Z axis buttons
+  v = Config::get_instance()->get_json("/invert_z_icon");
+  bool inverted = !v.is_null() && v.template get<bool>();
+  if (inverted) {
+    // UP arrow
+    zup_btn.set_image(&z_farther);
+    zdown_btn.set_image(&z_closer);
+  } else {
+    // DOWN arrow
+    zup_btn.set_image(&z_closer);
+    zdown_btn.set_image(&z_farther);
   }
   
   lv_obj_move_foreground(panel_cont);

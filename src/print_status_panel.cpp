@@ -518,7 +518,11 @@ void PrintStatusPanel::update_flow_rate(double filament_used) {
       flow = filament_xsection * filament_delta / delta;
       
       spdlog::trace("caculated flow {}", flow); 
-      flow_rate.update_label(fmt::format("{:.2f} mm3/s", flow).c_str());
+      #ifdef GUPPY_SMALL_SCREEN
+        flow_rate.update_label(fmt::format("{:.1f} mm3/s", flow).c_str());
+      #else
+        flow_rate.update_label(fmt::format("{:.2f} mm3/s", flow).c_str());
+      #endif
     }
 
     last_filament_used = filament_used;

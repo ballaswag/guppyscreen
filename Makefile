@@ -103,7 +103,7 @@ libhv.a:
 
 libspdlog.a:
 	@mkdir -p $(SPDLOG_DIR)/build
-	@cmake -B $(SPDLOG_DIR)/build -S $(SPDLOG_DIR)/
+	@cmake -B $(SPDLOG_DIR)/build -S $(SPDLOG_DIR)/ -DCMAKE_CXX_COMPILER=$(CXX)
 	$(MAKE) -C $(SPDLOG_DIR)/build -j$(nproc)
 
 wpaclient:

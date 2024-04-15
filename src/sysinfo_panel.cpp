@@ -55,6 +55,11 @@ SysInfoPanel::SysInfoPanel()
     // estop prompt
   , estop_toggle_cont(lv_obj_create(left_cont))
   , prompt_estop_toggle(lv_switch_create(estop_toggle_cont))
+
+    // Z axis icons
+  , z_icon_toggle_cont(lv_obj_create(left_cont))
+  , z_icon_toggle(lv_switch_create(z_icon_toggle_cont))
+
   , back_btn(cont, &back, "Back", &SysInfoPanel::_handle_callback, this)
 {
   lv_obj_move_background(cont);
@@ -142,6 +147,30 @@ SysInfoPanel::SysInfoPanel()
   lv_obj_add_event_cb(prompt_estop_toggle, &SysInfoPanel::_handle_callback,
 		      LV_EVENT_VALUE_CHANGED, this);
 
+    /* Z icon selection */
+  lv_obj_set_size(z_icon_toggle_cont, LV_PCT(100), LV_SIZE_CONTENT);
+  lv_obj_set_style_pad_all(z_icon_toggle_cont, 0, 0);
+
+  l = lv_label_create(z_icon_toggle_cont);
+  lv_label_set_text(l, "Invert Z Icon");
+  lv_obj_align(l, LV_ALIGN_LEFT_MID, 0, 0);
+  lv_obj_align(z_icon_toggle, LV_ALIGN_RIGHT_MID, 0, 0);
+
+  v = conf->get_json("/invert_z_icon");
+  if (!v.is_null()) {
+    if (v.template get<bool>()) {
+      lv_obj_add_state(z_icon_toggle, LV_STATE_CHECKED);
+    } else {
+      lv_obj_clear_state(z_icon_toggle, LV_STATE_CHECKED);
+    }
+  } else {
+    // Default is cleared
+    lv_obj_clear_state(z_icon_toggle, LV_STATE_CHECKED);
+  }
+
+  lv_obj_add_event_cb(z_icon_toggle, &SysInfoPanel::_handle_callback,
+		      LV_EVENT_VALUE_CHANGED, this);
+
   lv_obj_add_flag(back_btn.get_container(), LV_OBJ_FLAG_FLOATING);	
   lv_obj_align(back_btn.get_container(), LV_ALIGN_BOTTOM_RIGHT, 0, 0);
 }
@@ -167,45 +196,54 @@ void SysInfoPanel::foreground() {
 					       fmt::join(network_detail, "\n")).c_str());
 }
 
-void SysInfoPanel::handle_callback(lv_event_t *e) {
+void SysInfoPanel::handle_callback(lv_event_t *e)
+{
   if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
     lv_obj_t *btn = lv_event_get_current_target(e);
 
-    if (btn == back_btn.get_container()) {
+    if (btn == back_btn.get_container())
+    {
       lv_obj_move_background(cont);
     }
-  } else if (lv_event_get_code(e) == LV_EVENT_VALUE_CHANGED) {
+  }
+  else if (lv_event_get_code(e) == LV_EVENT_VALUE_CHANGED) {
     lv_obj_t *obj = lv_event_get_target(e);
-    Config *conf = Config::get_instance();    
+    Config *conf = Config::get_instance();
     if (obj == loglevel_dd) {
       auto idx = lv_dropdown_get_selected(loglevel_dd);
       if (idx != loglevel) {
-	if (loglevel < log_levels.size()) {
-	  loglevel = idx;	
-	  auto ll = spdlog::level::from_str(log_levels[loglevel]);
+        if (loglevel < log_levels.size()) {
+          loglevel = idx;
+          auto ll = spdlog::level::from_str(log_levels[loglevel]);
 
-	  spdlog::set_level(ll);
-	  spdlog::flush_on(ll);
-	  spdlog::debug("setting log_level to {}", log_levels[loglevel]);
-	  conf->set<std::string>(conf->df() + "log_level", log_levels[loglevel]);
-	  conf->save();
-	}
+          spdlog::set_level(ll);
+          spdlog::flush_on(ll);
+          spdlog::debug("setting log_level to {}", log_levels[loglevel]);
+          conf->set<std::string>(conf->df() + "log_level", log_levels[loglevel]);
+          conf->save();
+        }
       }
-    } else if (obj == prompt_estop_toggle) {
+    }
+    else if (obj == prompt_estop_toggle) {
       bool should_prompt = lv_obj_has_state(prompt_estop_toggle, LV_STATE_CHECKED);
       conf->set<bool>("/prompt_emergency_stop", should_prompt);
       conf->save();
-    } else if (obj == display_sleep_dd) {
+    }
+    else if (obj == display_sleep_dd) {
       char buf[64];
       lv_dropdown_get_selected_str(display_sleep_dd, buf, sizeof(buf));
       std::string sleep_label = std::string(buf);
       const auto &el = sleep_label_to_sec.find(sleep_label);
-      if (el != sleep_label_to_sec.end()) {
-	conf->set<int32_t>("/display_sleep_sec", el->second);
-	conf->save();
+      if (el != sleep_label_to_sec.end())
+      {
+        conf->set<int32_t>("/display_sleep_sec", el->second);
+        conf->save();
       }
+    }
+    else if (obj == z_icon_toggle) {
+      bool inverted = lv_obj_has_state(z_icon_toggle, LV_STATE_CHECKED);
+      conf->set<bool>("/invert_z_icon", inverted);
+      conf->save();
     }
   }
 }
-
-  

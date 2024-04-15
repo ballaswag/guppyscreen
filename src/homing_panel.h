@@ -45,10 +45,6 @@ class HomingPanel : public NotifyConsumer {
   ButtonContainer motoroff_btn;
   ButtonContainer back_btn;
   Selector distance_selector;
-  
-  // lv_obj_t *selector_label;
-  // lv_obj_t *btnm;
-  // uint32_t selector_index;
 };
 
 #endif // __HOMING_PANEL_H__
