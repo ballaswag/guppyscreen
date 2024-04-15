@@ -3,7 +3,7 @@
 #include "spdlog/spdlog.h"
 
 ButtonContainer::ButtonContainer(lv_obj_t *parent,
-				 const void *btn_img, //If chabgeable, should be non-const
+				 const void *btn_img,
 				 const char *text,
 				 lv_event_cb_t cb,
 				 void* user_data,

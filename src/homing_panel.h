@@ -47,7 +47,6 @@ class HomingPanel : public NotifyConsumer {
   ButtonContainer back_btn;
   Selector distance_selector;
   Config *conf;
-
   
   // lv_obj_t *selector_label;
   // lv_obj_t *btnm;

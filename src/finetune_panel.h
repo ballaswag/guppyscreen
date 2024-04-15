@@ -7,7 +7,6 @@
 #include "image_label.h"
 #include "websocket_client.h"
 #include "notify_consumer.h"
-#include "sysinfo_panel.h"
 #include "config.h"
 
 #include <mutex>

@@ -37,11 +37,6 @@ static std::map<std::string, uint32_t> sleep_label_to_sec = {
   {"5 Hours", 18000} // 5 hour
 };
 
-std::vector<std::string> SysInfoPanel::z_plus_types = {
-  "UP arrow",
-  "DOWN arrow"
-};
-
 SysInfoPanel::SysInfoPanel()
   : cont(lv_obj_create(lv_scr_act()))
   , left_cont(lv_obj_create(cont))
@@ -203,8 +198,7 @@ void SysInfoPanel::foreground() {
 
 void SysInfoPanel::handle_callback(lv_event_t *e)
 {
-  if (lv_event_get_code(e) == LV_EVENT_CLICKED)
-  {
+  if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
     lv_obj_t *btn = lv_event_get_current_target(e);
 
     if (btn == back_btn.get_container())
@@ -212,17 +206,13 @@ void SysInfoPanel::handle_callback(lv_event_t *e)
       lv_obj_move_background(cont);
     }
   }
-  else if (lv_event_get_code(e) == LV_EVENT_VALUE_CHANGED)
-  {
+  else if (lv_event_get_code(e) == LV_EVENT_VALUE_CHANGED) {
     lv_obj_t *obj = lv_event_get_target(e);
     Config *conf = Config::get_instance();
-    if (obj == loglevel_dd)
-    {
+    if (obj == loglevel_dd) {
       auto idx = lv_dropdown_get_selected(loglevel_dd);
-      if (idx != loglevel)
-      {
-        if (loglevel < log_levels.size())
-        {
+      if (idx != loglevel) {
+        if (loglevel < log_levels.size()) {
           loglevel = idx;
           auto ll = spdlog::level::from_str(log_levels[loglevel]);
 
@@ -234,14 +224,12 @@ void SysInfoPanel::handle_callback(lv_event_t *e)
         }
       }
     }
-    else if (obj == prompt_estop_toggle)
-    {
+    else if (obj == prompt_estop_toggle) {
       bool should_prompt = lv_obj_has_state(prompt_estop_toggle, LV_STATE_CHECKED);
       conf->set<bool>("/prompt_emergency_stop", should_prompt);
       conf->save();
     }
-    else if (obj == display_sleep_dd)
-    {
+    else if (obj == display_sleep_dd) {
       char buf[64];
       lv_dropdown_get_selected_str(display_sleep_dd, buf, sizeof(buf));
       std::string sleep_label = std::string(buf);
@@ -252,8 +240,7 @@ void SysInfoPanel::handle_callback(lv_event_t *e)
         conf->save();
       }
     }
-    else if (obj == z_icon_toggle)
-    {
+    else if (obj == z_icon_toggle) {
       bool use_up = lv_obj_has_state(z_icon_toggle, LV_STATE_CHECKED);
       conf->set<bool>("/z_plus_uparrow", use_up);
       conf->save();
