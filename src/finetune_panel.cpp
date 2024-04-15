@@ -1,6 +1,7 @@
 #include "finetune_panel.h"
 #include "state.h"
 #include "spdlog/spdlog.h"
+#include "config.h"
 
 #include <algorithm>
 
@@ -88,8 +89,6 @@ FineTunePanel::FineTunePanel(KWebSocketClient &websocket_client, std::mutex &l)
   lv_obj_set_grid_cell(back_btn.get_container(), LV_GRID_ALIGN_CENTER, 4, 1, LV_GRID_ALIGN_CENTER, 3, 1);
 
   ws.register_notify_update(this);
-
-  conf = Config::get_instance();
 }
 
 FineTunePanel::~FineTunePanel() {
@@ -128,12 +127,9 @@ void FineTunePanel::foreground() {
   }
 
   //Set the Z axis buttons
-  v = conf->get_json("/z_plus_uparrow");
-  bool uparrow = false;
-  if (!v.is_null()) {
-    uparrow = v.template get<bool>();
-  } 
-  if (uparrow) {
+  v = Config::get_instance()->get_json("/invert_z_icon");
+  bool inverted = !v.is_null() && v.template get<bool>();
+  if (inverted) {
     // UP arrow
     zup_btn.set_image(&z_farther);
     zdown_btn.set_image(&z_closer);

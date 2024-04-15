@@ -1,6 +1,7 @@
 #include "homing_panel.h"
 #include "state.h"
 #include "spdlog/spdlog.h"
+#include "config.h"
 
 static const float distances[] = {0.1, 0.5, 1, 5, 10, 25, 50};
 
@@ -143,13 +144,10 @@ void HomingPanel::foreground() {
   }
 
   //Set the Z axis buttons
-  conf = Config::get_instance();
-  v = conf->get_json("/z_plus_uparrow");
-  bool uparrow = false;
-  if (!v.is_null()) {
-    uparrow = v.template get<bool>();
-  } 
-  if (uparrow) {
+
+  v = Config::get_instance()->get_json("/invert_z_icon");
+  bool inverted = !v.is_null() && v.template get<bool>();
+  if (inverted) {
     // UP arrow
     z_up_btn.set_image(&z_farther);
     z_down_btn.set_image(&z_closer);

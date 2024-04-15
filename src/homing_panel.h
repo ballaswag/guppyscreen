@@ -6,7 +6,6 @@
 #include "websocket_client.h"
 #include "selector.h"
 #include "notify_consumer.h"
-#include "config.h"
 
 #include <mutex>
 
@@ -46,11 +45,6 @@ class HomingPanel : public NotifyConsumer {
   ButtonContainer motoroff_btn;
   ButtonContainer back_btn;
   Selector distance_selector;
-  Config *conf;
-  
-  // lv_obj_t *selector_label;
-  // lv_obj_t *btnm;
-  // uint32_t selector_index;
 };
 
 #endif // __HOMING_PANEL_H__
