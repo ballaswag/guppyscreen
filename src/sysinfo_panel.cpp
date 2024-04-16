@@ -88,7 +88,7 @@ SysInfoPanel::SysInfoPanel()
   lv_obj_align(display_sleep_dd, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_dropdown_set_options(display_sleep_dd,
 			  "Never\n"
-        "5 Minutes\n"
+			  "5 Minutes\n"
 			  "10 Minutes\n"
 			  "30 Minutes\n"
 			  "1 Hour\n"
