@@ -12,10 +12,12 @@ LV_IMG_DECLARE(inputshaper_img);
 LV_IMG_DECLARE(limit_img);
 LV_IMG_DECLARE(motor_img);
 LV_IMG_DECLARE(chart_img);
-LV_IMG_DECLARE(power_devices_img);
 
 #ifndef ZBOLT
 LV_IMG_DECLARE(belts_calibration_img);
+LV_IMG_DECLARE(power_devices_img);
+#else
+LV_IMG_DECLARE(print_img);
 #endif
 
 PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent, FineTunePanel &finetune)
@@ -39,7 +41,11 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
   , limits_btn(cont, &limit_img, "Limits", &PrinterTunePanel::_handle_callback, this)
   , tmc_tune_btn(cont, &motor_img, "TMC Autotune", &PrinterTunePanel::_handle_callback, this)
   , tmc_status_btn(cont, &chart_img, "TMC Metrics", &PrinterTunePanel::_handle_callback, this)
+#ifndef ZBOLT
   , power_devices_btn(cont, &power_devices_img, "Power Devices", &PrinterTunePanel::_handle_callback, this)
+#else
+  , power_devices_btn(cont, &print_img, "Power Devices", &PrinterTunePanel::_handle_callback, this)
+#endif
 {
   lv_obj_move_background(cont);
 
