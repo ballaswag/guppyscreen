@@ -17,7 +17,7 @@ LV_IMG_DECLARE(chart_img);
 LV_IMG_DECLARE(belts_calibration_img);
 LV_IMG_DECLARE(power_devices_img);
 #else
-LV_IMG_DECLARE(print_img);
+LV_IMG_DECLARE(print);
 #endif
 
 PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent, FineTunePanel &finetune)
@@ -44,7 +44,7 @@ PrinterTunePanel::PrinterTunePanel(KWebSocketClient &c, std::mutex &l, lv_obj_t 
 #ifndef ZBOLT
   , power_devices_btn(cont, &power_devices_img, "Power Devices", &PrinterTunePanel::_handle_callback, this)
 #else
-  , power_devices_btn(cont, &print_img, "Power Devices", &PrinterTunePanel::_handle_callback, this)
+  , power_devices_btn(cont, &print, "Power Devices", &PrinterTunePanel::_handle_callback, this)
 #endif
 {
   lv_obj_move_background(cont);
