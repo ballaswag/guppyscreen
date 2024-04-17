@@ -2,6 +2,13 @@
 
 BACKUP_DIR=/usr/data/guppyify-backup
 
+# bail out of restoring if the backup directory does not exist
+# should not kill guppyscreen if we cannot restore creality
+if [ ! -d $BACKUP_DIR ]; then
+        echo "Backup directory does not exist!"
+        exit 1
+fi
+
 cp $BACKUP_DIR/S12boot_display /etc/init.d/S12boot_display
 cp $BACKUP_DIR/S50dropbear /etc/init.d/S50dropbear
 cp $BACKUP_DIR/S99start_app /etc/init.d/S99start_app
