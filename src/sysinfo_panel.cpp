@@ -23,14 +23,16 @@ std::vector<std::string> SysInfoPanel::log_levels = {
 
 static std::map<int32_t, uint32_t> sleepsec_to_dd_idx = {
   {-1, 0}, // never
-  {600, 1}, // 10 min
-  {1800, 2}, // 30 min
-  {3600, 3}, // 1 hour
-  {18000, 4} // 5 hour
+  {300, 1}, // 5 min
+  {600, 2}, // 10 min
+  {1800, 3}, // 30 min
+  {3600, 4}, // 1 hour
+  {18000, 5} // 5 hour
 };
 
 static std::map<std::string, uint32_t> sleep_label_to_sec = {
   {"Never", -1}, // never
+  {"5 Minutes", 300}, // 5 min
   {"10 Minutes", 600}, // 10 min
   {"30 Minutes", 1800}, // 30 min
   {"1 Hour", 3600}, // 1 hour
@@ -86,6 +88,7 @@ SysInfoPanel::SysInfoPanel()
   lv_obj_align(display_sleep_dd, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_dropdown_set_options(display_sleep_dd,
 			  "Never\n"
+			  "5 Minutes\n"
 			  "10 Minutes\n"
 			  "30 Minutes\n"
 			  "1 Hour\n"
