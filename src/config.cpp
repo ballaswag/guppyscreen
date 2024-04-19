@@ -19,7 +19,7 @@ Config *Config::get_instance() {
   return instance;
 }
 
-void Config::init(std::string config_path) {
+void Config::init(std::string config_path, const std::string thumbdir) {
   path = config_path;
   struct stat buffer;
   json fans_conf = {
@@ -71,7 +71,7 @@ void Config::init(std::string config_path) {
     data = {
       {"default_printer", "k1"},
       {"log_path", "/usr/data/printer_data/logs/guppyscreen.log"},
-      {"thumbnail_path", "/usr/data/printer_data/thumbnails"},
+      {"thumbnail_path", thumbdir},
       {"wpa_supplicant", "/var/run/wpa_supplicant"},
       {"display_sleep_sec", 600},
       {"printers", {{
