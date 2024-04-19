@@ -61,6 +61,7 @@ static void hal_init() {
     lv_disp_set_theme(disp, th);
 
     static lv_indev_drv_t indev_drv_1;
+    lv_indev_drv_init(&indev_drv_1);
     indev_drv_1.read_cb = lv_touch_read;
     indev_drv_1.type = LV_INDEV_TYPE_POINTER;
     lv_indev_drv_register(&indev_drv_1);
