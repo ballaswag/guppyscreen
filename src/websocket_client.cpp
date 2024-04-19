@@ -18,7 +18,7 @@
 using namespace hv;
 using json = nlohmann::json;
 
-KWebSocketClient::KWebSocketClient(EventLoopPtr loop = NULL)
+KWebSocketClient::KWebSocketClient(EventLoopPtr loop)
   : WebSocketClient(loop)
   , id(0)
 {

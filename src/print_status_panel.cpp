@@ -22,7 +22,7 @@ LV_IMG_DECLARE(cancel);
 LV_IMG_DECLARE(emergency);
 LV_IMG_DECLARE(back);
 
-constexpr double pi() { return std::atan(1)*4; }
+double pi() { return std::atan(1)*4; }
 
 PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
 				   std::mutex &lock,
