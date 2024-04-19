@@ -91,6 +91,7 @@ static void hal_init(void) {
 
     evdev_init();
     static lv_indev_drv_t indev_drv_1;
+    lv_indev_drv_init(&indev_drv_1);
     indev_drv_1.read_cb = evdev_read; // no calibration
     indev_drv_1.type = LV_INDEV_TYPE_POINTER;
 
