@@ -40,22 +40,22 @@ if [ ! -f /lib/ld-2.29.so ]; then
 fi
 
 echo "Checking for a working Moonraker"
-MRK_KPY_OK=`curl localhost:7125/server/info | jq .result.klippy_connected`
+MRK_KPY_OK=`curl localhost:7125/server/info 2> /dev/null | jq .result.klippy_connected`
 if [ "$MRK_KPY_OK" != "true" ]; then
     printf "${yellow}Moonraker is not properly setup at port 7125. Continue anyways? (y/n) ${white}\n"
     read confirm
     echo
 
     if [ "$confirm" = "y" -o "$confirm" = "Y" ]; then
-	echo "Continuing to install GuppyScreen"
+	    echo "Continuing to install GuppyScreen"
     else
-	echo "Please fix Moonraker and restart this script."
-	exit 1
+        echo "Please fix Moonraker and restart this script."
+        exit 1
     fi
 fi
 
-KLIPPER_PATH=`curl localhost:7125/printer/info | jq -r .result.klipper_path`
-if [ x"$KLIPPER_PATH" == x"null" ]; then
+KLIPPER_PATH=`curl localhost:7125/printer/info 2> /dev/null | jq -r .result.klipper_path`
+if [ -z "$KLIPPER_PATH" -o x"$KLIPPER_PATH" == x"null" ]; then
     KLIPPER_PATH=/usr/share/klipper
     printf "${green} Falling back to klipper path: $KLIPPER_PATH ${white}\n"
 fi
@@ -66,15 +66,14 @@ KLIPPY_EXTRA_DIR=$KLIPPER_PATH/klippy/extras
 GCODE_SHELL_CMD=$KLIPPY_EXTRA_DIR/gcode_shell_command.py
 SHAPER_CONFIG=$KLIPPY_EXTRA_DIR/calibrate_shaper_config.py
 
-
-K1_CONFIG_FILE=`curl localhost:7125/printer/info | jq -r .result.config_file`
-if [ x"$K1_CONFIG_FILE" == x"null" ]; then    
+K1_CONFIG_FILE=`curl localhost:7125/printer/info 2> /dev/null | jq -r .result.config_file`
+if [ -z "$K1_CONFIG_FILE" -o x"$K1_CONFIG_FILE" == x"null" ]; then    
     K1_CONFIG_DIR=/usr/data/printer_data/config
     printf "${green} Falling back to config dir: $K1_CONFIG_DIR ${white}\n"
+else
+    K1_CONFIG_DIR=$(dirname "$K1_CONFIG_FILE")
+    printf "${green} Found config dir: $K1_CONFIG_DIR ${white}\n"
 fi
-
-K1_CONFIG_DIR=$(dirname "$K1_CONFIG_FILE")
-printf "${green} Found config dir: $K1_CONFIG_DIR ${white}\n"
 
 # kill pip cache to free up overlayfs
 rm -rf /root/.cache
@@ -208,7 +207,7 @@ if [ "$confirm" = "y" -o "$confirm" = "Y" ]; then
     echo "Restarting Klipper"
     /etc/init.d/S55klipper_service restart
 else
-    printf "${red}Some GuppyScreen functionaly won't work until Klipper is restarted. ${white}\n"
+    printf "${red}Some GuppyScreen functionality won't work until Klipper is restarted. ${white}\n"
 fi
 
 killall -q Monitor
