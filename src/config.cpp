@@ -59,6 +59,7 @@ void Config::init(std::string config_path, const std::string thumbdir) {
   };
 
   json cooldown_conf = {{ "cooldown", "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0"}};
+
   json default_macros_conf = {
     {"load_filament", "_GUPPY_LOAD_MATERIAL"},
     {"unload_filament", "_GUPPY_QUIT_MATERIAL"}
@@ -82,6 +83,7 @@ void Config::init(std::string config_path, const std::string thumbdir) {
 	      {"monitored_sensors", sensors_conf},
 	      {"fans", fans_conf},
 	      {"default_macros", default_macros_conf},
+	      {"disable_spoolman", false}
 	    }
 	  }}
       }
@@ -110,6 +112,11 @@ void Config::init(std::string config_path, const std::string thumbdir) {
     if (!default_macros.contains("cooldown")) {
       default_macros.merge_patch(cooldown_conf);
     }
+  }
+
+  auto &disable_spoolman = data[json::json_pointer(df() + "disable_spoolman")];
+  if (disable_spoolman.is_null()) {
+    data[json::json_pointer(df() + "disable_spoolman")] = false;
   }
 
   auto &guppy_init = data["/guppy_init_script"_json_pointer];
