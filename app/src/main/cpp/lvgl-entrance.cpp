@@ -29,6 +29,7 @@ static int HEIGHT = 0;
 #define DISP_BUF_SIZE 1024 * 1024
 
 static ANativeWindow *window;
+static GuppyScreen *guppyscreen = NULL;
 static lv_color_t lv_buf_1[DISP_BUF_SIZE];
 static lv_color_t lv_buf_2[DISP_BUF_SIZE];
 static pthread_t thread;
@@ -137,11 +138,11 @@ static void lv_touch_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
     }
 }
 
-void guppyscreen_init(std::string cache_dir, std::string file_dir)
+GuppyScreen *guppyscreen_init(std::string cache_dir, std::string file_dir)
 {
     Config *conf = Config::get_instance();
     conf->init(file_dir + "/guppyconfig.json", cache_dir);
-    GuppyScreen::init(hal_init);
+    return GuppyScreen::init(hal_init);
 }
 
 extern "C"
@@ -168,11 +169,14 @@ Java_com_guppy_guppyscreen_lvgl_LVGLEntrance_nativeChanged(JNIEnv *env, jclass c
 
     ANativeWindow_setBuffersGeometry(window, WIDTH, HEIGHT, WINDOW_FORMAT_RGBA_8888);
 
-    clearScreen();
-
-    std::string cache_dir(env->GetStringUTFChars(cacheDir, NULL));
-    std::string file_dir(env->GetStringUTFChars(fileDir, NULL));
-    guppyscreen_init(cache_dir, file_dir);
+    if (guppyscreen == NULL) {
+        clearScreen();
+        std::string cache_dir(env->GetStringUTFChars(cacheDir, NULL));
+        std::string file_dir(env->GetStringUTFChars(fileDir, NULL));
+        guppyscreen = guppyscreen_init(cache_dir, file_dir);
+    } else {
+        lv_obj_invalidate(lv_scr_act());
+    }
 
     run = true;
     pthread_create(&thread, 0, refresh_task, 0);

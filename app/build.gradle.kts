@@ -16,6 +16,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
+//                arguments += "-DGUPPY_SMALL_SCREEN=1"
+//                cppFlags += "-std=c++17 -DGUPPY_SMALL_SCREEN"
+//                cFlags += "-DGUPPY_SMALL_SCREEN"
                 cppFlags += "-std=c++17"
             }
         }

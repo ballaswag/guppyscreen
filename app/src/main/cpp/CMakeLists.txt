@@ -29,9 +29,14 @@ cmake_policy(SET CMP0077 OLD)
 
 set(GUPPY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/guppyscreen)
 
+set(GUPPY_ASSET ${GUPPY_DIR}/assets/material/*.c)
+if(DEFINED GUPPY_SMALL_SCREEN)
+    set(GUPPY_ASSET ${GUPPY_DIR}/assets/material_46/*.c)
+endif(DEFINED GUPPY_SMALL_SCREEN)
+
 file(GLOB GUPPY_SRC ${GUPPY_DIR}/src/*.cpp
         ${GUPPY_DIR}/lv_touch_calibration/*.c
-        ${GUPPY_DIR}/assets/material/*.c
+        ${GUPPY_ASSET}
         ${GUPPY_DIR}/assets/*.c
         lvgl-entrance.cpp)
 
