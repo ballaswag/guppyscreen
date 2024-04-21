@@ -21,7 +21,11 @@ lv_style_t GuppyScreen::style_container;
 lv_style_t GuppyScreen::style_imgbtn_pressed;
 lv_style_t GuppyScreen::style_imgbtn_disabled;
 lv_theme_t GuppyScreen::th_new;
+
+#ifndef OS_ANDROID
 lv_obj_t *GuppyScreen::screen_saver = NULL;
+#endif
+
 std::mutex GuppyScreen::lv_lock;
 
 GuppyScreen::GuppyScreen()
