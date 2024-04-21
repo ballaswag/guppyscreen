@@ -12,6 +12,7 @@
   #include "spdlog/sinks/android_sink.h"
 #endif
 
+#include "printer_select_panel.h"
 #include "spdlog/spdlog.h"
 #include "state.h"
 
@@ -20,15 +21,14 @@ lv_style_t GuppyScreen::style_container;
 lv_style_t GuppyScreen::style_imgbtn_pressed;
 lv_style_t GuppyScreen::style_imgbtn_disabled;
 lv_theme_t GuppyScreen::th_new;
+lv_obj_t *GuppyScreen::screen_saver = NULL;
+std::mutex GuppyScreen::lv_lock;
 
 GuppyScreen::GuppyScreen()
   : ws(NULL)
   , spoolman_panel(ws, lv_lock)
   , main_panel(ws, lv_lock, spoolman_panel)
   , init_panel(main_panel, main_panel.get_tune_panel().get_bedmesh_panel(), lv_lock)
-#ifndef OS_ANDROID
-  , gs_screen_saver(lv_obj_create(lv_scr_act()))
-#endif
 {
   ws.register_notify_update(State::get_instance());
   main_panel.create_panel();
@@ -48,7 +48,10 @@ GuppyScreen *GuppyScreen::init(std::function<void()> hal_init) {
   // config
   Config *conf = Config::get_instance();
   const std::string ll_path = conf->df() + "log_level";
-  auto ll = spdlog::level::from_str(conf->get<std::string>(ll_path));
+  auto ll = spdlog::level::from_str(
+      conf->get_json("/printers").empty() 
+      ? "debug" 
+      : conf->get<std::string>(ll_path));
 
 #ifndef OS_ANDROID
   auto console_sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
@@ -100,7 +103,6 @@ GuppyScreen *GuppyScreen::init(std::function<void()> hal_init) {
   /*Initia1ize the new theme from the current theme*/
 
   lv_theme_t *th_act = lv_disp_get_theme(NULL);
-//  static lv_theme_t th_new;
   th_new = *th_act;
 
   /*Set the parent theme and the style apply callback for the new theme*/
@@ -110,16 +112,9 @@ GuppyScreen *GuppyScreen::init(std::function<void()> hal_init) {
   /*Assign the new theme to the current display*/
   lv_disp_set_theme(NULL, &th_new);
 
-  GuppyScreen *gs = GuppyScreen::get();
-  std::string ws_url = fmt::format("ws://{}:{}/websocket",
-                                   conf->get<std::string>(conf->df() + "moonraker_host"),
-                                   conf->get<uint32_t>(conf->df() + "moonraker_port"));
-
-  spdlog::info("connecting to printer at {}", ws_url);
-  gs->connect_ws(ws_url);
-
 #ifndef OS_ANDROID
-  lv_obj_t *screen_saver = gs->get_screen_saver();
+  screen_saver = lv_obj_create(lv_scr_act());
+
   lv_obj_set_size(screen_saver, LV_PCT(100), LV_PCT(100));
   lv_obj_set_style_bg_opa(screen_saver, LV_OPA_100, 0);
   lv_obj_move_background(screen_saver);
@@ -150,17 +145,26 @@ GuppyScreen *GuppyScreen::init(std::function<void()> hal_init) {
   }
 #endif // OS_ANDROID
 
+  GuppyScreen *gs = GuppyScreen::get();
+  auto printers = conf->get_json("/printers");
+  if (!printers.empty()) {
+    // start initializing all guppy components
+    std::string ws_url = fmt::format("ws://{}:{}/websocket",
+                                     conf->get<std::string>(conf->df() + "moonraker_host"),
+                                     conf->get<uint32_t>(conf->df() + "moonraker_port"));
+
+    spdlog::info("connecting to printer at {}", ws_url);
+    gs->connect_ws(ws_url);
+  }
+
   return gs;
 }
 
 void GuppyScreen::loop() {
   /*Handle LitlevGL tasks (tickless mode)*/
-  auto &lv_lock = GuppyScreen::get()->get_lock();
-
 #if !defined(SIMULATOR) && !defined(OS_ANDROID)
   std::atomic_bool is_sleeping(false);
   Config *conf = Config::get_instance();
-  lv_obj_t *screen_saver = GuppyScreen::get()->get_screen_saver();
   int32_t display_sleep = conf->get<int32_t>("/display_sleep_sec") * 1000;
 #endif
 

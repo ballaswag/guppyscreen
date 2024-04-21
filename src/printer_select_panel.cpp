@@ -1,4 +1,5 @@
 #include "printer_select_panel.h"
+#include "guppyscreen.h"
 #include "config.h"
 #include "hv/json.hpp"
 #include "subprocess.hpp"
@@ -122,7 +123,6 @@ lv_obj_t *PrinterSelectContainer::prompt(const std::string &prompt_text) {
   return mbox1;
 }
 
-
 PrinterSelectPanel::PrinterSelectPanel()
   : cont(lv_obj_create(lv_scr_act()))
   , top(lv_obj_create(cont))
@@ -178,6 +178,7 @@ PrinterSelectPanel::PrinterSelectPanel()
     p->handle_input(e);
   }, LV_EVENT_ALL, this);
 
+  lv_textarea_set_text(moonraker_port, "7125");
   lv_textarea_set_placeholder_text(moonraker_port, "Moonraker Port");
   lv_textarea_set_one_line(moonraker_port, true);
   lv_textarea_set_max_length(moonraker_port, 5);
@@ -227,6 +228,15 @@ PrinterSelectPanel::PrinterSelectPanel()
       p->add_printer(pname, ip, port);
 
       lv_obj_add_flag(p->kb, LV_OBJ_FLAG_HIDDEN);
+
+      if (conf->get_json("/default_printer").is_null()) {
+        // connect to the one and only added printer
+        conf->set<std::string>("/default_printer", pname);
+        conf->save();
+        conf->init(conf->get<std::string>("/config_path"), conf->get<std::string>("/thumbnail_path"));
+        std::string ws_url = fmt::format("ws://{}:{}/websocket", ip, port);
+        GuppyScreen::get()->connect_ws(ws_url);
+      }
     }
   }, LV_EVENT_CLICKED, this);
 
@@ -251,7 +261,6 @@ PrinterSelectPanel::PrinterSelectPanel()
 
   lv_obj_add_flag(back_btn.get_container(), LV_OBJ_FLAG_FLOATING);  
   lv_obj_align(back_btn.get_container(), LV_ALIGN_BOTTOM_RIGHT, 0, -20);
-
 }
 
 PrinterSelectPanel::~PrinterSelectPanel() {

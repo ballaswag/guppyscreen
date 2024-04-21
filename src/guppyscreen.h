@@ -21,18 +21,15 @@ class GuppyScreen {
   static lv_style_t style_imgbtn_pressed;
   static lv_style_t style_imgbtn_disabled;
   static lv_theme_t th_new;
-
-  std::mutex lv_lock;
+#ifndef OS_ANDROID
+  static lv_obj_t *screen_saver;
+#endif
+  static std::mutex lv_lock;
 
   KWebSocketClient ws;
   SpoolmanPanel spoolman_panel;
   MainPanel main_panel;
   InitPanel init_panel;
-
-
-#ifndef OS_ANDROID
-  lv_obj_t *gs_screen_saver;
-#endif
 
  public:
   GuppyScreen();
@@ -40,12 +37,6 @@ class GuppyScreen {
   void operator=(const GuppyScreen &) = delete;
 
   std::mutex &get_lock();
-
-#ifndef OS_ANDROID
-  lv_obj_t *get_screen_saver() {
-    return gs_screen_saver;
-  }
-#endif
 
   void connect_ws(const std::string &url);
   static GuppyScreen *get();

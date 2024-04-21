@@ -114,7 +114,9 @@ SysInfoPanel::SysInfoPanel()
 
   lv_dropdown_set_options(loglevel_dd, fmt::format("{}", fmt::join(log_levels, "\n")).c_str());
 
-  v = conf->get_json(conf->df() + "log_level");
+  auto df = conf->get_json("/default_printer");
+  json j_null;
+  v = !df.empty() ? conf->get_json(conf->df() + "log_level") : j_null;
   if (!v.is_null()) {
     auto it = std::find(log_levels.begin(), log_levels.end(), v.template get<std::string>());
     if (it != std::end(log_levels)) {
