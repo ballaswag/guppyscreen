@@ -32,40 +32,41 @@ PowerPanel::~PowerPanel() {
 
 void PowerPanel::create_device(json &j) {
   std::string name = j["device"].template get<std::string>();
+
+  lv_obj_t *power_device_toggle;
+  auto entry = devices.find(name);
+  if (entry == devices.end()) {
+    lv_obj_t *power_device_toggle_cont = lv_obj_create(cont);
+    lv_obj_set_size(power_device_toggle_cont, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_all(power_device_toggle_cont, 0, 0);
+
+    lv_obj_t *l = lv_label_create(power_device_toggle_cont);
+    lv_label_set_text(l, name.c_str());
+    lv_obj_align(l, LV_ALIGN_LEFT_MID, 0, 0);
+
+    power_device_toggle = lv_switch_create(power_device_toggle_cont); 
+    lv_obj_align(power_device_toggle, LV_ALIGN_RIGHT_MID, 0, 0);
+
+    lv_obj_add_event_cb(power_device_toggle, &PowerPanel::_handle_callback,
+	        LV_EVENT_VALUE_CHANGED, this);
+
+    devices.insert({name, power_device_toggle});
+  } else {
+    power_device_toggle = entry->second;
+  }
+  
   std::string status = j["status"].template get<std::string>();
-
   spdlog::debug("Fetched initial status for power device {}: {}", name, status);
-
-  lv_obj_t *power_device_toggle_cont = lv_obj_create(cont);
-  lv_obj_set_size(power_device_toggle_cont, LV_PCT(100), LV_SIZE_CONTENT);
-  lv_obj_set_style_pad_all(power_device_toggle_cont, 0, 0);
-
-  lv_obj_t *l = lv_label_create(power_device_toggle_cont);
-  lv_label_set_text(l, name.c_str());
-  lv_obj_align(l, LV_ALIGN_LEFT_MID, 0, 0);
-
-  lv_obj_t *power_device_toggle = lv_switch_create(power_device_toggle_cont); 
-  lv_obj_align(power_device_toggle, LV_ALIGN_RIGHT_MID, 0, 0);
-
+  
   if (status == "on") {
     lv_obj_add_state(power_device_toggle, LV_STATE_CHECKED);
   } else {
     lv_obj_clear_state(power_device_toggle, LV_STATE_CHECKED);
   }
-
-  lv_obj_add_event_cb(power_device_toggle, &PowerPanel::_handle_callback,
-	        LV_EVENT_VALUE_CHANGED, this);
-
-  devices.insert({name, power_device_toggle});
 }
 
 void PowerPanel::create_devices(json &j) {
   std::lock_guard<std::mutex> lock(lv_lock);
-
-  for (auto &device : devices) {
-    lv_obj_clean(device.second);
-  }
-  devices.clear();
 
   if (j.contains("result")) {
     json result = j["result"];
