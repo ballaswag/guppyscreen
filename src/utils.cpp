@@ -3,6 +3,7 @@
 #include "config.h"
 #include "state.h"
 #include "spdlog/spdlog.h"
+#include "platform.h"
 
 #include <cmath>
 #include <time.h>
@@ -144,10 +145,10 @@ namespace KUtils {
   }
 
   std::vector<std::string> get_interfaces() {
+    std::vector<std::string> ifaces;
+#ifndef OS_ANDROID
     struct ifaddrs *addrs;
     getifaddrs(&addrs);
-
-    std::vector<std::string> ifaces;
     for (struct ifaddrs *addr = addrs; addr != nullptr; addr = addr->ifa_next) {
         if (addr->ifa_addr && addr->ifa_addr->sa_family == AF_PACKET) {
 	  ifaces.push_back(addr->ifa_name);
@@ -155,6 +156,7 @@ namespace KUtils {
     }
 
     freeifaddrs(addrs);
+#endif // OS_ANDROID
     return ifaces;
   }
 
@@ -244,50 +246,47 @@ namespace KUtils {
   }
 
   std::map<std::string, std::map<std::string, std::string>> parse_macros(json &m) {
-
     std::map<std::string, std::map<std::string, std::string>> macros;
-    
+
     std::regex param_regex(R"(params\.(\w+)(.*))", std::regex_constants::icase);
-    std::regex default_value_regex(R"(\|\s*default\s*\(\s*((["'])(?:\\.|(?!\2)[^])*\2|-?[0-9][^,)]*))",
-				   std::regex_constants::icase);
+    std::regex default_value_regex(R"(\|\s*default\s*\(\s*((["'])(?:\\.|[^\x02])*\2|-?[0-9][^,)]*))",
+                                   std::regex_constants::icase);
     for (auto &el : m.items()) {
       std::string key = el.key();
       if (key.rfind("gcode_macro ", 0) == 0) {
-	auto &gcode = el.value()["/gcode"_json_pointer];
-	if (!gcode.is_null()) {
+        auto &gcode = el.value()["/gcode"_json_pointer];
+        if (!gcode.is_null()) {
+          auto macro_split = split(el.key(), ' ');
+          if (macro_split.size() > 1 && macro_split[1].rfind("_", 0) != 0) {
+            std::string macro_name = macro_split[1];
 
-	  auto macro_split = split(el.key(), ' ');
-	  if (macro_split.size() > 1 && macro_split[1].rfind("_", 0) != 0) {
-	    std::string macro_name = macro_split[1];
-	    
-	    const auto &gcode_str = gcode.template get<std::string>();
-	    auto param_begin = 
-	      std::sregex_iterator(gcode_str.begin(), gcode_str.end(), param_regex);
-	    auto param_end = std::sregex_iterator();
+            const auto &gcode_str = gcode.template get<std::string>();
+            auto param_begin =
+                std::sregex_iterator(gcode_str.begin(), gcode_str.end(), param_regex);
+            auto param_end = std::sregex_iterator();
 
-	    std::map<std::string, std::string> macro_params;
-	    for (std::sregex_iterator i = param_begin; i != param_end; ++i) {
-	      std::smatch match = *i;
-	      std::string param_name = match.str(1);
-	      std::string rest = match.str(2);
-	      std::smatch matches;
-	      std::string default_value = "";
+            std::map<std::string, std::string> macro_params;
+            for (std::sregex_iterator i = param_begin; i != param_end; ++i) {
+              std::smatch match = *i;
+              std::string param_name = match.str(1);
+              std::string rest = match.str(2);
+              std::smatch matches;
+              std::string default_value = "";
 
-	      spdlog::trace("macro: {}, param; {}, rest: {}", macro_name, param_name, rest);
+              spdlog::trace("macro: {}, param; {}, rest: {}", macro_name, param_name, rest);
 
-	      if (std::regex_search(rest, matches, default_value_regex)) {
-		default_value = matches.str(1);
-	      }
+              if (std::regex_search(rest, matches, default_value_regex)) {
+                default_value = matches.str(1);
+              }
 
-	      macro_params.insert({param_name, default_value});
-	    }
-	    macros.insert({macro_name, macro_params});
-	  }
-	}
+              macro_params.insert({param_name, default_value});
+            }
+            macros.insert({macro_name, macro_params});
+          }
+        }
       }
     }
 
     return macros;
-
   }
-}
+  }  // namespace KUtils

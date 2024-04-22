@@ -29,13 +29,13 @@ ImageLabel::ImageLabel(lv_obj_t *parent,
   lv_obj_set_size(cont, LV_PCT(width_pct), LV_PCT(height_pct));
   lv_obj_set_style_border_width(cont, 2, 0);
   lv_obj_set_style_radius(cont, 4, 0);
+  lv_obj_set_style_pad_left(cont, 5, 0);
+  lv_obj_set_style_pad_right(cont, 5, 0);
 
   lv_img_set_src(image, img);
   lv_label_set_text(label, value);
 
-  auto scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
-  
-  lv_obj_align(image, LV_ALIGN_LEFT_MID, -30 * scale, 0);
+  lv_obj_align(image, LV_ALIGN_LEFT_MID, 0, 0);
   lv_obj_align(label, LV_ALIGN_RIGHT_MID, 0, 0);
 }
 
@@ -47,7 +47,9 @@ ImageLabel::ImageLabel(lv_obj_t *parent,
 		       const char *v)
   : ImageLabel(parent, img, width_pct, height_pct, v)
 {
-  lv_img_set_zoom(image, img_scale);
+  auto wscale = lv_disp_get_physical_hor_res(NULL) / 800.0;
+  lv_img_set_size_mode(image, LV_IMG_SIZE_MODE_REAL);
+  lv_img_set_zoom(image, img_scale * wscale);
 }
 
 ImageLabel::ImageLabel(lv_obj_t *parent,

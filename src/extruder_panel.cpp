@@ -44,19 +44,22 @@ ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
   , cooldown_macro("SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0")
 {
   Config *conf = Config::get_instance();
-  auto v = conf->get_json(conf->df() + "default_macros/load_filament");
-  if (!v.is_null()) {
-    load_filament_macro = v.template get<std::string>();
-  }
+  auto df = conf->get_json("/default_printer");
+  if (!df.empty()) {
+    auto v = conf->get_json(conf->df() + "default_macros/load_filament");
+    if (!v.is_null()) {
+      load_filament_macro = v.template get<std::string>();
+    }
 
-  v = conf->get_json(conf->df() + "default_macros/unload_filament");
-  if (!v.is_null()) {
-    unload_filament_macro = v.template get<std::string>();
-  }
+    v = conf->get_json(conf->df() + "default_macros/unload_filament");
+    if (!v.is_null()) {
+      unload_filament_macro = v.template get<std::string>();
+    }
 
-  v = conf->get_json(conf->df() + "default_macros/cooldown");
-  if (!v.is_null()) {
-    cooldown_macro = v.template get<std::string>();
+    v = conf->get_json(conf->df() + "default_macros/cooldown");
+    if (!v.is_null()) {
+      cooldown_macro = v.template get<std::string>();
+    }
   }
 
   lv_obj_move_background(panel_cont);

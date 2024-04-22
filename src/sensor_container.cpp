@@ -40,9 +40,12 @@ SensorContainer::SensorContainer(KWebSocketClient &c,
     // cont_height = cont_height > 60 ? 60 : cont_height;
 
     auto width_scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
-    lv_obj_set_size(sensor_cont, 330 * width_scale, 60 * width_scale);
+    auto height_scale = (double)lv_disp_get_physical_ver_res(NULL) / 480.0;
+    lv_obj_set_size(sensor_cont, 330 * width_scale, 60 * height_scale);
+    lv_obj_set_style_pad_all(sensor_cont, 0, 0);
+
     lv_img_set_src(sensor_img, img);
-    lv_obj_align(sensor_img, LV_ALIGN_LEFT_MID, -25 * width_scale, 0);
+    lv_obj_align(sensor_img, LV_ALIGN_LEFT_MID, 0, 0);
 
     lv_label_set_text(sensor_label, text);
     lv_obj_align_to(sensor_label, sensor_img, LV_ALIGN_OUT_RIGHT_MID, -7 * width_scale, 0);

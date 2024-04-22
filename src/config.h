@@ -21,7 +21,7 @@ class Config {
   Config();
   Config(Config &o) = delete;
   void operator=(const Config &) = delete;
-  void init(std::string config_path);
+  void init(std::string config_path, const std::string thumbdir);
 
   template<typename T> T get(const std::string &json_ptr) {
     return data[json::json_pointer(json_ptr)].template get<T>();

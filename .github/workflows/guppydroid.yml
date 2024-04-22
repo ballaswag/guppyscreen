@@ -1,0 +1,67 @@
+name: guppydroid build
+
+on:
+  push:
+    branches: [ "develop", "main", "android" ]
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: android
+
+    - uses: actions/checkout@v3
+      with:
+        ref: main
+        submodules: true
+        path: ./app/src/main/cpp/guppyscreen
+
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        cache: 'gradle'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Setup signing
+      env:
+        ENCODED_KS: ${{ secrets.KEYSTORE }}
+      run: |
+        echo $ENCODED_KS > ks.txt
+        base64 -d ks.txt > ks.jks
+
+    - name: Build APK
+      env:
+        KEYSTORE: ../ks.jks
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: ./gradlew assembleRelease
+
+    - name: nightly release
+      uses: softprops/action-gh-release@v2
+      with:
+        prerelease: true
+        name: nightly
+        tag_name: nightly
+        files: app/build/outputs/apk/release/app-release.apk
+        fail_on_unmatched_files: true
+
+    - name: stable release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: app/build/outputs/apk/release/app-release.apk
+        generate_release_notes: true
+        fail_on_unmatched_files: true
+
