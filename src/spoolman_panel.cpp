@@ -38,7 +38,7 @@ SpoolmanPanel::SpoolmanPanel(KWebSocketClient &c, std::mutex &l)
   lv_table_set_col_cnt(spool_table, 8);
   auto screen_width = lv_disp_get_physical_hor_res(NULL);
   auto scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
-  lv_table_set_col_width(spool_table, 0, 60 * scale); // id
+  lv_table_set_col_width(spool_table, 0, 64 * scale); // id
   lv_table_set_col_width(spool_table, 3, 50 * scale); // color
   lv_table_set_col_width(spool_table, 6, 60 * scale); // set active
   lv_table_set_col_width(spool_table, 7, 60 * scale); // archive
@@ -140,7 +140,7 @@ void SpoolmanPanel::populate_spools(std::vector<json> &sorted_spools) {
   if (!spools.empty()) {
     lv_table_set_cell_value(spool_table, 0, 0, "ID");
     lv_table_set_cell_value(spool_table, 0, 1, "Name");
-    lv_table_set_cell_value(spool_table, 0, 2, "MATL");
+    lv_table_set_cell_value(spool_table, 0, 2, "MAT");
     lv_table_set_cell_value(spool_table, 0, 4, "Remain\nWeight");
     lv_table_set_cell_value(spool_table, 0, 5, "Remain\nLength");
 

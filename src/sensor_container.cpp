@@ -52,17 +52,17 @@ SensorContainer::SensorContainer(KWebSocketClient &c,
 
     lv_label_set_text(value_label, "0");
     lv_obj_set_width(value_label, 50 * width_scale);
-    lv_obj_align(value_label, LV_ALIGN_RIGHT_MID, -70 * width_scale, 0);
+    lv_obj_align(value_label, LV_ALIGN_RIGHT_MID, -75 * width_scale, 0);
     lv_obj_set_style_pad_all(value_label, 8 * width_scale, 0);
 
     lv_label_set_text(divider_label, "/");
     lv_obj_set_width(divider_label, 50 * width_scale);
-    lv_obj_align(divider_label, LV_ALIGN_RIGHT_MID, -27 * width_scale, 0);
+    lv_obj_align(divider_label, LV_ALIGN_RIGHT_MID, -32 * width_scale, 0);
     lv_obj_set_style_pad_all(divider_label, 8 * width_scale, 0);
 
     if (show_target || can_edit) {
       lv_label_set_text(target_label, "0");
-      lv_obj_set_width(target_label, 55 * width_scale);
+      lv_obj_set_width(target_label, 60 * width_scale);
       lv_obj_align(target_label, LV_ALIGN_RIGHT_MID, 0, 0);
       lv_obj_set_style_pad_all(target_label, 8 * width_scale, 0);
     } else {
