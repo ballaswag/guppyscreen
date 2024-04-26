@@ -6,7 +6,6 @@
 #include "hv/json.hpp"
 
 #include <map>
-#include <set>
 #include <vector>
 #include <atomic>
 #include <functional>
@@ -41,7 +40,7 @@ class KWebSocketClient : public hv::WebSocketClient {
  private:
   std::map<uint32_t, std::function<void(json&)>> callbacks;
   std::map<uint32_t, NotifyConsumer*> consumers;
-  std::set<NotifyConsumer*> notify_consumers;
+  std::vector<NotifyConsumer*> notify_consumers;
   // std::vector<std::function<void(json&)>> gcode_resp_cbs;
 
   // method_name : { <unique-name-cb-handler> :handler-cb }

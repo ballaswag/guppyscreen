@@ -37,7 +37,7 @@ int KWebSocketClient::connect(const char* url,
     spdlog::debug("onopen {}", resp->body.c_str());
     connected();
   };
-  onmessage = [this, connected, disconnected](const std::string& msg) {
+  onmessage = [this, connected, disconnected](const std::string &msg) {
     // if (msg.find("notify_proc_stat_update") == std::string::npos) {
     //   spdlog::trace("onmessage(type={} len={}): {}", opcode() == WS_OPCODE_TEXT ? "text" : "binary",
     // 	     (int)msg.size(), msg);
@@ -45,48 +45,47 @@ int KWebSocketClient::connect(const char* url,
     auto j = json::parse(msg);
 
     if (j.contains("id")) {
-
       // XXX: get rid of consumers and use function ptrs for callback
-	const auto &entry = consumers.find(j["id"]);
-	if (entry != consumers.end()) {
-	  entry->second->consume(j);
-	  consumers.erase(entry);
-	}
+      const auto &entry = consumers.find(j["id"]);
+      if (entry != consumers.end()) {
+        entry->second->consume(j);
+        consumers.erase(entry);
+      }
 
-	const auto &cb_entry = callbacks.find(j["id"]);
-	if (cb_entry != callbacks.end()) {
-	  cb_entry->second(j);
-	  callbacks.erase(cb_entry);
-	}
+      const auto &cb_entry = callbacks.find(j["id"]);
+      if (cb_entry != callbacks.end()) {
+        cb_entry->second(j);
+        callbacks.erase(cb_entry);
+      }
     }
 
     if (j.contains("method")) {
       std::string method = j["method"].template get<std::string>();
       if ("notify_status_update" == method) {
-	for (const auto &entry : notify_consumers) {
-	  entry->consume(j);
-	}
-      }//  else if ("notify_gcode_response" == method) {
+        for (const auto &entry : notify_consumers) {
+          entry->consume(j);
+        }
+      }  //  else if ("notify_gcode_response" == method) {
       // 	for (const auto &gcode_cb : gcode_resp_cbs) {
       // 	  gcode_cb(j);
       // 	}
       // }
       else if ("notify_klippy_disconnected" == method) {
-	disconnected();
+        disconnected();
       } else if ("notify_klippy_ready" == method) {
-	connected();
+        connected();
       }
 
       for (const auto &entry : method_resp_cbs) {
-	if (method == entry.first) {
-	  for (const auto &handler_entry : entry.second) {
-	    handler_entry.second(j);
-	  }
-	}
+        if (method == entry.first) {
+          for (const auto &handler_entry : entry.second) {
+            handler_entry.second(j);
+          }
+        }
       }
     }
   };
-      
+
   onclose = [disconnected]() {
     spdlog::debug("onclose");
     disconnected();
@@ -147,17 +146,17 @@ int KWebSocketClient::send_jsonrpc(const std::string &method, const json &params
 }
 
 void KWebSocketClient::register_notify_update(NotifyConsumer *consumer) {
-  const auto &entry = notify_consumers.find(consumer);
-  if (entry == notify_consumers.end()) {
-    notify_consumers.insert(consumer);
+  if (std::find(notify_consumers.begin(), notify_consumers.end(), consumer) == std::end(notify_consumers)) {
+    notify_consumers.push_back(consumer);
   }
 }
 
 void KWebSocketClient::unregister_notify_update(NotifyConsumer *consumer) {
-  const auto &entry = notify_consumers.find(consumer);
-  if (entry != notify_consumers.end()) {
-    notify_consumers.erase(entry);
-  }
+  notify_consumers.erase(std::remove_if(
+    notify_consumers.begin(), notify_consumers.end(),
+    [consumer](NotifyConsumer *c) {
+      return c == consumer;
+    }));
 }
 
 int KWebSocketClient::send_jsonrpc(const std::string &method,

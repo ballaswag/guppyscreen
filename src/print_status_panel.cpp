@@ -65,14 +65,9 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   , elapsed(detail_cont, &clock_img, 100, "0s")
   , time_left(detail_cont, &hourglass, 100, "...")
   , estimated_time_s(0)
-  , flow_ts(std::time(nullptr))
-  , last_filament_used(0.0)
   , filament_diameter(1.75) // XXX: check config
-  , flow(0.0)
   , extruder_target(-1)
   , heater_bed_target(-1)
-  , cur_layer(-1)
-  , total_layer(-1)
 {
   lv_obj_move_background(status_cont);
   lv_obj_clear_flag(status_cont, LV_OBJ_FLAG_SCROLLABLE);  
@@ -173,13 +168,10 @@ void PrintStatusPanel::reset() {
   elapsed.update_label("0s");
   time_left.update_label("...");
   estimated_time_s = 0;
-  flow_ts = std::time(nullptr);
-  last_filament_used = 0.0;
 
   auto v = State::get_instance()
     ->get_data("/printer_state/configfile/config/extruder/filament_diameter"_json_pointer);
   filament_diameter = v.is_null() ? 1.750 : std::stod(v.template get<std::string>());
-  flow = 0.0;
   extruder_target = -1;
   heater_bed_target = -1;
 
@@ -263,6 +255,12 @@ void PrintStatusPanel::populate() {
     lv_label_set_text(progress_label, fmt::format("{}%", new_value).c_str());
     mini_print_status.update_progress(new_value);
   }
+
+  v = s->get_data(
+      "/printer_state/gcode_move/homing_origin/2"_json_pointer);
+  if (!v.is_null()) {
+    z_offset.update_label(fmt::format("{:.5} mm", v.template get<double>()).c_str());
+  }
 }
 
 void PrintStatusPanel::handle_metadata(const std::string &gcode_file, json &j) {
@@ -280,6 +278,8 @@ void PrintStatusPanel::handle_metadata(const std::string &gcode_file, json &j) {
       update_time_progress(passed);
     }
   }
+
+  current_file = j["/result"_json_pointer];
 
   auto width_scale = (double)lv_disp_get_physical_hor_res(NULL) / 800.0;
   auto thumb_detail = KUtils::get_thumbnail(gcode_file, j, width_scale);
@@ -350,17 +350,10 @@ void PrintStatusPanel::consume(json &j) {
   }
 
   // speed
-  auto speed = j["/params/0/gcode_move/speed"_json_pointer];
-  auto speed_factor = State::get_instance()
-    ->get_data("/printer_state/gcode_move/speed_factor"_json_pointer);
-
-  if (!speed.is_null() && !speed_factor.is_null()) {
-    double s = speed.template get<double>();
-    double sf = speed_factor.template get<double>();
-    int req_speed = static_cast<int>((s / 60.0 * sf));
-
-    spdlog::trace("calucated speed {}, {}, {}", speed, speed_factor, req_speed);
-    print_speed.update_label((std::to_string(req_speed) + " mm/s").c_str());
+  auto speed = j["/params/0/motion_report/live_velocity"_json_pointer];
+  if (!speed.is_null()) {
+    int s = static_cast<int>(speed.template get<double>());
+    print_speed.update_label((std::to_string(s) + " mm/s").c_str());
   }
   
   // zoffset
@@ -406,10 +399,10 @@ void PrintStatusPanel::consume(json &j) {
     mini_print_status.update_progress(new_value);
   }
 
-  // flow
-  v = j["/params/0/print_stats/filament_used"_json_pointer];
+  v = j["/params/0/motion_report/live_extruder_velocity"_json_pointer];
   if (!v.is_null()) {
-    update_flow_rate(v.template get<double>());
+    double flow = pi() / 4 * std::pow(filament_diameter, 2) * v.template get<double>();
+    flow_rate.update_label(fmt::format("{:.1f} mm3/s", flow > 0.0 ? flow : 0.0).c_str());
   }
 
   v = j["/params/0/pause_resume/is_paused"_json_pointer];
@@ -433,9 +426,7 @@ void PrintStatusPanel::consume(json &j) {
 
   // layers
   v = j["/params/0/print_stats/info"_json_pointer];
-  if (!v.is_null()) {
-    update_layers(v);
-  }
+  update_layers(v);
 }
 
 void PrintStatusPanel::handle_callback(lv_event_t *event) {
@@ -473,83 +464,72 @@ void PrintStatusPanel::update_time_progress(uint32_t time_passed) {
     }
 
     elapsed.update_label(KUtils::eta_string(time_passed).c_str());
-
-  // auto speed_factor = State::get_instance()
-  //   ->get_data(json::json_pointer("/status/gcode_move/speed_factor"));
-    
-}
-
-void PrintStatusPanel::update_flow_rate(double filament_used) {
-  /*
-
-    const extruderPosition = parseFloat(filament_used)
-    const filament_diameter = this.$store.getters['printer/getPrinterSettings']('extruder.filament_diameter') || 1.75
-    const timeDelta = (Date.now() - this.flow.timestamp) / 1000
-    if (timeDelta >= 2) {
-      if (
-        this.flow.lastExtruderPosition &&
-        this.flow.lastExtruderPosition < extruderPosition &&
-        this.flow.timestamp
-      ) {
-        // console.log('getting flow', filament_diameter, timeDelta)
-        const filamentDiff = extruderPosition - this.flow.lastExtruderPosition
-        const filamentCrossSection = Math.pow(filament_diameter / 2, 2) * Math.PI
-
-        this.flow.value = filamentCrossSection * filamentDiff / timeDelta
-
-        if (this.flow.max < this.flow.value) this.flow.max = this.flow.value
-      }
-
-      this.flow.lastExtruderPosition = extruderPosition
-      this.flow.timestamp = Date.now()
-    }
-   */
-  auto delta = std::time(nullptr) - flow_ts;
-  spdlog::trace("got filament_used {}, last_filament_used {}, t_delta {}",
-		filament_used, last_filament_used, delta);  
-  if (delta > 1) {
-    if (last_filament_used
-	&& (last_filament_used < filament_used)) {
-      spdlog::trace("updating flow last {} cur {}, t_delta {}",
-		    last_filament_used, filament_used, delta);
-      
-      auto filament_delta = filament_used - last_filament_used;
-      auto filament_xsection  = std::pow((filament_diameter / 2), 2) * pi();
-      flow = filament_xsection * filament_delta / delta;
-      
-      spdlog::trace("caculated flow {}", flow); 
-      #ifdef GUPPY_SMALL_SCREEN
-        flow_rate.update_label(fmt::format("{:.1f} mm3/s", flow).c_str());
-      #else
-        flow_rate.update_label(fmt::format("{:.2f} mm3/s", flow).c_str());
-      #endif
-    }
-
-    last_filament_used = filament_used;
-    flow_ts = std::time(nullptr);
-  }
 }
 
 void PrintStatusPanel::update_layers(json &info) {
-  spdlog::debug("layers {}", info.dump());
-  auto v = info["/current_layer"_json_pointer];
-  int new_cur_layer = cur_layer;
-  int new_total_layer = total_layer;
-  if (!v.is_null()) {
-    new_cur_layer = v.template get<int>();
+  layers.update_label(fmt::format("{} / {}", current_layer(info), max_layer(info)).c_str());
+}
+
+int PrintStatusPanel::max_layer(json &info) {
+  if (!info.is_null()) {
+    auto v = info["/total_layer"_json_pointer];
+    if (!v.is_null()) {
+      return v.template get<int>();
+    }
   }
 
-  v = info["/total_layer"_json_pointer];
-  if (!v.is_null()) {
-    new_total_layer = v.template get<int>();
+  if (!current_file.is_null()) {
+    auto v = current_file["/layer_count"_json_pointer];
+    if (!v.is_null()) {
+      return v.template get<int>();
+    } else {
+      auto first_layer_height = current_file["/first_layer_height"_json_pointer];
+      auto layer_height = current_file["/layer_height"_json_pointer];
+      auto object_height = current_file["/object_height"_json_pointer];
+
+      if (!first_layer_height.is_null() && !layer_height.is_null() && !object_height.is_null()) {
+        auto layer = static_cast<int>(std::ceil((object_height.template get<double>() - first_layer_height.template get<double>()) / layer_height.template get<double>() + 1));
+        return layer > 0 ? layer : 0;
+      }
+    }
+  }
+  return 0;
+}
+
+int PrintStatusPanel::current_layer(json &info) {
+  if (!info.is_null()) {
+    auto v = info["/current_layer"_json_pointer];
+    if (!v.is_null()) {
+      return v.template get<int>();
+    }
   }
 
-  if (new_total_layer != total_layer || new_cur_layer != cur_layer) {
-    total_layer = new_total_layer;
-    cur_layer = new_cur_layer;
+  if (!current_file.is_null()) {
+    State *s = State::get_instance();
+    auto pd = s->get_data("/printer_state/print_stats/print_duration"_json_pointer);
+    auto zpos = s->get_data("/printer_state/gcode_move/gcode_position/2"_json_pointer);
 
-    layers.update_label(fmt::format("{} / {}", cur_layer, total_layer).c_str());
+    auto first_layer_height = current_file["/first_layer_height"_json_pointer];
+    auto layer_height = current_file["/layer_height"_json_pointer];
+
+    if (!pd.is_null()
+        && pd.template get<int>() > 0
+        && !zpos.is_null()
+        && !first_layer_height.is_null()
+        && !layer_height.is_null()) {
+      auto layer = static_cast<int>(std::ceil((zpos.template get<double>() - first_layer_height.template get<double>()) / layer_height.template get<double>() + 1));
+      auto total = max_layer(info);
+      if (layer > total) {
+        return total;
+      }
+
+      if (layer > 0) {
+        return layer;
+      }
+    }
   }
+
+  return 0;
 }
 
 FineTunePanel &PrintStatusPanel::get_finetune_panel() {

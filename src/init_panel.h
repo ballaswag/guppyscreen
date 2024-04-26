@@ -16,6 +16,7 @@ class InitPanel {
 
   void connected(KWebSocketClient &ws);
   void disconnected(KWebSocketClient &ws);
+  void set_message(const char *message);
 
  private:
   lv_obj_t *cont;

@@ -41,10 +41,11 @@ InitPanel::~InitPanel() {
 
 void InitPanel::connected(KWebSocketClient &ws) {
   spdlog::debug("init panel connected");
-  ws.send_jsonrpc("printer.objects.list",
-      [this, &ws](json& d) {
-	State *state = State::get_instance();
-	state->reset();
+  State *state = State::get_instance();
+  state->reset();
+
+  ws.send_jsonrpc("printer.objects.list", [this, &ws](json& d) {
+    State *state = State::get_instance();
 	state->set_data("printer_objs", d, "/result");
 
 	ws.send_jsonrpc("server.files.roots",
@@ -129,4 +130,8 @@ void InitPanel::disconnected(KWebSocketClient &ws) {
   std::lock_guard<std::mutex> lock(lv_lock);
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_foreground(cont);
+}
+
+void InitPanel::set_message(const char *message) {
+	lv_label_set_text(label, message);
 }

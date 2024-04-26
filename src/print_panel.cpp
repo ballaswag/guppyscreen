@@ -184,7 +184,7 @@ void PrintPanel::subscribe() {
 
     if (d.contains("result")) {
       for (auto f : d["result"]) {
-	root.add_path(KUtils::split(f["path"], '/'), f["path"], f["modified"].template get<uint32_t>());
+        root.add_path(KUtils::split(f["path"], '/'), f["path"], f["modified"].template get<uint32_t>());
       }
     }
     Tree *dir = root.find_path(KUtils::split(cur_path, '/'));

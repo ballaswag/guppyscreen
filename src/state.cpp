@@ -49,7 +49,6 @@ void State::reset() {
 
 void State::set_data(const std::string &key, json &j, const std::string &json_path) {
   std::lock_guard<std::mutex> guard(lock);
-  // spdlog::debug("setting state {} : {}", key, j.dump());
   auto patch = j[json::json_pointer(json_path)];
   if (!patch.is_null()) {
     // spdlog::debug("setting data key {}\nbefore: {}\npatch: {}", key, data.contains(key) ? data[key].dump() : "nil"
@@ -57,7 +56,6 @@ void State::set_data(const std::string &key, json &j, const std::string &json_pa
     data[key].merge_patch(patch);
     // spdlog::debug("after: {}", data.contains(key) ? data[key].dump() : "nil");
   }
-
 }
 
 json &State::get_data() {

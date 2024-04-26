@@ -37,7 +37,9 @@ class PrintStatusPanel : public NotifyConsumer {
   void update_time_progress(uint32_t time_passed);
   void update_flow_rate(double filament_used);
   void update_layers(json &info);
-  
+  int max_layer(json &info);
+  int current_layer(json &info);
+
   FineTunePanel &get_finetune_panel();
 
  private:
@@ -81,8 +83,7 @@ class PrintStatusPanel : public NotifyConsumer {
   double flow;
   int extruder_target;
   int heater_bed_target;
-  int cur_layer;
-  int total_layer;
+  json current_file;
 
   std::map<std::string, int> fan_speeds;
 };

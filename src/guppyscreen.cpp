@@ -26,15 +26,15 @@ lv_theme_t GuppyScreen::th_new;
 lv_obj_t *GuppyScreen::screen_saver = NULL;
 #endif
 
+KWebSocketClient GuppyScreen::ws(NULL);
+
 std::mutex GuppyScreen::lv_lock;
 
 GuppyScreen::GuppyScreen()
-  : ws(NULL)
-  , spoolman_panel(ws, lv_lock)
+  : spoolman_panel(ws, lv_lock)
   , main_panel(ws, lv_lock, spoolman_panel)
   , init_panel(main_panel, main_panel.get_tune_panel().get_bedmesh_panel(), lv_lock)
 {
-  ws.register_notify_update(State::get_instance());
   main_panel.create_panel();
 }
 
@@ -149,6 +149,8 @@ GuppyScreen *GuppyScreen::init(std::function<void()> hal_init) {
   }
 #endif // OS_ANDROID
 
+  ws.register_notify_update(State::get_instance());
+
   GuppyScreen *gs = GuppyScreen::get();
   auto printers = conf->get_json("/printers");
   if (!printers.empty()) {
@@ -207,6 +209,7 @@ std::mutex &GuppyScreen::get_lock() {
 }
 
 void GuppyScreen::connect_ws(const std::string &url) {
+  init_panel.set_message(LV_SYMBOL_WARNING " Waiting for printer to initialize...");
   ws.connect(url.c_str(),
    [this]() { init_panel.connected(ws); },
    [this]() { init_panel.disconnected(ws); });
