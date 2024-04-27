@@ -39,9 +39,9 @@ static lv_disp_draw_buf_t lv_disp_buf;
 
 static void window_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p);
 static void lv_touch_read(lv_indev_drv_t *drv, lv_indev_data_t *data);
-static void hal_init();
+static void hal_init(lv_color_t p, lv_color_t s);
 
-static void hal_init() {
+static void hal_init(lv_color_t primary, lv_color_t secondary) {
     /*Initialize a descriptor for the buffer*/
     lv_disp_draw_buf_init(&lv_disp_buf, lv_buf_1, lv_buf_2, DISP_BUF_SIZE);
 
@@ -56,9 +56,7 @@ static void hal_init() {
 
     spdlog::debug("resolution {} x {}", WIDTH, HEIGHT);
     lv_disp_t * disp = lv_disp_drv_register(&disp_drv);
-    lv_theme_t * th = HEIGHT <= 480
-                      ? lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_12)
-                      : lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_16);
+    lv_theme_t * th = lv_theme_default_init(NULL, primary, secondary, true, &lv_font_montserrat_20);
     lv_disp_set_theme(disp, th);
 
     static lv_indev_drv_t indev_drv_1;
