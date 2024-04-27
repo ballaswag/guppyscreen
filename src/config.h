@@ -37,6 +37,7 @@ class Config {
   std::string& df();
   std::string get_thumbnail_path();
   std::string get_wifi_interface();
+  std::string get_path();
 
   static Config *get_instance();
 

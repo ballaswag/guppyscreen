@@ -80,7 +80,7 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   lv_obj_set_flex_flow(file_table_btns, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(file_table_btns, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_END);
 
-  lv_obj_set_size(file_table, LV_PCT(100), LV_PCT(85));
+  lv_obj_set_size(file_table, LV_PCT(100), LV_PCT(100));
   lv_table_set_col_width(file_table, 0, LV_PCT(100));
   lv_table_set_col_cnt(file_table, 1);
   lv_obj_add_event_cb(file_table, &PrintPanel::_handle_callback, LV_EVENT_ALL, this);

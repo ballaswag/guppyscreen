@@ -22,7 +22,7 @@ static int tick_thread(void *data);
 
 #endif // SIMUALTOR
 
-static void hal_init(void);  
+static void hal_init(lv_color_t p, lv_color_t s);
 
 #include "guppyscreen.h"
 #include "hv/hlog.h"
@@ -50,7 +50,7 @@ int main(void)
 
 #ifndef SIMULATOR
 
-static void hal_init(void) {
+static void hal_init(lv_color_t primary, lv_color_t secondary) {
     /*A small buffer for LittlevGL to draw the screen's content*/
     static lv_color_t buf[DISP_BUF_SIZE];
     static lv_color_t buf2[DISP_BUF_SIZE];
@@ -85,8 +85,8 @@ static void hal_init(void) {
     spdlog::debug("resolution {} x {}", width, height);
     lv_disp_t * disp = lv_disp_drv_register(&disp_drv);
     lv_theme_t * th = height <= 480
-      ? lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_12)
-      : lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_20);
+      ? lv_theme_default_init(NULL, primary, secondary, true, &lv_font_montserrat_12)
+      : lv_theme_default_init(NULL, primary, secondary, true, &lv_font_montserrat_20);
     lv_disp_set_theme(disp, th);
 
     evdev_init();
@@ -113,7 +113,7 @@ static void hal_init(void) {
  * Initialize the Hardware Abstraction Layer (HAL) for the LVGL graphics
  * library
  */
-static void hal_init(void)
+static void hal_init(lv_color_t primary, lv_color_t secondary)
 {
   /* Use the 'monitor' driver which creates window on PC's monitor to simulate a display*/
   sdl_init();
@@ -142,8 +142,8 @@ static void hal_init(void)
 
   lv_disp_t * disp = lv_disp_drv_register(&disp_drv);
   lv_theme_t * th = MONITOR_HOR_RES <= 480
-    ? lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_12)
-    : lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), true, &lv_font_montserrat_16);
+    ? lv_theme_default_init(NULL, primary, secondary, true, &lv_font_montserrat_12)
+    : lv_theme_default_init(NULL, primary, secondary, true, &lv_font_montserrat_16);
   lv_disp_set_theme(disp, th);
  
   lv_group_t * g = lv_group_create();

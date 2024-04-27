@@ -1,11 +1,17 @@
 #include "sysinfo_panel.h"
 #include "utils.h"
 #include "config.h"
+#include "theme.h"
 #include "spdlog/spdlog.h"
+#include "guppyscreen.h"
 
 #include <algorithm>
 #include <iterator>
 #include <map>
+
+#include <experimental/filesystem>
+
+namespace fs = std::experimental::filesystem;
 
 LV_IMG_DECLARE(back);
 
@@ -19,6 +25,15 @@ std::vector<std::string> SysInfoPanel::log_levels = {
   "trace",
   "debug",
   "info"
+};
+
+std::vector<std::string> SysInfoPanel::themes = {
+  "blue",
+  "red",
+  "green",
+  "purple",
+  "pink",
+  "yellow"
 };
 
 static std::map<int32_t, uint32_t> sleepsec_to_dd_idx = {
@@ -61,6 +76,11 @@ SysInfoPanel::SysInfoPanel()
     // Z axis icons
   , z_icon_toggle_cont(lv_obj_create(left_cont))
   , z_icon_toggle(lv_switch_create(z_icon_toggle_cont))
+
+  // log level
+  , theme_cont(lv_obj_create(left_cont))
+  , theme_dd(lv_dropdown_create(theme_cont))
+  , theme(0)
 
   , back_btn(cont, &back, "Back", &SysInfoPanel::_handle_callback, this)
 {
@@ -176,6 +196,30 @@ SysInfoPanel::SysInfoPanel()
   lv_obj_add_event_cb(z_icon_toggle, &SysInfoPanel::_handle_callback,
 		      LV_EVENT_VALUE_CHANGED, this);
 
+  // theme dropdown
+  lv_obj_set_size(theme_cont, LV_PCT(100), LV_SIZE_CONTENT);
+  lv_obj_set_style_pad_all(theme_cont, 0, 0);
+  l = lv_label_create(theme_cont);
+  lv_label_set_text(l, "Theme Color");
+  lv_obj_align(l, LV_ALIGN_LEFT_MID, 0, 0);
+  lv_obj_align(theme_dd, LV_ALIGN_RIGHT_MID, 0, 0);
+
+  lv_dropdown_set_options(theme_dd, fmt::format("{}", fmt::join(themes, "\n")).c_str());
+
+  v = conf->get_json("/theme");
+  if (!v.is_null()) {
+      auto it = std::find(themes.begin(), themes.end(), v.template get<std::string>());
+      if (it != std::end(themes)) {
+          theme = std::distance(themes.begin(), it);
+          lv_dropdown_set_selected(theme_dd, theme);
+      }
+  } else {
+      lv_dropdown_set_selected(theme_dd, theme);
+  }
+  lv_obj_add_event_cb(theme_dd, &SysInfoPanel::_handle_callback,
+                      LV_EVENT_VALUE_CHANGED, this);
+
+
   lv_obj_add_flag(back_btn.get_container(), LV_OBJ_FLAG_FLOATING);	
   lv_obj_align(back_btn.get_container(), LV_ALIGN_BOTTOM_RIGHT, 0, 0);
 }
@@ -249,6 +293,17 @@ void SysInfoPanel::handle_callback(lv_event_t *e)
       bool inverted = lv_obj_has_state(z_icon_toggle, LV_STATE_CHECKED);
       conf->set<bool>("/invert_z_icon", inverted);
       conf->save();
+    } else if (obj == theme_dd) {
+      auto idx = lv_dropdown_get_selected(theme_dd);
+      if (idx != theme) {
+        theme = idx;
+        auto selected_theme = themes[theme];
+        conf->set<std::string>("/theme", selected_theme);
+        conf->save();
+        auto theme_config = fs::canonical(conf->get_path()).parent_path() / "themes" / (selected_theme + ".json");
+        ThemeConfig::get_instance()->init(theme_config);
+        GuppyScreen::refresh_theme();
+      }
     }
   }
 }

@@ -15,9 +15,11 @@
 #include "printer_select_panel.h"
 #include "spdlog/spdlog.h"
 #include "state.h"
+#include "theme.h"
 
 GuppyScreen *GuppyScreen::instance = NULL;
 lv_style_t GuppyScreen::style_container;
+lv_style_t GuppyScreen::style_imgbtn_default;
 lv_style_t GuppyScreen::style_imgbtn_pressed;
 lv_style_t GuppyScreen::style_imgbtn_disabled;
 lv_theme_t GuppyScreen::th_new;
@@ -46,7 +48,7 @@ GuppyScreen *GuppyScreen::get() {
   return instance;
 }
 
-GuppyScreen *GuppyScreen::init(std::function<void()> hal_init) {
+GuppyScreen *GuppyScreen::init(std::function<void(lv_color_t, lv_color_t)> hal_init) {
   hlog_disable();
 
   // config
@@ -56,6 +58,22 @@ GuppyScreen *GuppyScreen::init(std::function<void()> hal_init) {
       conf->get_json("/printers").empty() 
       ? "debug" 
       : conf->get<std::string>(ll_path));
+
+  auto selected_theme = conf->get_json("/theme").empty()
+          ? "blue.json"
+          : conf->get<std::string>("/theme") + ".json";
+  auto theme_config = fs::canonical(conf->get_path()).parent_path() / "themes" / selected_theme;
+
+  ThemeConfig *theme_conf = ThemeConfig::get_instance();
+  theme_conf->init(theme_config);
+
+  auto primary_color = theme_conf->get_json("/primary_color").empty()
+          ? lv_color_hex(0x2196F3)
+          : lv_color_hex(std::stoul(theme_conf->get<std::string>("/primary_color"), nullptr, 16));
+
+  auto secondary_color = theme_conf->get_json("/secondary_color").empty()
+          ? lv_color_hex(0xF44336)
+          : lv_color_hex(std::stoul(theme_conf->get<std::string>("/secondary_color"), nullptr, 16));
 
 #ifndef OS_ANDROID
   auto console_sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
@@ -89,16 +107,20 @@ GuppyScreen *GuppyScreen::init(std::function<void()> hal_init) {
   fbdev_unblank();
 #endif  // OS_ANDROID
 
-  hal_init();
+  hal_init(primary_color, secondary_color);
   lv_png_init();
 
   lv_style_init(&style_container);
   lv_style_set_border_width(&style_container, 0);
   lv_style_set_radius(&style_container, 0);
 
+//  lv_style_init(&style_imgbtn_default);
+//  lv_style_set_img_recolor_opa(&style_imgbtn_default, LV_OPA_100);
+//  lv_style_set_img_recolor(&style_imgbtn_default, lv_color_black());
+
   lv_style_init(&style_imgbtn_pressed);
   lv_style_set_img_recolor_opa(&style_imgbtn_pressed, LV_OPA_100);
-  lv_style_set_img_recolor(&style_imgbtn_pressed, lv_palette_main(LV_PALETTE_BLUE));
+  lv_style_set_img_recolor(&style_imgbtn_pressed, primary_color);
 
   lv_style_init(&style_imgbtn_disabled);
   lv_style_set_img_recolor_opa(&style_imgbtn_disabled, LV_OPA_100);
@@ -223,6 +245,7 @@ void GuppyScreen::new_theme_apply_cb(lv_theme_t *th, lv_obj_t *obj) {
   }
 
   if (lv_obj_check_type(obj, &lv_imgbtn_class)) {
+//    lv_obj_add_style(obj, &style_imgbtn_default, LV_STATE_DEFAULT);
     lv_obj_add_style(obj, &style_imgbtn_pressed, LV_STATE_PRESSED);
     lv_obj_add_style(obj, &style_imgbtn_disabled, LV_STATE_DISABLED);
   }
@@ -239,6 +262,23 @@ void GuppyScreen::save_calibration_coeff(lv_tc_coeff_t coeff) {
   conf->set<std::vector<float>>("/touch_calibration_coeff",
                                 {coeff.a, coeff.b, coeff.c, coeff.d, coeff.e, coeff.f});
   conf->save();
+}
+
+void GuppyScreen::refresh_theme() {
+  lv_theme_t *th = lv_theme_default_get();
+  ThemeConfig *theme_conf = ThemeConfig::get_instance();
+  auto primary_color = theme_conf->get_json("/primary_color").empty()
+                       ? lv_color_hex(0x2196F3)
+                       : lv_color_hex(std::stoul(theme_conf->get<std::string>("/primary_color"), nullptr, 16));
+
+  auto secondary_color = theme_conf->get_json("/secondary_color").empty()
+                         ? lv_color_hex(0xF44336)
+                         : lv_color_hex(std::stoul(theme_conf->get<std::string>("/secondary_color"), nullptr, 16));
+
+  lv_disp_t *disp = lv_disp_get_default();
+  lv_theme_t * new_theme =  lv_theme_default_init(disp, primary_color, secondary_color, true, th->font_normal);
+  lv_disp_set_theme(disp, new_theme);
+  lv_style_set_img_recolor(&style_imgbtn_pressed, primary_color);
 }
 
 /*Set in lv_conf.h as `LV_TICK_CUSTOM_SYS_TIME_EXPR`*/

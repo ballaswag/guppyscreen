@@ -11,6 +11,7 @@ ASSET_NAME=$1
 cp ./build/bin/guppyscreen $RELEASES_DIR/guppyscreen
 cp -r ./k1/k1_mods $RELEASES_DIR
 cp -r ./k1/scripts $RELEASES_DIR
+cp -r ./themes $RELEASES_DIR
 cp ./installer.sh $RELEASES_DIR
 cp ./update.sh $RELEASES_DIR
 if [ -f ./custom_upgrade.sh ]; then

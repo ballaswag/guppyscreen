@@ -170,6 +170,10 @@ std::string Config::get_wifi_interface() {
     .string();
 }
 
+std::string Config::get_path() {
+    return path;
+}
+
 json &Config::get_json(const std::string &json_path) {
   return data[json::json_pointer(json_path)];
 }
