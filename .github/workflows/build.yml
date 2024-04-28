@@ -14,21 +14,21 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: mips-linux-gnu-
+          - arch: mipsel-buildroot-linux-musl-
             theme: zbolt
             small: false
             rotate: true
             calibrate: false
             asset: guppyscreen-zbolt
 
-          - arch: mips-linux-gnu-
+          - arch: mipsel-buildroot-linux-musl-
             theme: material
             small: false
             rotate: true
             calibrate: false
             asset: guppyscreen
 
-          - arch: mips-linux-gnu-
+          - arch: mipsel-buildroot-linux-musl-
             theme: material
             small: true
             rotate: false
