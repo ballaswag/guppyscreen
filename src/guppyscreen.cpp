@@ -138,6 +138,20 @@ GuppyScreen *GuppyScreen::init(std::function<void(lv_color_t, lv_color_t)> hal_i
   /*Assign the new theme to the current display*/
   lv_disp_set_theme(NULL, &th_new);
 
+  ws.register_notify_update(State::get_instance());
+
+  GuppyScreen *gs = GuppyScreen::get();
+  auto printers = conf->get_json("/printers");
+  if (!printers.empty()) {
+    // start initializing all guppy components
+    std::string ws_url = fmt::format("ws://{}:{}/websocket",
+                                     conf->get<std::string>(conf->df() + "moonraker_host"),
+                                     conf->get<uint32_t>(conf->df() + "moonraker_port"));
+
+    spdlog::info("connecting to printer at {}", ws_url);
+    gs->connect_ws(ws_url);
+  }
+
 #ifndef OS_ANDROID
   screen_saver = lv_obj_create(lv_scr_act());
 
@@ -170,20 +184,6 @@ GuppyScreen *GuppyScreen::init(std::function<void(lv_color_t, lv_color_t)> hal_i
     }
   }
 #endif // OS_ANDROID
-
-  ws.register_notify_update(State::get_instance());
-
-  GuppyScreen *gs = GuppyScreen::get();
-  auto printers = conf->get_json("/printers");
-  if (!printers.empty()) {
-    // start initializing all guppy components
-    std::string ws_url = fmt::format("ws://{}:{}/websocket",
-                                     conf->get<std::string>(conf->df() + "moonraker_host"),
-                                     conf->get<uint32_t>(conf->df() + "moonraker_port"));
-
-    spdlog::info("connecting to printer at {}", ws_url);
-    gs->connect_ws(ws_url);
-  }
 
   return gs;
 }
