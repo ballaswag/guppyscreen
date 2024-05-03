@@ -54,12 +54,14 @@ sh -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/bal
 wget -O - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer-deb.sh | bash -s nightly
 ```
 
+### Android
+Guppy Screen works on Android! Download and try with the latest [APK](https://github.com/ballaswag/guppyscreen/releases/latest/download/app-release.apk).
+
 ## Uninstall
 ssh into your K1/Max and run the follwow command:
 ```
 /usr/data/guppyscreen/reinstall-creality.sh
 ```
-
 
 ## Features
 :white_check_mark: Console/Macro Shell  
@@ -84,6 +86,9 @@ ssh into your K1/Max and run the follwow command:
 :bangbang: Firmware Retraction  
 
 Open for feature requests.
+
+## Documentation
+You can find various Guppy Screen documents [here](https://ballaswag.github.io/docs/guppyscreen/configuration/).
 
 ## Screenshot
 ### Material Theme
