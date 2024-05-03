@@ -55,7 +55,9 @@ wget -O - https://raw.githubusercontent.com/ballaswag/guppyscreen/main/installer
 ```
 
 ### Android
-Guppy Screen works on Android! Download and try with the latest [APK](https://github.com/ballaswag/guppyscreen/releases/latest/download/app-release.apk).
+Guppy Screen works on Android! Download and try with the latest [APK](https://github.com/ballaswag/guppyscreen/releases/latest/download/app-release.apk).  
+  
+<img src="https://github.com/ballaswag/guppyscreen/assets/145094472/d0437cd6-9b82-470f-8889-c4a5b74bfa6e" alt="guppyscreen on android" width="600" />
 
 ## Uninstall
 ssh into your K1/Max and run the follwow command:
