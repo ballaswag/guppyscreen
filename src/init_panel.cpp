@@ -122,7 +122,11 @@ void InitPanel::connected(KWebSocketClient &ws) {
 					
 			  });
 	}
-      });
+  });
+
+  ws.send_jsonrpc("machine.device_power.devices", [this](json& j) {
+    main_panel.get_tune_panel().get_power_panel().create_devices(j);
+  });
 }
 
 void InitPanel::disconnected(KWebSocketClient &ws) {
