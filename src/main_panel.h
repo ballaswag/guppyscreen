@@ -5,6 +5,7 @@
 #include "notify_consumer.h"
 #include "sensor_container.h"
 #include "button_container.h"
+#include "prompt_panel.h"
 #include "numpad.h"
 #include "homing_panel.h"
 #include "extruder_panel.h"
@@ -102,6 +103,7 @@ class MainPanel : public NotifyConsumer {
   PrinterTunePanel printertune_panel;
   Numpad numpad;
   ExtruderPanel extruder_panel;
+  PromptPanel prompt_panel;
   SpoolmanPanel &spoolman_panel;
   
   lv_style_t style;
