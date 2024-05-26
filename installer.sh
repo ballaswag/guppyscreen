@@ -137,6 +137,10 @@ else
     sed -i '/\[include gcode_macro\.cfg\]/a \[include GuppyScreen/*\.cfg\]' $K1_CONFIG_DIR/printer.cfg
 fi
 
+## symlink usb
+K1_GCODE_DIR=$(dirname "$K1_CONFIG_DIR")/gcodes
+ln -sf /tmp/udisk $K1_GCODE_DIR/usb
+
 if [ ! -d "$BACKUP_DIR" ]; then
     printf "${green} Backing up original K1 files ${white}\n"
     mkdir -p $BACKUP_DIR
