@@ -123,6 +123,9 @@ printf "${green}Setting up Guppy Macros ${white}\n"
 if [ ! -f $GCODE_SHELL_CMD ]; then
     printf "${green}Installing gcode_shell_command.py for klippy ${white}\n"
     cp $K1_GUPPY_DIR/k1_mods/gcode_shell_command.py $GCODE_SHELL_CMD
+    if ! grep -q "klippy/extras/gcode_shell_command.py" "$KLIPPER_PATH/.git/info/exclude"; then
+        echo "klippy/extras/gcode_shell_command.py" >> "$KLIPPER_PATH/.git/info/exclude"
+    fi
 fi
 
 mkdir -p $K1_CONFIG_DIR/GuppyScreen/scripts
@@ -179,11 +182,19 @@ printf "${green}Setting up GuppyScreen ${white}\n"
 cp $K1_GUPPY_DIR/k1_mods/S99guppyscreen /etc/init.d/S99guppyscreen
 
 cp $K1_GUPPY_DIR/k1_mods/calibrate_shaper_config.py $SHAPER_CONFIG
+if ! grep -q "klippy/extras/calibrate_shaper_config.py" "$KLIPPER_PATH/.git/info/exclude"; then
+    echo "klippy/extras/calibrate_shaper_config.py" >> "$KLIPPER_PATH/.git/info/exclude"
+fi
 
 ln -sf $K1_GUPPY_DIR/k1_mods/guppy_module_loader.py $KLIPPY_EXTRA_DIR/guppy_module_loader.py
 ln -sf $K1_GUPPY_DIR/k1_mods/guppy_config_helper.py $KLIPPY_EXTRA_DIR/guppy_config_helper.py
 ln -sf $K1_GUPPY_DIR/k1_mods/tmcstatus.py $KLIPPY_EXTRA_DIR/tmcstatus.py
 
+for file in guppy_module_loader.py guppy_config_helper.py tmcstatus.py; do
+    if ! grep -q "klippy/extras/${file}" "$KLIPPER_PATH/.git/info/exclude"; then
+        echo "klippy/extras/$file" >> "$KLIPPER_PATH/.git/info/exclude"
+    fi
+done
 
 if [ ! -d "/usr/lib/python3.8/site-packages/matplotlib-2.2.3-py3.8.egg-info" ]; then
     echo "Not replacing mathplotlib ft2font module. PSD graphs might not work"

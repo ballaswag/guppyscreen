@@ -68,11 +68,17 @@ install_services() {
 install_guppy_goodies() {
     printf "${green}Setting up Guppy Macros ${white}\n"
     if [ ! -f $GCODE_SHELL_CMD ]; then
-	printf "${green}Installing gcode_shell_command.py for klippy ${white}\n"
-	cp $GUPPY_DIR/k1_mods/gcode_shell_command.py $GCODE_SHELL_CMD
+        printf "${green}Installing gcode_shell_command.py for klippy ${white}\n"
+        cp $GUPPY_DIR/k1_mods/gcode_shell_command.py $GCODE_SHELL_CMD
+        if ! grep -q "klippy/extras/gcode_shell_command.py" "$KLIPPER_PATH/.git/info/exclude"; then
+            echo "klippy/extras/gcode_shell_command.py" >> "$KLIPPER_PATH/.git/info/exclude"
+        fi
     fi
 
     cp $GUPPY_DIR/k1_mods/calibrate_shaper_config.py $SHAPER_CONFIG
+    if ! grep -q "klippy/extras/calibrate_shaper_config.py" "$KLIPPER_PATH/.git/info/exclude"; then
+        echo "klippy/extras/calibrate_shaper_config.py" >> "$KLIPPER_PATH/.git/info/exclude"
+    fi
 
     mkdir -p $CONFIG_DIR/GuppyScreen/scripts
     sed -i "s|<CONFIG_DIR>|$CONFIG_DIR|g; s|<KLIPPER_PATH>|$KLIPPER_PATH|g" $GUPPY_DIR/debian/guppy_cmd.cfg
