@@ -171,8 +171,8 @@ void SpoolmanPanel::populate_spools(std::vector<json> &sorted_spools) {
 
       auto remaining_len_json = el["/remaining_length"_json_pointer];
       auto remaining_len = !remaining_len_json.is_null()
-      ? remaining_len_json.template get<double>() / 100 // mm to m;
-      : 0.0;
+      	? remaining_len_json.template get<double>() / 1000 // mm to m;
+      	: 0.0;
 
       lv_table_set_cell_value(spool_table, row_idx, 0, std::to_string(id).c_str());
       lv_table_set_cell_value(spool_table, row_idx, 1,
