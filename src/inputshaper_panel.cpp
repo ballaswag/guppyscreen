@@ -342,7 +342,7 @@ void InputShaperPanel::handle_callback(lv_event_t *event) {
     char ybuf[10];
     lv_dropdown_get_selected_str(yshaper_dd, ybuf, sizeof(ybuf));
     
-    ws.gcode_script(fmt::format("SAVE_INPUT_SHAPER SHAPER_FREQ_X={} SHAPER_TYPE_X={} SHAPER_FREQ_Y={} SHAPER_TYPE_Y={}\nSAVE_CONFIG",
+    ws.gcode_script(fmt::format("SET_INPUT_SHAPER SHAPER_FREQ_X={} SHAPER_TYPE_X={} SHAPER_FREQ_Y={} SHAPER_TYPE_Y={}\nSAVE_CONFIG",
 				xhz, xbuf, yhz, ybuf));
 
   } else if (btn == back_btn.get_container()) {
