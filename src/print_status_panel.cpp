@@ -11,6 +11,7 @@ LV_IMG_DECLARE(extrude);
 LV_IMG_DECLARE(clock_img);
 LV_IMG_DECLARE(hourglass);
 LV_IMG_DECLARE(bed);
+LV_IMG_DECLARE(thermometer_lines_img);
 LV_IMG_DECLARE(home_z);
 LV_IMG_DECLARE(fan);
 LV_IMG_DECLARE(layers_img);
@@ -57,6 +58,7 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   , detail_cont(lv_obj_create(status_cont))
   , extruder_temp(detail_cont, &extruder, 100, "20")
   , bed_temp(detail_cont, &bed, 100, "21")
+  , chamber_temp(detail_cont, &thermometer_lines_img, 100, "21")
   , print_speed(detail_cont, &speed_up_img, 100, "0 mm/s")
   , z_offset(detail_cont, &home_z, 100, "0.0 mm")
   , flow_rate(detail_cont, &extrude, 100, "0.0 mm3/s")
@@ -99,8 +101,10 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
 
   //detail containter row 5
   lv_obj_set_grid_cell(time_left.get_container(), LV_GRID_ALIGN_START, 0, 1, LV_GRID_ALIGN_START, 4, 1);
-  // lv_obj_set_grid_cell(fan2.get_container(), LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_START, 4, 1);  
-  
+  // lv_obj_set_grid_cell(fan2.get_container(), LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_START, 4, 1);
+  // TODO: group temperature labels
+  lv_obj_set_grid_cell(chamber_temp.get_container(), LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_START, 4, 1);
+
   static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(2), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
   static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 
@@ -347,6 +351,11 @@ void PrintStatusPanel::consume(json &j) {
     } else {
       bed_temp.update_label(fmt::format("{}", v.template get<int>()).c_str());
     }
+  }
+
+  v = j["/params/0/temperature_sensor chamber_temp/temperature"_json_pointer];
+  if (!v.is_null()) {
+    chamber_temp.update_label(fmt::format("{}", v.template get<int>()).c_str());
   }
 
   // speed

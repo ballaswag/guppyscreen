@@ -63,6 +63,7 @@ class PrintStatusPanel : public NotifyConsumer {
 
   ImageLabel extruder_temp;
   ImageLabel bed_temp;
+  ImageLabel chamber_temp;
   ImageLabel print_speed;
   ImageLabel z_offset;
   ImageLabel flow_rate;
