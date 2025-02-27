@@ -9,12 +9,20 @@ jobs:
       matrix:
         include:
           - arch: mipsel-buildroot-linux-musl-
+            small: false
+            rotate: true
+            asset: guppyscreen
+
+          - arch: mipsel-buildroot-linux-musl-
+            small: true
+            rotate: false
+            asset: guppyscreen-smallscreen
 
     runs-on: ubuntu-22.04
     container:
       image: pellcorp/guppydev:latest
       options: --user 1001
-  
+
     env:
       CROSS_COMPILE: ${{ matrix.arch }}
       CC: ${{ matrix.arch }}
@@ -29,6 +37,16 @@ jobs:
       run: |
         echo "GUPPYSCREEN_BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
         echo "GUPPYSCREEN_VERSION=${{ github.sha }}" >> $GITHUB_ENV
+
+    - if: matrix.small
+      name: export screen size
+      run: |
+        echo "GUPPY_SMALL_SCREEN=${{ matrix.small }}" >> $GITHUB_ENV
+
+    - if: matrix.rotate
+      name: export screen rotate
+      run: |
+          echo "GUPPY_ROTATE=${{ matrix.rotate }}" >> $GITHUB_ENV
 
     - name: patch lv_drivers
       run: |
@@ -50,7 +68,7 @@ jobs:
 
     - name: make libhv
       run: make libhv.a
-    
+
     - name: make libspdlog
       run: make libspdlog.a
 

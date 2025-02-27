@@ -42,6 +42,15 @@ include $(LVGL_DIR)/lv_drivers/lv_drivers.mk
 CSRCS 			+= $(wildcard $(LVGL_DIR)/assets/*.c)
 
 ASSET_DIR		= material
+ifdef GUPPY_SMALL_SCREEN
+ASSET_DIR		= material_46
+DEFINES			+= -D GUPPY_SMALL_SCREEN
+endif
+
+ifdef GUPPY_ROTATE
+DEFINES			+= -D GUPPY_ROTATE
+endif
+
 CSRCS 			+= $(wildcard $(LVGL_DIR)/assets/$(ASSET_DIR)/*.c)
 
 ifdef GUPPYSCREEN_VERSION
