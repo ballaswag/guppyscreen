@@ -4,8 +4,8 @@
         "cooldown": "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0\nSET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0",
         "excitate_axis_at_frequency": "EXCITATE_AXIS_AT_FREQUENCY",
         "extrude": "_GUPPYSCREEN_EXTRUDE EXTRUDER_TEMP={} EXTRUDE_LEN={} SPEED={}",
-        "load_filament": "LOAD_MATERIAL EXTRUDER_TEMP={} EXTRUDE_LEN={}",
-        "retract": "_GUPPYSCREEN_RETRACT EXTRUDER_TEMP={} EXTRUDE_LEN={} SPEED={}",
+        "load_filament": "_GUPPYSCREEN_LOAD EXTRUDER_TEMP={} EXTRUDE_LEN={}",
+        "retract": "_GUPPYSCREEN_UNLOAD EXTRUDER_TEMP={} EXTRUDE_LEN={} SPEED={}",
         "unload_filament": "UNLOAD_MATERIAL EXTRUDER_TEMP={}"
     },
     "display_brightness": 90,
