@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -116,3 +119,5 @@ jobs:
         tag_name: ${{ github.ref_name }}
         files: ${{ matrix.asset }}.tar.gz
         fail_on_unmatched_files: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
