@@ -10,6 +10,7 @@
 LV_IMG_DECLARE(info_img);
 LV_IMG_DECLARE(print);
 LV_IMG_DECLARE(back);
+LV_IMG_DECLARE(refresh_img);
 
 #define SORTED_BY_NAME 1 << 0
 #define SORTED_BY_MODIFIED  1 << 1
@@ -18,16 +19,12 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   : NotifyConsumer(lock)
   , ws(websocket)
   , files_cont(lv_obj_create(lv_scr_act()))
-  , prompt_cont(lv_obj_create(lv_scr_act()))
-  , msgbox(lv_obj_create(prompt_cont))
   , left_cont(lv_obj_create(files_cont))
-  , file_table_btns(lv_obj_create(left_cont))
-  , modified_sort_btn(lv_btn_create(file_table_btns))
-  , az_sort_btn(lv_btn_create(file_table_btns))
   , file_table(lv_table_create(left_cont))
   , file_view(lv_obj_create(files_cont))
   , status_btn(file_view, &info_img, "Status", &PrintPanel::_handle_status_btn, this)
   , print_btn(file_view, &print, "Print", &PrintPanel::_handle_print_callback, this)
+  , refresh_btn(file_view, &refresh_img, "Refresh", &PrintPanel::_handle_refresh_btn, this)
   , back_btn(file_view, &back, "Back", &PrintPanel::_handle_back_btn, this)
   , root("", "", 0)
   , cur_dir(&root)
@@ -50,27 +47,6 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   lv_obj_set_flex_flow(left_cont, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_style_pad_all(left_cont, 0, 0);
 
-  // file view buttons
-  lv_obj_t * label = NULL;
-
-  label = lv_label_create(modified_sort_btn);
-  lv_label_set_text(label, LV_SYMBOL_LIST " Modified");
-  lv_obj_center(label);
-
-  label = lv_label_create(az_sort_btn);
-  lv_label_set_text(label, LV_SYMBOL_LIST " A-Z");
-  lv_obj_center(label);
-
-  lv_obj_add_event_cb(modified_sort_btn, &PrintPanel::_handle_btns, LV_EVENT_CLICKED, this);
-  lv_obj_add_event_cb(az_sort_btn, &PrintPanel::_handle_btns, LV_EVENT_CLICKED, this);
-  
-  lv_obj_set_size(file_table_btns, LV_PCT(100), LV_SIZE_CONTENT);
-  lv_obj_set_style_pad_all(file_table_btns, 2, 0);
-
-  lv_obj_clear_flag(file_table_btns, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_flex_flow(file_table_btns, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(file_table_btns, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_END);
-
   lv_obj_set_size(file_table, LV_PCT(100), LV_PCT(100));
   lv_table_set_col_width(file_table, 0, LV_PCT(100));
   lv_table_set_col_cnt(file_table, 1);
@@ -86,25 +62,15 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   lv_obj_set_grid_dsc_array(file_view, grid_main_col_dsc, grid_main_row_dsc);
   lv_obj_set_grid_cell(file_panel.get_container(), LV_GRID_ALIGN_CENTER, 0, 3, LV_GRID_ALIGN_CENTER, 0, 1);
 
-  lv_obj_set_grid_cell(status_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_END, 1, 1);  
-  lv_obj_set_grid_cell(print_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_END, 1, 1);
+  lv_obj_set_grid_cell(status_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_END, 1, 1);
+  lv_obj_set_grid_cell(print_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_END, 1, 1);
+  lv_obj_set_grid_cell(refresh_btn.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_END, 1, 1);
   lv_obj_set_grid_cell(back_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_END, 1, 1);
 
   lv_obj_move_foreground(back_btn.get_container());
   lv_obj_move_foreground(print_btn.get_container());
-  lv_obj_move_foreground(status_btn.get_container());      
-
-  // prompt
-  lv_obj_add_flag(prompt_cont, LV_OBJ_FLAG_HIDDEN);  
-  lv_obj_set_size(prompt_cont, LV_PCT(100), LV_PCT(100));
-  lv_obj_clear_flag(prompt_cont, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_style_bg_opa(prompt_cont, LV_OPA_70, 0);
-
-  lv_obj_set_size(msgbox, LV_PCT(60), LV_PCT(30));
-  lv_obj_set_style_border_width(msgbox, 2, 0);
-  lv_obj_set_style_bg_color(msgbox, lv_palette_darken(LV_PALETTE_GREY, 1), 0);
-  
-  lv_obj_align(msgbox, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_move_foreground(status_btn.get_container());
+  lv_obj_move_foreground(refresh_btn.get_container());
 
   ws.register_notify_update(this);
 }
@@ -113,11 +79,6 @@ PrintPanel::~PrintPanel() {
   if (files_cont != NULL) {
     lv_obj_del(files_cont);
     files_cont = NULL;
-  }
-
-  if (prompt_cont != NULL) {
-    lv_obj_del(prompt_cont);
-    prompt_cont = NULL;
   }
 }
 
@@ -140,11 +101,11 @@ void PrintPanel::consume(json &j) {
   
   std::lock_guard<std::mutex> lock(lv_lock);
   if (pstat_state.template get<std::string>() != "printing" && pstat_state.template get<std::string>() != "paused") {
-    status_btn.disable();
-    print_btn.enable();
+    lv_obj_move_foreground(print_btn.get_container());
+    lv_obj_move_background(status_btn.get_container());
   } else {
-    status_btn.enable();
-    print_btn.disable();
+    lv_obj_move_background(print_btn.get_container());
+    lv_obj_move_foreground(status_btn.get_container());
   }
 }
 
@@ -184,11 +145,11 @@ void PrintPanel::foreground() {
   if (!pstat_state.is_null()
       && pstat_state.template get<std::string>() != "printing"
       && pstat_state.template get<std::string>() != "paused") {
-    status_btn.disable();
-    print_btn.enable();
+    lv_obj_move_foreground(print_btn.get_container());
+    lv_obj_move_background(status_btn.get_container());
   } else {
-    status_btn.enable();
-    print_btn.disable();
+    lv_obj_move_background(print_btn.get_container());
+    lv_obj_move_foreground(status_btn.get_container());
   }
   
   lv_obj_move_foreground(files_cont);
@@ -313,7 +274,14 @@ void PrintPanel::handle_back_btn(lv_event_t *event) {
   lv_obj_t *btn = lv_event_get_current_target(event);
   if (btn == back_btn.get_container()) {
     lv_obj_move_background(files_cont);
-    print_status.background();    
+    print_status.background();
+  }
+}
+
+void PrintPanel::handle_refresh_btn(lv_event_t *event) {
+  lv_obj_t *btn = lv_event_get_current_target(event);
+  if (btn == refresh_btn.get_container()) {
+    subscribe();
   }
 }
 
@@ -331,9 +299,6 @@ void PrintPanel::handle_print_callback(lv_event_t *event) {
       json fname_input = {{"filename", cur_file->full_path }};
       ws.send_jsonrpc("printer.print.start", fname_input);
       print_status.foreground();
-    } else {
-      lv_obj_clear_flag(prompt_cont, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_move_foreground(prompt_cont);
     }
   }
 }
@@ -343,17 +308,5 @@ void PrintPanel::handle_status_btn(lv_event_t *event) {
   if (code == LV_EVENT_CLICKED && cur_file != NULL) {
     spdlog::trace("status button clicked");
     print_status.foreground();
-  }
-}
-
-void PrintPanel::handle_btns(lv_event_t *event) {
-  lv_event_code_t code = lv_event_get_code(event);
-  if (code == LV_EVENT_CLICKED) {
-    lv_obj_t *btn = lv_event_get_current_target(event);
-    if (btn == modified_sort_btn) {
-      show_dir(cur_dir, SORTED_BY_MODIFIED);
-    } else if (btn == az_sort_btn) {
-      show_dir(cur_dir, SORTED_BY_NAME);
-    }
   }
 }
