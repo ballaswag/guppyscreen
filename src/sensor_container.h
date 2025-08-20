@@ -7,33 +7,41 @@
 
 #include <ctime>
 
+enum class SensorType {
+  Heater,
+  TempFan,
+  Sensor
+};
+
 class SensorContainer {
- public:
+public:
   SensorContainer(KWebSocketClient &c,
-		  lv_obj_t *parent,
-		  const void *img,
-		  const char *text,
-		  lv_color_t color,
-		  bool editable,
-		  bool show_target,
-		  Numpad &np,
-		  std::string name,
-		  lv_obj_t *chart,
-		  lv_chart_series_t *chart_series);
-		  
+    lv_obj_t *parent,
+    const void *img,
+    const char *text,
+    lv_color_t color,
+    bool editable,
+    bool show_target,
+    Numpad &np,
+    std::string name,
+    lv_obj_t *chart,
+    lv_chart_series_t *chart_series,
+    SensorType type = SensorType::Heater);
+
   SensorContainer(KWebSocketClient &c,
-		  lv_obj_t *parent,
-		  const void *img,
-		  uint16_t img_scale,
-		  const char *text,
-		  lv_color_t color,
-		  bool editable,
-		  bool show_target,
-		  Numpad &np,
-		  std::string name,
-		  lv_obj_t *chart,
-		  lv_chart_series_t *chart_series);
-  
+    lv_obj_t *parent,
+    const void *img,
+    uint16_t img_scale,
+    const char *text,
+    lv_color_t color,
+    bool editable,
+    bool show_target,
+    Numpad &np,
+    std::string name,
+    lv_obj_t *chart,
+    lv_chart_series_t *chart_series,
+    SensorType type = SensorType::Heater);
+
   ~SensorContainer();
 
   lv_obj_t *get_sensor();
@@ -43,11 +51,11 @@ class SensorContainer {
   void handle_edit(lv_event_t *event);
 
   static void _handle_edit(lv_event_t *event) {
-    SensorContainer *panel = (SensorContainer*)event->user_data;
+    SensorContainer *panel = (SensorContainer *)event->user_data;
     panel->handle_edit(event);
   };
 
- private:
+private:
   KWebSocketClient &ws;
   lv_obj_t *sensor_cont;
   lv_obj_t *sensor_img;
@@ -62,7 +70,7 @@ class SensorContainer {
   lv_obj_t *chart;
   lv_chart_series_t *series;
   std::time_t last_updated_ts;
-  
+  SensorType type;
 };
 
 #endif // __SENSOR_CONTAINER_H__

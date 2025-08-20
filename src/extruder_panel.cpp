@@ -15,21 +15,21 @@ LV_IMG_DECLARE(extruder);
 LV_IMG_DECLARE(cooldown_img);
 
 ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
-			     std::mutex &lock,
-			     Numpad &numpad,
-			     SpoolmanPanel &sm)
+  std::mutex &lock,
+  Numpad &numpad,
+  SpoolmanPanel &sm)
   : NotifyConsumer(lock)
   , ws(websocket_client)
   , panel_cont(lv_obj_create(lv_scr_act()))
   , spoolman_panel(sm)
   , extruder_temp(ws, panel_cont, &extruder, 150,
-	  "Extruder", lv_palette_main(LV_PALETTE_RED), false, true, numpad, "extruder", NULL, NULL)
+    "Extruder", lv_palette_main(LV_PALETTE_RED), false, true, numpad, "extruder", NULL, NULL)
   , temp_selector(panel_cont, "Extruder Temperature (C)",
-		  {"180", "190", "200", "210", "220", "230", "240", ""}, 6, &ExtruderPanel::_handle_callback, this)
+    {"180", "190", "200", "210", "220", "230", "240", ""}, 6, &ExtruderPanel::_handle_callback, this)
   , length_selector(panel_cont, "Extrude Length (mm)",
-		    {"5", "10", "15", "20", "25", "30", "35", ""}, 1, &ExtruderPanel::_handle_callback, this)
+    {"5", "10", "15", "20", "25", "30", "35", ""}, 1, &ExtruderPanel::_handle_callback, this)
   , speed_selector(panel_cont, "Extrude Speed (mm/s)",
-		   {"1", "2", "5", "10", "25", "35", "50", ""}, 2, &ExtruderPanel::_handle_callback, this)
+    {"1", "2", "5", "10", "25", "35", "50", ""}, 2, &ExtruderPanel::_handle_callback, this)
   , rightside_btns_cont(lv_obj_create(panel_cont))
   , leftside_btns_cont(lv_obj_create(panel_cont))
   , load_btn(leftside_btns_cont, &load_filament_img, "Load", &ExtruderPanel::_handle_callback, this)
@@ -63,32 +63,40 @@ ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
   }
 
   lv_obj_move_background(panel_cont);
-  lv_obj_clear_flag(panel_cont, LV_OBJ_FLAG_SCROLLABLE);  
+  lv_obj_clear_flag(panel_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(panel_cont, LV_PCT(100), LV_PCT(100));
   lv_obj_set_style_pad_all(panel_cont, 0, 0);
 
-  lv_obj_set_size(rightside_btns_cont, LV_PCT(20), LV_PCT(100));  
+  lv_obj_set_size(rightside_btns_cont, LV_PCT(20), LV_PCT(100));
   lv_obj_set_flex_flow(rightside_btns_cont, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_flex_align(rightside_btns_cont, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_flex_align(rightside_btns_cont, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_clear_flag(rightside_btns_cont, LV_OBJ_FLAG_SCROLLABLE);
 
-  lv_obj_set_size(leftside_btns_cont, LV_PCT(20), LV_SIZE_CONTENT);
-  lv_obj_set_style_pad_row(leftside_btns_cont, 15, 0);
+  lv_obj_set_size(leftside_btns_cont, LV_PCT(20), LV_PCT(100));
+  // lv_obj_set_style_pad_row(leftside_btns_cont, 15, 0);
   lv_obj_set_flex_flow(leftside_btns_cont, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_flex_align(leftside_btns_cont, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_flex_align(leftside_btns_cont, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_clear_flag(leftside_btns_cont, LV_OBJ_FLAG_SCROLLABLE);
-  
-  spoolman_btn.disable();  
+
+  lv_obj_set_flex_grow(load_btn.get_container(), 1);
+  lv_obj_set_flex_grow(unload_btn.get_container(), 1);
+  lv_obj_set_flex_grow(cooldown_btn.get_container(), 1);
+  lv_obj_set_flex_grow(spoolman_btn.get_container(), 1);
+  lv_obj_set_flex_grow(extrude_btn.get_container(), 1);
+  lv_obj_set_flex_grow(retract_btn.get_container(), 1);
+  lv_obj_set_flex_grow(back_btn.get_container(), 1);
+
+  spoolman_btn.disable();
 
   static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(3), LV_GRID_FR(6), LV_GRID_FR(6), LV_GRID_FR(6),
     LV_GRID_TEMPLATE_LAST};
   static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(2), LV_GRID_FR(7), LV_GRID_FR(2), LV_GRID_TEMPLATE_LAST};
-  
+
   lv_obj_clear_flag(panel_cont, LV_OBJ_FLAG_SCROLLABLE);
-  
+
   lv_obj_set_grid_dsc_array(panel_cont, grid_main_col_dsc, grid_main_row_dsc);
   lv_obj_add_flag(extruder_temp.get_sensor(), LV_OBJ_FLAG_FLOATING);
-  lv_obj_align(extruder_temp.get_sensor(), LV_ALIGN_TOP_LEFT, 50, 0);
+  lv_obj_align(extruder_temp.get_sensor(), LV_ALIGN_TOP_LEFT, 20, 0);
 
   // lv_obj_set_size(extruder_temp.get_sensor(), 350, 60);
   // col 0
@@ -97,27 +105,27 @@ ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
   // lv_obj_set_grid_cell(unload_btn.get_container(), LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_START, 2, 2);
   // lv_obj_set_grid_cell(cooldown_btn.get_container(), LV_GRID_ALIGN_END, 0, 1, LV_GRID_ALIGN_END, 2, 2);
 
-  lv_obj_set_grid_cell(leftside_btns_cont, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 1, 3);
-  
+  lv_obj_set_grid_cell(leftside_btns_cont, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 3);
+
   // col 1
   // lv_obj_set_grid_cell(extruder_temp.get_sensor(), LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_CENTER, 0, 1);
-  lv_obj_set_grid_cell(speed_selector.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-  lv_obj_set_grid_cell(length_selector.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-  lv_obj_set_grid_cell(temp_selector.get_container(), LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 3, 1);
-  
+  lv_obj_set_grid_cell(speed_selector.get_container(), LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+  lv_obj_set_grid_cell(length_selector.get_container(), LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 2, 1);
+  lv_obj_set_grid_cell(temp_selector.get_container(), LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 3, 1);
+
   // col 2
   // lv_obj_set_grid_cell(spoolman_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_START, 0, 2);
   // lv_obj_set_grid_cell(retract_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_END, 0, 2);
   // lv_obj_set_grid_cell(extrude_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_START, 2, 2);
   // lv_obj_set_grid_cell(back_btn.get_container(), LV_GRID_ALIGN_END, 2, 1, LV_GRID_ALIGN_END, 2, 2);
 
-  lv_obj_set_grid_cell(rightside_btns_cont, LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_START, 0, 4);
+  lv_obj_set_grid_cell(rightside_btns_cont, LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 0, 4);
   // lv_obj_set_grid_cell(retract_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_END, 0, 2);
   // lv_obj_set_grid_cell(extrude_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_START, 2, 2);
   // lv_obj_set_grid_cell(back_btn.get_container(), LV_GRID_ALIGN_END, 2, 1, LV_GRID_ALIGN_END, 2, 2);
-  
 
-  ws.register_notify_update(this);    
+
+  ws.register_notify_update(this);
 }
 
 ExtruderPanel::~ExtruderPanel() {
@@ -135,16 +143,16 @@ void ExtruderPanel::enable_spoolman() {
   spoolman_btn.enable();
 }
 
-void ExtruderPanel::consume(json& j) {
+void ExtruderPanel::consume(json &j) {
   std::lock_guard<std::mutex> lock(lv_lock);
   auto target_value = j["/params/0/extruder/target"_json_pointer];
   if (!target_value.is_null()) {
     int target = target_value.template get<int>();
     extruder_temp.update_target(target);
   }
-  
+
   auto temp_value = j["/params/0/extruder/temperature"_json_pointer];
-  if (!temp_value.is_null()) {   
+  if (!temp_value.is_null()) {
     int value = temp_value.template get<int>();
     extruder_temp.update_value(value);
   }
@@ -155,7 +163,7 @@ void ExtruderPanel::handle_callback(lv_event_t *e) {
   if (lv_event_get_code(e) == LV_EVENT_VALUE_CHANGED) {
     lv_obj_t *selector = lv_event_get_target(e);
     uint32_t idx = lv_btnmatrix_get_selected_btn(selector);
-    const char * v = lv_btnmatrix_get_btn_text(selector, idx);
+    const char *v = lv_btnmatrix_get_btn_text(selector, idx);
 
     if (selector == temp_selector.get_selector()) {
       temp_selector.set_selected_idx(idx);
@@ -170,10 +178,10 @@ void ExtruderPanel::handle_callback(lv_event_t *e) {
     }
 
     spdlog::trace("selector {} {} {}, {} {} {}", fmt::ptr(selector), idx, v,
-		  fmt::ptr(temp_selector.get_selector()),
-		  fmt::ptr(length_selector.get_selector()),
-		  fmt::ptr(speed_selector.get_selector()));
-    
+      fmt::ptr(temp_selector.get_selector()),
+      fmt::ptr(length_selector.get_selector()),
+      fmt::ptr(speed_selector.get_selector()));
+
   } else if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
     lv_obj_t *btn = lv_event_get_current_target(e);
 
@@ -182,29 +190,29 @@ void ExtruderPanel::handle_callback(lv_event_t *e) {
     }
 
     if (btn == extrude_btn.get_container()) {
-      const char * temp = lv_btnmatrix_get_btn_text(temp_selector.get_selector(),
-						   temp_selector.get_selected_idx());
-      const char * len = lv_btnmatrix_get_btn_text(length_selector.get_selector(),
-						   length_selector.get_selected_idx());
+      const char *temp = lv_btnmatrix_get_btn_text(temp_selector.get_selector(),
+        temp_selector.get_selected_idx());
+      const char *len = lv_btnmatrix_get_btn_text(length_selector.get_selector(),
+        length_selector.get_selected_idx());
       const char *speed = lv_btnmatrix_get_btn_text(speed_selector.get_selector(),
-						    speed_selector.get_selected_idx());
+        speed_selector.get_selected_idx());
       ws.gcode_script(fmt::format("M109 S{}\nM83\nG1 E{} F{}", temp, len, std::stoi(speed) * 60));
     }
 
     if (btn == retract_btn.get_container()) {
-      const char * temp = lv_btnmatrix_get_btn_text(temp_selector.get_selector(),
-						   temp_selector.get_selected_idx());
-      const char * len = lv_btnmatrix_get_btn_text(length_selector.get_selector(),
-						   length_selector.get_selected_idx());
+      const char *temp = lv_btnmatrix_get_btn_text(temp_selector.get_selector(),
+        temp_selector.get_selected_idx());
+      const char *len = lv_btnmatrix_get_btn_text(length_selector.get_selector(),
+        length_selector.get_selected_idx());
       const char *speed = lv_btnmatrix_get_btn_text(speed_selector.get_selector(),
-						    speed_selector.get_selected_idx());
+        speed_selector.get_selected_idx());
       ws.gcode_script(fmt::format("M109 S{}\nM83\nG1 E-{} F{}", temp, len, std::stoi(speed) * 60));
     }
 
     if (btn == unload_btn.get_container()) {
       if (unload_filament_macro == "_GUPPY_QUIT_MATERIAL") {
         const char *temp = lv_btnmatrix_get_btn_text(temp_selector.get_selector(),
-                                                     temp_selector.get_selected_idx());
+          temp_selector.get_selected_idx());
         ws.gcode_script(fmt::format("{} EXTRUDER_TEMP={}", unload_filament_macro, temp));
       } else {
         ws.gcode_script(unload_filament_macro);
@@ -214,9 +222,9 @@ void ExtruderPanel::handle_callback(lv_event_t *e) {
     if (btn == load_btn.get_container()) {
       if (load_filament_macro == "_GUPPY_LOAD_MATERIAL") {
         const char *temp = lv_btnmatrix_get_btn_text(temp_selector.get_selector(),
-                                                     temp_selector.get_selected_idx());
+          temp_selector.get_selected_idx());
         const char *len = lv_btnmatrix_get_btn_text(length_selector.get_selector(),
-                                                    length_selector.get_selected_idx());
+          length_selector.get_selected_idx());
         ws.gcode_script(fmt::format("{} EXTRUDER_TEMP={} EXTRUDE_LEN={}", load_filament_macro, temp, len));
       } else {
         ws.gcode_script(load_filament_macro);

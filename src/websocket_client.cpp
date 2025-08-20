@@ -61,7 +61,7 @@ int KWebSocketClient::connect(const char* url,
 
     if (j.contains("method")) {
       std::string method = j["method"].template get<std::string>();
-      if ("notify_status_update" == method) {
+      if ("notify_status_update" == method || "notify_filelist_changed" == method) {
         for (const auto &entry : notify_consumers) {
           entry->consume(j);
         }

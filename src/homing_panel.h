@@ -10,27 +10,34 @@
 #include <mutex>
 
 class HomingPanel : public NotifyConsumer {
- public:
+public:
   HomingPanel(KWebSocketClient &ws, std::mutex &);
   ~HomingPanel();
 
   void consume(json &data);
-  lv_obj_t * get_container();
+  lv_obj_t *get_container();
   void foreground();
   void handle_callback(lv_event_t *event);
   void handle_selector_cb(lv_event_t *event);
-  
+  void handle_speed_selector_cb(lv_event_t *event);
+
   static void _handle_callback(lv_event_t *event) {
-    HomingPanel *panel = (HomingPanel*)event->user_data;
+    HomingPanel *panel = (HomingPanel *)event->user_data;
     panel->handle_callback(event);
   };
 
   static void _handle_selector_cb(lv_event_t *event) {
-    HomingPanel *panel = (HomingPanel*)event->user_data;
+    HomingPanel *panel = (HomingPanel *)event->user_data;
     panel->handle_selector_cb(event);
   };
 
- private:
+  static void _handle_speed_selector_cb(lv_event_t *event)
+  {
+    HomingPanel *panel = (HomingPanel *)event->user_data;
+    panel->handle_speed_selector_cb(event);
+  };
+
+private:
   KWebSocketClient &ws;
   lv_obj_t *homing_cont;
   ButtonContainer home_all_btn;
@@ -44,6 +51,7 @@ class HomingPanel : public NotifyConsumer {
   ButtonContainer emergency_btn;
   ButtonContainer motoroff_btn;
   ButtonContainer back_btn;
+  Selector speed_selector;
   Selector distance_selector;
 };
 

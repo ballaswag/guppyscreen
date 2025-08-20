@@ -22,13 +22,13 @@ LV_FONT_DECLARE(materialdesign_font_40);
 #define SETTING_SYMBOL "\xF3\xB0\x92\x93"
 
 MainPanel::MainPanel(KWebSocketClient &websocket,
-		     std::mutex &lock,
-		     SpoolmanPanel &sm)
+  std::mutex &lock,
+  SpoolmanPanel &sm)
   : NotifyConsumer(lock)
   , ws(websocket)
   , homing_panel(ws, lock)
   , fan_panel(ws, lock)
-  , led_panel(ws, lock)    
+  , led_panel(ws, lock)
   , tabview(lv_tabview_create(lv_scr_act(), LV_DIR_LEFT, 60))
   , main_tab(lv_tabview_add_tab(tabview, HOME_SYMBOL))
   , macros_tab(lv_tabview_add_tab(tabview, MACROS_SYMBOL))
@@ -54,13 +54,13 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , led_btn(main_cont, &light_img, "LED", &MainPanel::_handle_ledpanel_cb, this)
   , print_btn(main_cont, &print, "Print", &MainPanel::_handle_print_cb, this)
 {
-    lv_style_init(&style);
-    lv_style_set_img_recolor_opa(&style, LV_OPA_30);
-    lv_style_set_img_recolor(&style, lv_color_black());
-    lv_style_set_border_width(&style, 0);
-    lv_style_set_bg_color(&style, lv_palette_darken(LV_PALETTE_GREY, 4));
+  lv_style_init(&style);
+  lv_style_set_img_recolor_opa(&style, LV_OPA_30);
+  lv_style_set_img_recolor(&style, lv_color_black());
+  lv_style_set_border_width(&style, 0);
+  lv_style_set_bg_color(&style, lv_palette_darken(LV_PALETTE_GREY, 4));
 
-    ws.register_notify_update(this);    
+  ws.register_notify_update(this);
 }
 
 MainPanel::~MainPanel() {
@@ -78,7 +78,7 @@ void MainPanel::subscribe() {
   print_panel.subscribe();
 }
 
-PrinterTunePanel& MainPanel::get_tune_panel() {
+PrinterTunePanel &MainPanel::get_tune_panel() {
   return printertune_panel;
 }
 
@@ -106,7 +106,7 @@ void MainPanel::init(json &j) {
   printertune_panel.init(j);
 }
 
-void MainPanel::consume(json &j) {  
+void MainPanel::consume(json &j) {
   std::lock_guard<std::mutex> lock(lv_lock);
   for (const auto &el : sensors) {
     auto target_value = j[json::json_pointer(fmt::format("/params/0/{}/target", el.first))];
@@ -121,23 +121,23 @@ void MainPanel::consume(json &j) {
       el.second->update_series(value);
       el.second->update_value(value);
     }
-  }  
+  }
 }
 
-static void scroll_begin_event(lv_event_t * e)
+static void scroll_begin_event(lv_event_t *e)
 {
   /*Disable the scroll animations. Triggered when a tab button is clicked */
   if (lv_event_get_code(e) == LV_EVENT_SCROLL_BEGIN) {
-    lv_anim_t * a = (lv_anim_t*)lv_event_get_param(e);
-    if(a)  a->time = 0;
+    lv_anim_t *a = (lv_anim_t *)lv_event_get_param(e);
+    if (a)  a->time = 0;
   }
 }
 
 void MainPanel::create_panel() {
   lv_obj_clear_flag(lv_tabview_get_content(tabview), LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_event_cb(lv_tabview_get_content(tabview), scroll_begin_event, LV_EVENT_SCROLL_BEGIN, NULL);
-  
-  lv_obj_t * tab_btns = lv_tabview_get_tab_btns(tabview);
+
+  lv_obj_t *tab_btns = lv_tabview_get_tab_btns(tabview);
   lv_obj_set_style_bg_color(tab_btns, lv_palette_main(LV_PALETTE_GREY), LV_STATE_CHECKED | LV_PART_ITEMS);
   lv_obj_set_style_outline_width(tab_btns, 0, LV_PART_ITEMS | LV_STATE_FOCUS_KEY | LV_STATE_FOCUS_KEY);
   lv_obj_set_style_border_side(tab_btns, 0, LV_PART_ITEMS | LV_STATE_CHECKED);
@@ -152,7 +152,7 @@ void MainPanel::create_panel() {
   lv_obj_set_style_pad_all(setting_tab, 0, 0);
 
   create_main(main_tab);
-  
+
 }
 
 void MainPanel::handle_homing_cb(lv_event_t *event) {
@@ -191,45 +191,45 @@ void MainPanel::handle_print_cb(lv_event_t *event) {
   }
 }
 
-void MainPanel::create_main(lv_obj_t * parent)
+void MainPanel::create_main(lv_obj_t *parent)
 {
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_ROW_WRAP);
+  lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_ROW_WRAP);
 
-    static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-    static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1),
-      LV_GRID_TEMPLATE_LAST};
+  static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+  static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1),
+    LV_GRID_TEMPLATE_LAST};
 
-    lv_obj_clear_flag(main_cont, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_height(main_cont, LV_PCT(100));
+  lv_obj_clear_flag(main_cont, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_height(main_cont, LV_PCT(100));
 
-    lv_obj_set_flex_grow(main_cont, 1);
-    lv_obj_set_grid_dsc_array(main_cont, grid_main_col_dsc, grid_main_row_dsc);    
+  lv_obj_set_flex_grow(main_cont, 1);
+  lv_obj_set_grid_dsc_array(main_cont, grid_main_col_dsc, grid_main_row_dsc);
 
-    lv_obj_set_grid_cell(homing_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
-    lv_obj_set_grid_cell(extrude_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 0, 1);
-    lv_obj_set_grid_cell(action_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-    lv_obj_set_grid_cell(led_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-    lv_obj_set_grid_cell(print_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 2, LV_GRID_ALIGN_CENTER, 2, 1);
+  lv_obj_set_grid_cell(homing_btn.get_container(), LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
+  lv_obj_set_grid_cell(extrude_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
+  lv_obj_set_grid_cell(action_btn.get_container(), LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+  lv_obj_set_grid_cell(led_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+  lv_obj_set_grid_cell(print_btn.get_container(), LV_GRID_ALIGN_STRETCH, 2, 2, LV_GRID_ALIGN_STRETCH, 2, 1);
 
-    lv_obj_clear_flag(temp_cont, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_size(temp_cont, LV_PCT(50), LV_PCT(50));
-    lv_obj_set_style_pad_all(temp_cont, 0, 0);
+  // lv_obj_clear_flag(temp_cont, LV_OBJ_FLAG_SCROLLABLE);
+  // lv_obj_set_size(temp_cont, LV_PCT(50), LV_PCT(50));
+  lv_obj_set_style_pad_all(temp_cont, 0, 0);
 
-    lv_obj_set_flex_flow(temp_cont, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_grid_cell(temp_cont, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_CENTER, 0, 2);
-    
-    lv_obj_align(temp_chart, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_size(temp_chart, LV_PCT(45), LV_PCT(40));
-    lv_obj_set_style_size(temp_chart, 0, LV_PART_INDICATOR);
+  lv_obj_set_flex_flow(temp_cont, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_grid_cell(temp_cont, LV_GRID_ALIGN_STRETCH, 0, 2, LV_GRID_ALIGN_STRETCH, 0, 2);
 
-    lv_chart_set_range(temp_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 300);
-    lv_obj_set_grid_cell(temp_chart, LV_GRID_ALIGN_END, 0, 2, LV_GRID_ALIGN_END, 2, 1);
-    lv_chart_set_axis_tick(temp_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 6, 5, true, 50);
+  lv_obj_align(temp_chart, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_width(temp_chart, LV_PCT(45));//, LV_PCT(40));
+  lv_obj_set_style_size(temp_chart, 0, LV_PART_INDICATOR);
 
-    lv_chart_set_div_line_count(temp_chart, 3, 8);
-    lv_chart_set_point_count(temp_chart, 5000);
-    lv_chart_set_zoom_x(temp_chart, 5000);
-    lv_obj_scroll_to_x(temp_chart, LV_COORD_MAX, LV_ANIM_OFF);
+  lv_chart_set_range(temp_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 300);
+  lv_obj_set_grid_cell(temp_chart, LV_GRID_ALIGN_END, 0, 2, LV_GRID_ALIGN_STRETCH, 2, 1);
+  lv_chart_set_axis_tick(temp_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 6, 5, true, 50);
+
+  lv_chart_set_div_line_count(temp_chart, 3, 8);
+  lv_chart_set_point_count(temp_chart, 5000);
+  lv_chart_set_zoom_x(temp_chart, 5000);
+  lv_obj_scroll_to_x(temp_chart, LV_COORD_MAX, LV_ANIM_OFF);
 }
 
 void MainPanel::create_sensors(json &temp_sensors) {
@@ -237,17 +237,18 @@ void MainPanel::create_sensors(json &temp_sensors) {
   sensors.clear();
   for (auto &sensor : temp_sensors.items()) {
     std::string key = sensor.key();
+    std::string sensor_name = key;
     bool controllable = sensor.value()["controllable"].template get<bool>();
 
     lv_color_t color_code = lv_palette_main(LV_PALETTE_ORANGE);
     if (!sensor.value()["color"].is_number()) {
       std::string color = sensor.value()["color"].template get<std::string>();
       if (color == "red") {
-	color_code = lv_palette_main(LV_PALETTE_RED);
+        color_code = lv_palette_main(LV_PALETTE_RED);
       } else if (color == "purple") {
-	color_code = lv_palette_main(LV_PALETTE_PURPLE);
+        color_code = lv_palette_main(LV_PALETTE_PURPLE);
       } else if (color == "blue") {
-	color_code = lv_palette_main(LV_PALETTE_BLUE);	
+        color_code = lv_palette_main(LV_PALETTE_BLUE);
       }
     } else {
       color_code = lv_palette_main((lv_palette_t)sensor.value()["color"].template get<int>());
@@ -255,7 +256,19 @@ void MainPanel::create_sensors(json &temp_sensors) {
 
     std::string display_name = sensor.value()["display_name"].template get<std::string>();
 
-    const void* sensor_img = &heater;
+    SensorType type = SensorType::Heater;
+    auto space_idx = key.find(' ');
+    if (space_idx != std::string::npos) {
+      std::string sensor_type = key.substr(0, space_idx);
+      sensor_name = key.substr(space_idx + 1);
+      if (sensor_type == "temperature_fan") {
+        type = SensorType::TempFan;
+      } else if (sensor_type == "temperature_sensor") {
+        type = SensorType::Sensor;
+      }
+    }
+
+    const void *sensor_img = &heater;
     if (key == "extruder") {
       sensor_img = &extruder;
     } else if (key == "heater_bed") {
@@ -266,8 +279,8 @@ void MainPanel::create_sensors(json &temp_sensors) {
       lv_chart_add_series(temp_chart, color_code, LV_CHART_AXIS_PRIMARY_Y);
 
     sensors.insert({key, std::make_shared<SensorContainer>(ws, temp_cont, sensor_img, 150,
-			   display_name.c_str(), color_code, controllable, false, numpad, key,
-        		   temp_chart, temp_series)});
+      display_name.c_str(), color_code, controllable, false, numpad, sensor_name,
+      temp_chart, temp_series, type)});
   }
 }
 

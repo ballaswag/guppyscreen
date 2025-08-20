@@ -36,22 +36,19 @@ std::vector<std::string> SysInfoPanel::themes = {
   "yellow"
 };
 
-static std::map<int32_t, uint32_t> sleepsec_to_dd_idx = {
-  {-1, 0}, // never
-  {300, 1}, // 5 min
-  {600, 2}, // 10 min
-  {1800, 3}, // 30 min
-  {3600, 4}, // 1 hour
-  {18000, 5} // 5 hour
+struct SleepOption {
+  const char *label;
+  int32_t seconds;
 };
 
-static std::map<std::string, uint32_t> sleep_label_to_sec = {
-  {"Never", -1}, // never
-  {"5 Minutes", 300}, // 5 min
-  {"10 Minutes", 600}, // 10 min
-  {"30 Minutes", 1800}, // 30 min
-  {"1 Hour", 3600}, // 1 hour
-  {"5 Hours", 18000} // 5 hour
+static const SleepOption sleep_options[] = {
+  {"Never", -1},
+  {"30 Seconds", 30},
+  {"1 Minute", 60},
+  {"5 Minutes", 300},
+  {"10 Minutes", 600},
+  {"30 Minutes", 1800},
+  {"1 Hour", 3600}
 };
 
 SysInfoPanel::SysInfoPanel()
@@ -60,20 +57,20 @@ SysInfoPanel::SysInfoPanel()
   , right_cont(lv_obj_create(cont))
   , network_label(lv_label_create(right_cont))
 
-    // display sleep
+  // display sleep
   , disp_sleep_cont(lv_obj_create(left_cont))
   , display_sleep_dd(lv_dropdown_create(disp_sleep_cont))
 
-    // log level
+  // log level
   , ll_cont(lv_obj_create(left_cont))
   , loglevel_dd(lv_dropdown_create(ll_cont))
   , loglevel(1)
 
-    // estop prompt
+  // estop prompt
   , estop_toggle_cont(lv_obj_create(left_cont))
   , prompt_estop_toggle(lv_switch_create(estop_toggle_cont))
 
-    // Z axis icons
+  // Z axis icons
   , z_icon_toggle_cont(lv_obj_create(left_cont))
   , z_icon_toggle(lv_switch_create(z_icon_toggle_cont))
 
@@ -95,7 +92,7 @@ SysInfoPanel::SysInfoPanel()
   lv_obj_set_flex_align(left_cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
 
   lv_obj_clear_flag(right_cont, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_size(right_cont, LV_PCT(50), LV_PCT(100));  
+  lv_obj_set_size(right_cont, LV_PCT(50), LV_PCT(100));
   lv_obj_set_flex_flow(right_cont, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(right_cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
 
@@ -106,25 +103,30 @@ SysInfoPanel::SysInfoPanel()
   lv_label_set_text(l, "Display Sleep");
   lv_obj_align(l, LV_ALIGN_LEFT_MID, 0, 0);
   lv_obj_align(display_sleep_dd, LV_ALIGN_RIGHT_MID, 0, 0);
-  lv_dropdown_set_options(display_sleep_dd,
-			  "Never\n"
-			  "5 Minutes\n"
-			  "10 Minutes\n"
-			  "30 Minutes\n"
-			  "1 Hour\n"
-			  "5 Hours");
+
+  std::string dd_options;
+  for (const auto &opt : sleep_options) {
+    dd_options += opt.label;
+    dd_options += '\n';
+  }
+  dd_options.pop_back();
+
+  lv_dropdown_set_options(display_sleep_dd, dd_options.c_str());
 
   auto v = conf->get_json("/display_sleep_sec");
   if (!v.is_null()) {
     auto sleep_sec = v.template get<int32_t>();
-    const auto &el = sleepsec_to_dd_idx.find(sleep_sec);
-    if (el != sleepsec_to_dd_idx.end()) {
-      lv_dropdown_set_selected(display_sleep_dd, el->second);
+    for (size_t i = 0; i < std::size(sleep_options); ++i) {
+      if (sleep_options[i].seconds == sleep_sec) {
+        lv_dropdown_set_selected(display_sleep_dd, i);
+        break;
+      }
     }
   }
+
   lv_obj_add_event_cb(display_sleep_dd, &SysInfoPanel::_handle_callback,
-		      LV_EVENT_VALUE_CHANGED, this);
-  
+    LV_EVENT_VALUE_CHANGED, this);
+
   lv_obj_set_size(ll_cont, LV_PCT(100), LV_SIZE_CONTENT);
   lv_obj_set_style_pad_all(ll_cont, 0, 0);
   l = lv_label_create(ll_cont);
@@ -148,7 +150,7 @@ SysInfoPanel::SysInfoPanel()
   }
 
   lv_obj_add_event_cb(loglevel_dd, &SysInfoPanel::_handle_callback,
-		      LV_EVENT_VALUE_CHANGED, this);
+    LV_EVENT_VALUE_CHANGED, this);
 
   lv_obj_set_size(estop_toggle_cont, LV_PCT(100), LV_SIZE_CONTENT);
   lv_obj_set_style_pad_all(estop_toggle_cont, 0, 0);
@@ -170,18 +172,18 @@ SysInfoPanel::SysInfoPanel()
   }
 
   lv_obj_add_event_cb(prompt_estop_toggle, &SysInfoPanel::_handle_callback,
-		      LV_EVENT_VALUE_CHANGED, this);
+    LV_EVENT_VALUE_CHANGED, this);
 
-    /* Z icon selection */
+  /* Z icon selection */
   lv_obj_set_size(z_icon_toggle_cont, LV_PCT(100), LV_SIZE_CONTENT);
   lv_obj_set_style_pad_all(z_icon_toggle_cont, 0, 0);
 
   l = lv_label_create(z_icon_toggle_cont);
-  lv_label_set_text(l, "Invert Z Icon");
+  lv_label_set_text(l, "Invert Z Direction");
   lv_obj_align(l, LV_ALIGN_LEFT_MID, 0, 0);
   lv_obj_align(z_icon_toggle, LV_ALIGN_RIGHT_MID, 0, 0);
 
-  v = conf->get_json("/invert_z_icon");
+  v = conf->get_json("/invert_z_direction");
   if (!v.is_null()) {
     if (v.template get<bool>()) {
       lv_obj_add_state(z_icon_toggle, LV_STATE_CHECKED);
@@ -194,7 +196,7 @@ SysInfoPanel::SysInfoPanel()
   }
 
   lv_obj_add_event_cb(z_icon_toggle, &SysInfoPanel::_handle_callback,
-		      LV_EVENT_VALUE_CHANGED, this);
+    LV_EVENT_VALUE_CHANGED, this);
 
   // theme dropdown
   lv_obj_set_size(theme_cont, LV_PCT(100), LV_SIZE_CONTENT);
@@ -208,19 +210,19 @@ SysInfoPanel::SysInfoPanel()
 
   v = conf->get_json("/theme");
   if (!v.is_null()) {
-      auto it = std::find(themes.begin(), themes.end(), v.template get<std::string>());
-      if (it != std::end(themes)) {
-          theme = std::distance(themes.begin(), it);
-          lv_dropdown_set_selected(theme_dd, theme);
-      }
-  } else {
+    auto it = std::find(themes.begin(), themes.end(), v.template get<std::string>());
+    if (it != std::end(themes)) {
+      theme = std::distance(themes.begin(), it);
       lv_dropdown_set_selected(theme_dd, theme);
+    }
+  } else {
+    lv_dropdown_set_selected(theme_dd, theme);
   }
   lv_obj_add_event_cb(theme_dd, &SysInfoPanel::_handle_callback,
-                      LV_EVENT_VALUE_CHANGED, this);
+    LV_EVENT_VALUE_CHANGED, this);
 
 
-  lv_obj_add_flag(back_btn.get_container(), LV_OBJ_FLAG_FLOATING);	
+  lv_obj_add_flag(back_btn.get_container(), LV_OBJ_FLAG_FLOATING);
   lv_obj_align(back_btn.get_container(), LV_ALIGN_BOTTOM_RIGHT, 0, 0);
 }
 
@@ -242,7 +244,7 @@ void SysInfoPanel::foreground() {
     network_detail.push_back(fmt::format("\t{}: {}", iface, ip));
   }
   lv_label_set_text(network_label, fmt::format("{}\n\nGuppyScreen\n\tVersion: " GS_VERSION,
-					       fmt::join(network_detail, "\n")).c_str());
+    fmt::join(network_detail, "\n")).c_str());
 }
 
 void SysInfoPanel::handle_callback(lv_event_t *e)
@@ -254,8 +256,7 @@ void SysInfoPanel::handle_callback(lv_event_t *e)
     {
       lv_obj_move_background(cont);
     }
-  }
-  else if (lv_event_get_code(e) == LV_EVENT_VALUE_CHANGED) {
+  } else if (lv_event_get_code(e) == LV_EVENT_VALUE_CHANGED) {
     lv_obj_t *obj = lv_event_get_target(e);
     Config *conf = Config::get_instance();
     if (obj == loglevel_dd) {
@@ -272,26 +273,25 @@ void SysInfoPanel::handle_callback(lv_event_t *e)
           conf->save();
         }
       }
-    }
-    else if (obj == prompt_estop_toggle) {
+    } else if (obj == prompt_estop_toggle) {
       bool should_prompt = lv_obj_has_state(prompt_estop_toggle, LV_STATE_CHECKED);
       conf->set<bool>("/prompt_emergency_stop", should_prompt);
       conf->save();
-    }
-    else if (obj == display_sleep_dd) {
+    } else if (obj == display_sleep_dd) {
       char buf[64];
       lv_dropdown_get_selected_str(display_sleep_dd, buf, sizeof(buf));
-      std::string sleep_label = std::string(buf);
-      const auto &el = sleep_label_to_sec.find(sleep_label);
-      if (el != sleep_label_to_sec.end())
-      {
-        conf->set<int32_t>("/display_sleep_sec", el->second);
-        conf->save();
+      std::string selected_label = buf;
+
+      for (const auto &opt : sleep_options) {
+        if (opt.label == selected_label) {
+          conf->set<int32_t>("/display_sleep_sec", opt.seconds);
+          conf->save();
+          break;
+        }
       }
-    }
-    else if (obj == z_icon_toggle) {
+    } else if (obj == z_icon_toggle) {
       bool inverted = lv_obj_has_state(z_icon_toggle, LV_STATE_CHECKED);
-      conf->set<bool>("/invert_z_icon", inverted);
+      conf->set<bool>("/invert_z_direction", inverted);
       conf->save();
     } else if (obj == theme_dd) {
       auto idx = lv_dropdown_get_selected(theme_dd);

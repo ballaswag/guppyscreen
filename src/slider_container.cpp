@@ -2,66 +2,66 @@
 #include "spdlog/spdlog.h"
 
 SliderContainer::SliderContainer(lv_obj_t *parent,
-				 const char *label_text,
-				 const void *off_btn_img,
-				 const char *off_text,
-				 const void *max_btn_img,
-				 const char *max_text,
-				 lv_event_cb_t cb,
-				 void *user_data)
+  const char *label_text,
+  const void *off_btn_img,
+  const char *off_text,
+  const void *max_btn_img,
+  const char *max_text,
+  lv_event_cb_t cb,
+  void *user_data)
   : SliderContainer(parent,
-		    label_text,
-		    off_btn_img,
-		    off_text,
-		    cb,
-		    user_data,
-		    max_btn_img,
-		    max_text,
-		    cb,
-		    user_data,
-		    cb,
-		    user_data,
-		    "%") {
+    label_text,
+    off_btn_img,
+    off_text,
+    cb,
+    user_data,
+    max_btn_img,
+    max_text,
+    cb,
+    user_data,
+    cb,
+    user_data,
+    "%") {
 }
 
 SliderContainer::SliderContainer(lv_obj_t *parent,
-				 const char *label_text,
-				 const void *off_btn_img,
-				 const char *off_text,
-				 const void *max_btn_img,
-				 const char *max_text,
-				 lv_event_cb_t cb,
-				 void *user_data,
-				 std::string u)
+  const char *label_text,
+  const void *off_btn_img,
+  const char *off_text,
+  const void *max_btn_img,
+  const char *max_text,
+  lv_event_cb_t cb,
+  void *user_data,
+  std::string u)
   : SliderContainer(parent,
-		    label_text,
-		    off_btn_img,
-		    off_text,
-		    cb,
-		    user_data,
-		    max_btn_img,
-		    max_text,
-		    cb,
-		    user_data,
-		    cb,
-		    user_data,
-		    u) {
+    label_text,
+    off_btn_img,
+    off_text,
+    cb,
+    user_data,
+    max_btn_img,
+    max_text,
+    cb,
+    user_data,
+    cb,
+    user_data,
+    u) {
 }
 
 
 SliderContainer::SliderContainer(lv_obj_t *parent,
-				 const char *label_text,
-				 const void *off_btn_img,
-				 const char *off_text,
-				 lv_event_cb_t off_cb,
-				 void * off_cb_user_data,
-				 const void *max_btn_img,
-				 const char *max_text,
-				 lv_event_cb_t max_cb,
-				 void * max_cb_user_data,
-				 lv_event_cb_t slider_cb,
-				 void * slider_user_data,
-				 std::string u)
+  const char *label_text,
+  const void *off_btn_img,
+  const char *off_text,
+  lv_event_cb_t off_cb,
+  void *off_cb_user_data,
+  const void *max_btn_img,
+  const char *max_text,
+  lv_event_cb_t max_cb,
+  void *max_cb_user_data,
+  lv_event_cb_t slider_cb,
+  void *slider_user_data,
+  std::string u)
   : cont(lv_obj_create(parent))
   , label(lv_label_create(cont))
   , control_cont(lv_obj_create(cont))
@@ -82,7 +82,7 @@ SliderContainer::SliderContainer(lv_obj_t *parent,
   lv_obj_align(cont, LV_ALIGN_CENTER, 0, 0);
 
   lv_label_set_text(label, label_text);
-  lv_obj_set_width(label, LV_PCT(100));  
+  lv_obj_set_width(label, LV_PCT(100));
 
   lv_obj_clear_flag(control_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(control_cont, lv_pct(100), LV_SIZE_CONTENT);
@@ -91,16 +91,20 @@ SliderContainer::SliderContainer(lv_obj_t *parent,
   lv_obj_set_style_pad_all(control_cont, 0, 0);
   lv_obj_set_style_pad_bottom(control_cont, 7, 0);
 
-  lv_obj_clear_flag(slider_cont, LV_OBJ_FLAG_SCROLLABLE);    
-  lv_obj_set_size(slider_cont, LV_PCT(45), LV_SIZE_CONTENT);
+  lv_obj_clear_flag(slider_cont, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_size(slider_cont, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  lv_obj_set_flex_grow(slider_cont, 1);
   lv_obj_set_style_pad_all(slider_cont, 0, 0);
+  lv_obj_set_style_pad_left(slider_cont, 12, 0);
+  lv_obj_set_style_pad_right(slider_cont, 12, 0);
 
   lv_obj_align(slider, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_width(slider, LV_PCT(85));
+  lv_obj_set_width(slider, LV_PCT(100));
   lv_obj_align_to(slider_value, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
 
   if (max_text == NULL) {
-    max_btn.hide();
+    lv_obj_set_style_opa(max_btn.get_container(), LV_OPA_0, 0);
+    max_btn.disable();
   }
 
   if (slider_cb != NULL) {
@@ -108,7 +112,7 @@ SliderContainer::SliderContainer(lv_obj_t *parent,
   }
 
   lv_obj_add_event_cb(slider, &SliderContainer::_handle_value_update,
-		      LV_EVENT_VALUE_CHANGED, this);
+    LV_EVENT_VALUE_CHANGED, this);
 }
 
 SliderContainer::~SliderContainer() {
@@ -145,6 +149,6 @@ void SliderContainer::update_value(int value) {
 }
 
 void SliderContainer::handle_value_update(lv_event_t *event) {
-  lv_obj_t * obj = lv_event_get_target(event);
+  lv_obj_t *obj = lv_event_get_target(event);
   update_value((int)lv_slider_get_value(obj));
 }
