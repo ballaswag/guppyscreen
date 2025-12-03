@@ -46,7 +46,8 @@ jobs:
     - name: set guppyscreen version
       run: |
         echo "GUPPYSCREEN_BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
-        echo "GUPPYSCREEN_VERSION=${{ github.sha }}" >> $GITHUB_ENV
+        echo "GIT_SHA=${{ github.sha }}" >> $GITHUB_ENV
+        run: echo "GUPPYSCREEN_VERSION=${GIT_SHA:0:7}" >> $GITHUB_ENV
 
     - if: matrix.small
       name: export screen size
