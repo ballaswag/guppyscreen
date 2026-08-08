@@ -13,6 +13,7 @@ LV_IMG_DECLARE(extruder);
 LV_IMG_DECLARE(bed);
 LV_IMG_DECLARE(fan);
 LV_IMG_DECLARE(heater);
+LV_IMG_DECLARE(spoolman_img);
 
 LV_FONT_DECLARE(materialdesign_font_40);
 #define MACROS_SYMBOL "\xF3\xB1\xB2\x83"
@@ -28,7 +29,8 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , ws(websocket)
   , homing_panel(ws, lock)
   , fan_panel(ws, lock)
-  , led_panel(ws, lock)    
+  , led_panel(ws, lock)
+  , cfs_panel(ws, lock)
   , tabview(lv_tabview_create(lv_scr_act(), LV_DIR_LEFT, 60))
   , main_tab(lv_tabview_add_tab(tabview, HOME_SYMBOL))
   , macros_tab(lv_tabview_add_tab(tabview, MACROS_SYMBOL))
@@ -53,6 +55,7 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , action_btn(main_cont, &fan, "Fans", &MainPanel::_handle_fanpanel_cb, this)
   , led_btn(main_cont, &light_img, "LED", &MainPanel::_handle_ledpanel_cb, this)
   , print_btn(main_cont, &print, "Print", &MainPanel::_handle_print_cb, this)
+  , cfs_btn(main_cont, &spoolman_img, "CFS", &MainPanel::_handle_cfspanel_cb, this)
 {
     lv_style_init(&style);
     lv_style_set_img_recolor_opa(&style, LV_OPA_30);
@@ -84,6 +87,13 @@ PrinterTunePanel& MainPanel::get_tune_panel() {
 
 void MainPanel::init(json &j) {
   std::lock_guard<std::mutex> lock(lv_lock);
+
+  /* No CFS attached: the button would go nowhere. */
+  if (j[json::json_pointer("/result/status/box")].is_null()) {
+    lv_obj_add_flag(cfs_btn.get_container(), LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_clear_flag(cfs_btn.get_container(), LV_OBJ_FLAG_HIDDEN);
+  }
   for (const auto &el : sensors) {
     auto target_value = j[json::json_pointer(fmt::format("/result/status/{}/target", el.first))];
     if (!target_value.is_null()) {
@@ -184,6 +194,13 @@ void MainPanel::handle_ledpanel_cb(lv_event_t *event) {
   }
 }
 
+void MainPanel::handle_cfspanel_cb(lv_event_t *event) {
+  if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+    spdlog::trace("clicked cfs panel");
+    cfs_panel.foreground();
+  }
+}
+
 void MainPanel::handle_print_cb(lv_event_t *event) {
   if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
     spdlog::trace("clicked print");
@@ -209,7 +226,8 @@ void MainPanel::create_main(lv_obj_t * parent)
     lv_obj_set_grid_cell(extrude_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 0, 1);
     lv_obj_set_grid_cell(action_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 1, 1);
     lv_obj_set_grid_cell(led_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 1, 1);
-    lv_obj_set_grid_cell(print_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 2, LV_GRID_ALIGN_CENTER, 2, 1);
+    lv_obj_set_grid_cell(print_btn.get_container(), LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 2, 1);
+    lv_obj_set_grid_cell(cfs_btn.get_container(), LV_GRID_ALIGN_CENTER, 3, 1, LV_GRID_ALIGN_CENTER, 2, 1);
 
     lv_obj_clear_flag(temp_cont, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_size(temp_cont, LV_PCT(50), LV_PCT(50));

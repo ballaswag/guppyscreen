@@ -7,6 +7,7 @@
 #include "button_container.h"
 #include "file_panel.h"
 #include "print_status_panel.h"
+#include "cfs_mapping.h"
 #include "tree.h"
 
 class PrintPanel : public NotifyConsumer {
@@ -20,6 +21,7 @@ class PrintPanel : public NotifyConsumer {
   void foreground();
   void handle_callback(lv_event_t *event);
   void handle_metadata(Tree *, json & data);
+  void start_print();
   void handle_back_btn(lv_event_t *event);
   void handle_print_callback(lv_event_t *event);
   void handle_status_btn(lv_event_t *event);
@@ -56,6 +58,7 @@ class PrintPanel : public NotifyConsumer {
   void show_file_detail(Tree *f);
   
   KWebSocketClient &ws;
+  CfsMapping cfs_mapping;
   lv_obj_t *files_cont;
 
   // prompt

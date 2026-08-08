@@ -1,5 +1,10 @@
 # Guppy Screen for Klipper
 
+> **Fork with Creality Filament System (CFS) support.**
+> Adds a CFS panel with instant, restart-free material and colour assignment,
+> and a filament mapping step before every print. See **[docs/CFS.md](docs/CFS.md)**.
+> Everything else is upstream [ballaswag/guppyscreen](https://github.com/ballaswag/guppyscreen).
+
 Guppy Screen is a touch UI for Klipper using APIs exposed by Moonraker. It builds on LVGL as a standalone executable, has no dependency on any display servers such as X/Wayland.
 <p align="center">
     <a aria-label="Downloads" href="https://github.com/ballaswag/guppyscreen/releases">
@@ -72,6 +77,7 @@ ssh into your K1/Max and run the follwow command:
 :white_check_mark: Belt Calibration/Excitate  
 :white_check_mark: Print Status  
 :white_check_mark: Spoolman Integration  
+:white_check_mark: Creality Filament System (CFS)  
 :white_check_mark: Extrude/Retract  
 :white_check_mark: Temperature Control  
 :white_check_mark: Fans/LED/Move Control  
@@ -91,6 +97,8 @@ Open for feature requests.
 
 ## Documentation
 You can find various Guppy Screen documents [here](https://ballaswag.github.io/docs/guppyscreen/configuration/).
+
+CFS support in this fork is documented in [docs/CFS.md](docs/CFS.md).
 
 ## Screenshot
 ### Material Theme

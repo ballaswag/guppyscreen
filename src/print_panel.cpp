@@ -17,6 +17,7 @@ LV_IMG_DECLARE(back);
 PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatusPanel &ps)
   : NotifyConsumer(lock)
   , ws(websocket)
+  , cfs_mapping(websocket, lock)
   , files_cont(lv_obj_create(lv_scr_act()))
   , prompt_cont(lv_obj_create(lv_scr_act()))
   , msgbox(lv_obj_create(prompt_cont))
@@ -355,15 +356,31 @@ void PrintPanel::handle_print_callback(lv_event_t *event) {
       // ws.send_jsonrpc("printer.gcode.script",
       // 		    json::parse(R"({"script":"PRINT_PREPARE_CLEAR"})"));
 
-      json fname_input = {{"filename", cur_file->full_path }};
-      ws.send_jsonrpc("printer.print.start", fname_input);
-      print_status.foreground();
+      /* On a CFS printer always offer the mapping first, like any AMS does:
+         it is the last chance to re-map slots and colours before printing. */
+      if (CfsMapping::available()) {
+        json empty = json::object();
+        json &meta = cur_file->contains_metadata() ? cur_file->metadata : empty;
+        spdlog::debug("cfs mapping: opening dialog (metadata: {})",
+                      cur_file->contains_metadata());
+        cfs_mapping.show(meta, [this]() { this->start_print(); });
+      } else {
+        start_print();
+      }
 
     } else {
       lv_obj_clear_flag(prompt_cont, LV_OBJ_FLAG_HIDDEN);
       lv_obj_move_foreground(prompt_cont);
     }
   }
+}
+
+void PrintPanel::start_print() {
+  if (cur_file == NULL) return;
+  spdlog::debug("starting print {}", cur_file->full_path);
+  json fname_input = {{"filename", cur_file->full_path }};
+  ws.send_jsonrpc("printer.print.start", fname_input);
+  print_status.foreground();
 }
 
 void PrintPanel::handle_status_btn(lv_event_t *event) {
