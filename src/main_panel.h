@@ -18,6 +18,7 @@
 #include "setting_panel.h"
 #include "print_status_panel.h"
 #include "spoolman_panel.h"
+#include "cfs_panel.h"
 #include "lvgl/lvgl.h"
 
 #include <mutex>
@@ -46,6 +47,7 @@ class MainPanel : public NotifyConsumer {
   void handle_fanpanel_cb(lv_event_t *event);
   void handle_ledpanel_cb(lv_event_t *event);
   void handle_print_cb(lv_event_t *event);
+  void handle_cfspanel_cb(lv_event_t *event);
 
   lv_obj_t *create_button(lv_obj_t *parent,
 			  const void *btn_img,
@@ -82,12 +84,18 @@ class MainPanel : public NotifyConsumer {
     panel->handle_print_cb(event);
   };
 
+  static void _handle_cfspanel_cb(lv_event_t *event) {
+    MainPanel *panel = (MainPanel*)event->user_data;
+    panel->handle_cfspanel_cb(event);
+  };
+
  private:
   void create_main(lv_obj_t *parent);
   KWebSocketClient &ws;
   HomingPanel homing_panel;
   FanPanel fan_panel;
   LedPanel led_panel;
+  CfsPanel cfs_panel;
   lv_obj_t *tabview;
   lv_obj_t *main_tab;
   lv_obj_t *macros_tab;
@@ -118,5 +126,6 @@ class MainPanel : public NotifyConsumer {
   ButtonContainer action_btn;
   ButtonContainer led_btn;
   ButtonContainer print_btn;
+  ButtonContainer cfs_btn;
 };
 #endif // __MAIN_PANEL_H__
