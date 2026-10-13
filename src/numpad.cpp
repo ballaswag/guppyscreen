@@ -164,3 +164,10 @@ void Numpad::foreground_reset() {
   lv_obj_move_foreground(edit_cont);
   lv_keyboard_set_textarea(kb, input);
 }
+
+void Numpad::background() {
+  lv_obj_add_flag(edit_cont, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_background(edit_cont);
+  set_highlight_target(NULL);
+  lv_textarea_set_text(input, "");
+}

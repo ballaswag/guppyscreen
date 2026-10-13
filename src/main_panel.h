@@ -38,6 +38,7 @@ class MainPanel : public NotifyConsumer {
   void enable_mmu();
   void disable_mmu();
   void set_firmware_restart_available(bool available);
+  void set_klipper_ready(bool ready);
   MmuPanel *mmu() { return mmu_panel; }
   bool home_active() const;
   void add_tab_change_cb(lv_event_cb_t cb, void *user_data);
@@ -133,5 +134,6 @@ class MainPanel : public NotifyConsumer {
   ButtonContainer led_btn;
   ButtonContainer print_btn;
   ButtonContainer emergency_btn;
+  bool klipper_ready = false;
 };
 #endif // __MAIN_PANEL_H__

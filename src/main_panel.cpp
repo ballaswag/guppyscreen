@@ -72,6 +72,7 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
 
     lv_obj_add_event_cb(tabview, &MainPanel::_tabview_event_cb,
                             LV_EVENT_VALUE_CHANGED, this);
+    set_klipper_ready(false);
 }
 
 MainPanel::~MainPanel() {
@@ -91,6 +92,25 @@ void MainPanel::subscribe() {
 void MainPanel::set_firmware_restart_available(bool available) {
   std::lock_guard<std::mutex> lock(lv_lock);
   setting_panel.set_firmware_restart_available(available);
+}
+
+void MainPanel::set_klipper_ready(bool ready) {
+  std::lock_guard<std::mutex> lock(lv_lock);
+  klipper_ready = ready;
+  console_panel.set_gcode_input_enabled(ready);
+
+  for (ButtonContainer *button : {&homing_btn, &extrude_btn, &action_btn,
+                                  &led_btn, &print_btn, &emergency_btn}) {
+    if (ready) button->enable();
+    else button->disable();
+  }
+  for (const auto &sensor : sensors) sensor.second->set_enabled(ready);
+  if (ready) lv_obj_clear_state(print_status_panel.get_mini_status(), LV_STATE_DISABLED);
+  else {
+    lv_obj_add_state(print_status_panel.get_mini_status(), LV_STATE_DISABLED);
+    print_status_panel.background();
+    numpad.background();
+  }
 }
 
 bool MainPanel::home_active() const {
@@ -145,7 +165,7 @@ void MainPanel::consume(json &j) {
 
   json &pstat_state = j["/params/0/print_stats/state"_json_pointer];
   if (!pstat_state.is_null()) {
-    if (pstat_state.template get<std::string>() != "printing") {
+    if (klipper_ready && pstat_state.template get<std::string>() != "printing") {
       homing_btn.enable();
       extrude_btn.enable();
     } else {
@@ -435,6 +455,7 @@ void MainPanel::create_sensors(json &temp_sensors) {
     auto sc = std::make_shared<SensorContainer>(ws, temp_cont, sensor_img,
 			   display_name.c_str(), color_code, controllable, false, numpad, key,
         		   temp_chart, temp_series);
+    sc->set_enabled(klipper_ready);
     if (many_sensors) {
       const int compact_trim = 2 * compact_amount / compact_range;
       lv_obj_set_height(sc->get_sensor(), scale_r(34) - compact_trim);

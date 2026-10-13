@@ -19,6 +19,7 @@ class Numpad {
   void handle_kb_input(lv_event_t *event);
   /* void handle_defocused(lv_event_t *event); */
   void foreground_reset();
+  void background();
   // cover the parent from x (parent-content coordinates) to its right edge
   void cover_from(lv_coord_t x);
   // mark obj checked while the numpad is open for it; NULL clears

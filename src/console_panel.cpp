@@ -96,6 +96,20 @@ lv_obj_t *ConsolePanel::get_container() {
   return console_cont;
 }
 
+void ConsolePanel::set_gcode_input_enabled(bool enabled) {
+  gcode_input_enabled = enabled;
+  if (enabled) {
+    lv_obj_clear_state(input, LV_STATE_DISABLED);
+    return;
+  }
+
+  lv_obj_add_state(input, LV_STATE_DISABLED);
+  lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_height(lower_cont, LV_SIZE_CONTENT);
+  lv_obj_clear_state(input, LV_STATE_FOCUSED);
+  lv_indev_reset(NULL, input);
+}
+
 // thanks Chad
 void ta_add_text_limit_lines(lv_obj_t * ta, const std::string &line) {
   // Always append a newline at the end
@@ -159,6 +173,11 @@ void ConsolePanel::handle_macro_response(json &j) {
 
 void ConsolePanel::handle_input(lv_event_t *e) {
   const lv_event_code_t code = lv_event_get_code(e);
+  if (!gcode_input_enabled) {
+    lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_height(lower_cont, LV_SIZE_CONTENT);
+    return;
+  }
   if (code == LV_EVENT_FOCUSED) {
     // keys big enough for a finger: the lower box takes most of the tab
     lv_obj_set_height(lower_cont, LV_PCT(65));

@@ -140,6 +140,11 @@ lv_obj_t *SensorContainer::get_sensor() {
   return sensor_cont;
 }
 
+void SensorContainer::set_enabled(bool enabled) {
+  if (enabled) lv_obj_clear_state(sensor_cont, LV_STATE_DISABLED);
+  else lv_obj_add_state(sensor_cont, LV_STATE_DISABLED);
+}
+
 void SensorContainer::update_target(int new_target) {
   if (new_target >= 0 && new_target != target) {
     target = new_target;

@@ -180,11 +180,14 @@ void InitPanel::wait_for_klipper(uint64_t generation) {
 }
 
 void InitPanel::initialization_complete(uint64_t generation) {
-  std::lock_guard<std::mutex> lock(lv_lock);
-  if (lifecycle != Lifecycle::Initializing || lifecycle_generation != generation) return;
-  lifecycle = Lifecycle::Ready;
-  waiting = false;
-  update_visibility();
+  {
+    std::lock_guard<std::mutex> lock(lv_lock);
+    if (lifecycle != Lifecycle::Initializing || lifecycle_generation != generation) return;
+    lifecycle = Lifecycle::Ready;
+    waiting = false;
+    update_visibility();
+  }
+  main_panel.set_klipper_ready(true);
 }
 
 void InitPanel::klippy_disconnected(KWebSocketClient &ws) {
@@ -215,6 +218,7 @@ void InitPanel::begin_waiting(const char *message, bool firmware_restart_availab
     waiting = true;
     update_visibility();
   }
+  main_panel.set_klipper_ready(false);
   main_panel.set_firmware_restart_available(firmware_restart_available);
 }
 

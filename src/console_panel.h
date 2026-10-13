@@ -15,6 +15,7 @@ class ConsolePanel {
 
   lv_obj_t *get_container();
   void foreground();
+  void set_gcode_input_enabled(bool enabled);
   void handle_macro_response(json &d);
   void handle_delete_btn(lv_event_t *event);
   void handle_input(lv_event_t *event);
@@ -39,6 +40,7 @@ class ConsolePanel {
   lv_obj_t *input;
   lv_obj_t *kb;
   ButtonContainer delete_btn;
+  bool gcode_input_enabled = false;
 };
 
 #endif // __CONSOLE_PANEL_H__

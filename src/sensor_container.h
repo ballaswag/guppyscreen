@@ -24,6 +24,7 @@ class SensorContainer {
   ~SensorContainer();
 
   lv_obj_t *get_sensor();
+  void set_enabled(bool enabled);
   void update_target(int new_target);
   void update_value(int new_value);
   void update_series(int value);
