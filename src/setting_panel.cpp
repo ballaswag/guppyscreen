@@ -8,6 +8,7 @@
 #include "icons.h"
 #include "theme.h"
 
+#include <fstream>
 #include <vector>
 
 #ifndef OS_ANDROID
@@ -103,6 +104,37 @@ static void layout_tiles(lv_obj_t *cont, const std::vector<ButtonContainer *> &t
   }
 }
 
+// How often the About tab's lifetime print time is refreshed while it is shown.
+static constexpr uint32_t LIFETIME_REFRESH_MS = 30000;
+
+// Seconds printed under the stock Elegoo firmware, which keeps its counter as
+// "cumulative_time : <seconds>" in /board-resource/sysconf.cfg (shown on its own
+// About screen). COSMOS leaves that file in place, so the hours carry over.
+// 0 when the file or the key is missing.
+static double read_stock_print_time() {
+#ifdef COSMOS
+  std::ifstream in("/board-resource/sysconf.cfg");
+  std::string line;
+  while (std::getline(in, line)) {
+    if (line.rfind("cumulative_time", 0) != 0) continue;
+    size_t colon = line.find(':');
+    if (colon == std::string::npos) break;
+    try {
+      double secs = std::stod(line.substr(colon + 1));
+      return secs > 0 ? secs : 0;
+    } catch (...) {
+      break;
+    }
+  }
+#endif
+  return 0;
+}
+
+static std::string format_print_time(double secs) {
+  long minutes = secs > 0 ? (long)(secs / 60) : 0;
+  return std::to_string(minutes / 60) + "h " + std::to_string(minutes % 60) + "m";
+}
+
 static lv_obj_t *add_about_line(lv_obj_t *parent, const std::string &text, bool title = false) {
   lv_obj_t *label = lv_label_create(parent);
   lv_label_set_text(label, text.c_str());
@@ -167,6 +199,9 @@ SettingPanel::SettingPanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent)
   , shutdown_host_btn(actions_cont, Icons::SHUTDOWN_IMG, "Shutdown\nHost", &SettingPanel::_handle_callback, this,
           "Shutdown host?", "Do you want to shutdown the host?", {"Back", "Shutdown Host"})
 #endif
+  , lifetime_label(nullptr)
+  , lifetime_timer(nullptr)
+  , stock_print_time(read_stock_print_time())
 {
   // Restart Klipper asks Moonraker to restart the service, so it stays useful
   // while Klipper is down. Firmware restart, on the other hand, is a Klipper
@@ -202,6 +237,8 @@ SettingPanel::SettingPanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent)
 #endif
   add_about_line(about_panel, std::string("Branch: ") + GUPPYSCREEN_BRANCH);
   add_about_line(about_panel, std::string("Version: ") + GUPPYSCREEN_VERSION);
+  lifetime_label = add_about_line(about_panel, "Lifetime print time: " + format_print_time(stock_print_time));
+  lifetime_timer = lv_timer_create(&SettingPanel::_lifetime_timer_cb, LIFETIME_REFRESH_MS, this);
 
 #ifndef OS_ANDROID
   // Android configuration is edited in the printer's grumpyscreen.ini.
@@ -312,6 +349,10 @@ SettingPanel::SettingPanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent)
 }
 
 SettingPanel::~SettingPanel() {
+  if (lifetime_timer != NULL) {
+    lv_timer_del(lifetime_timer);
+    lifetime_timer = NULL;
+  }
   if (owns_cont && cont != NULL) {
     lv_obj_del(cont);
     cont = NULL;
@@ -411,12 +452,54 @@ void SettingPanel::refresh_emergency_stop_warning() {
 #endif
 
 void SettingPanel::refresh_active_tab() {
-#ifndef OS_ANDROID
   const uint16_t idx = lv_tabview_get_tab_act(tabview);
+#ifndef OS_ANDROID
   if (idx == lv_obj_get_index(wifi_tab)) {
     wifi_panel.foreground();
   }
 #endif
+  if (idx == lv_obj_get_index(about_tab)) {
+    refresh_lifetime();
+  }
+}
+
+void SettingPanel::_lifetime_timer_cb(lv_timer_t *timer) {
+  SettingPanel *panel = static_cast<SettingPanel *>(timer->user_data);
+  // Only while the About tab is on screen.
+  if (lv_obj_is_visible(panel->about_tab) &&
+      lv_tabview_get_tab_act(panel->tabview) == lv_obj_get_index(panel->about_tab)) {
+    panel->refresh_lifetime();
+  }
+}
+
+// Finished jobs come from Moonraker's history totals; a job still printing or
+// paused only lands there when it ends, so its print_duration is added on top.
+void SettingPanel::refresh_lifetime() {
+  ws.send_jsonrpc("server.history.totals", [this](json &d) {
+    double finished = 0;
+    if (d.contains("result") && d["result"].contains("job_totals")) {
+      auto &t = d["result"]["job_totals"]["total_print_time"];
+      if (t.is_number()) finished = t.template get<double>();
+    }
+    json params = {{"objects", {{"print_stats", {"state", "print_duration"}}}}};
+    ws.send_jsonrpc("printer.objects.query", params, [this, finished](json &q) {
+      double running = 0;
+      if (q.contains("result") && q["result"].contains("status") && q["result"]["status"].contains("print_stats")) {
+        auto &ps = q["result"]["status"]["print_stats"];
+        std::string state = ps.contains("state") && ps["state"].is_string() ? ps["state"].template get<std::string>() : "";
+        if ((state == "printing" || state == "paused") && ps.contains("print_duration") && ps["print_duration"].is_number()) {
+          running = ps["print_duration"].template get<double>();
+        }
+      }
+      show_lifetime(finished, running);
+    });
+  });
+}
+
+void SettingPanel::show_lifetime(double finished, double running) {
+  std::lock_guard<std::mutex> lock(lv_lock);
+  if (lifetime_label == NULL) return;
+  lv_label_set_text(lifetime_label, ("Lifetime print time: " + format_print_time(stock_print_time + finished + running)).c_str());
 }
 
 void SettingPanel::handle_callback(lv_event_t *event) {
