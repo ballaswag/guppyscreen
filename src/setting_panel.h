@@ -36,9 +36,7 @@ class SettingPanel {
  private:
   static void _tabview_event_cb(lv_event_t *event);
   void refresh_active_tab();
-  static void _lifetime_timer_cb(lv_timer_t *timer);
-  void refresh_lifetime();
-  void show_lifetime(double finished, double running);
+  void refresh_total_print_time();
 #ifndef OS_ANDROID
   static void _setting_changed_cb(lv_event_t *event);
   void setting_changed(lv_event_t *event);
@@ -90,9 +88,7 @@ class SettingPanel {
   ButtonContainer shutdown_host_btn;
 #endif
 
-  lv_obj_t *lifetime_label;  // About tab
-  lv_timer_t *lifetime_timer;
-  double stock_print_time;   // seconds from the stock firmware, 0 if none
+  lv_obj_t *total_print_time_label;  // About tab
 };
 
 #endif // __SETTING_PANEL_H__
