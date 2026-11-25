@@ -73,6 +73,8 @@ for _ in $(seq 1 100); do
     sleep 0.1
 done
 echo "[sim] moonraker on $PORT (${ARGS[*]}), session $SESSION"
+SCREEN_LOG="$SESSION/screen-$(date +%Y%m%d-%H%M%S)-$$.log"
+echo "[sim] screen output: $SCREEN_LOG"
 
 # settings the UI saves stay in the session; a GUI restart (settings, factory
 # reset, shutdown) brings it straight back
@@ -83,6 +85,8 @@ if [ -n "${SIM_CFG_OVERRIDE:-}" ]; then
 fi
 while true; do
     rm -f "$SESSION/restart-gui"
-    CONFIG_FILE="$SIM_CFG" "$BIN" || true
+    SCREEN_STATUS=0
+    CONFIG_FILE="$SIM_CFG" bash tools/run_sim_screen.sh "$SCREEN_LOG" "$BIN" || SCREEN_STATUS=$?
     [ -f "$SESSION/restart-gui" ] || break
 done
+exit "$SCREEN_STATUS"

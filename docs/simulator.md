@@ -16,6 +16,12 @@ Two fakes stand in for the printer, so the screen can be developed and checked w
 
 `sim.sh` starts both fakes and the first of `build/sdl-small`, `build/sdl`, `build` that exists, and stops them when the screen exits.
 
+Screen stdout, stderr and the exit status are saved in a timestamped
+`screen-*.log` in the session directory, with the path printed at startup.
+Logs from previous runs are kept. A failed screen process also makes `sim.sh`
+return its failure status. `SIM_DEBUG=1 ./sim.sh` runs the screen under GDB and
+adds thread backtraces to that log when it stops on a crash; GDB must be installed.
+
 Each run gets a fresh session in `/tmp/grumpy-sim-<port>`: a copy of the test prints, the UI config written for the session, saved UI settings, and the logs (`moonraker.log`, `wpa.log`). Deleting files, factory reset, shutdown, updates and wifi changes only ever touch that folder. The `[commands]` in the session config run `tools/sim_hook.py` instead of the printer's scripts.
 
 ## On their own
@@ -111,8 +117,7 @@ The navigation stays visible beside the gallery, which uses the usual tile spaci
 and swipe scrolling without a scrollbar or a gallery Back button. The small
 480×272 screen fits three cards across; the normal 800×480 screen fits four.
 The cards use narrower previews and compact caption padding. Long material names
-scroll when needed, while time and weight stay in place. A narrow empty
-strip on the right of the gallery accepts swipes without touching any tiles.
+scroll when needed, while time and weight stay in place.
 Tap a card to open a modal with its preview and Back, Print and Delete image buttons. Delete's
 icon uses the danger colour. There is no
 long-press action. The Print entry is disabled while a job is printing or paused;

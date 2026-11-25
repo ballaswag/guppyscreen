@@ -435,6 +435,40 @@ static void select_page(lv_obj_t *tabs, uint16_t index) {
   lv_obj_update_layout(tabs);
 }
 
+static void stress_preview_scrolling(const json &fixture) {
+  auto *grid = lv_obj_get_child(lv_obj_get_child(panel_root, 0), 0);
+  auto *pointer = create_pointer();
+  int frames = 0;
+  auto frame = [&] {
+    usleep(5000); // use real ticks, as the SDL build does
+    lv_timer_handler();
+    lv_refr_now(nullptr);
+    if (++frames % 4 == 0 && !requests.empty()) {
+      const auto path = requests.front().params["filename"].get<std::string>();
+      reply("server.files.metadata", {{"result", fixture["metadata"][path]}});
+    }
+  };
+  for (int swipe = 0; swipe < 40; ++swipe) {
+    const int x = grid->coords.x2 - (swipe % 4);
+    const bool upwards = swipe % 4 < 2;
+    const int start = grid->coords.y1 + lv_obj_get_height(grid) * (upwards ? 3 : 1) / 4;
+    const int direction = upwards ? -1 : 1;
+    pointer_event(pointer, x, start, LV_INDEV_STATE_PRESSED);
+    for (int step = 1; step <= 8; ++step) {
+      pointer_event(pointer, x + step % 3, start + direction * step * lv_obj_get_height(grid) / 12,
+          LV_INDEV_STATE_PRESSED);
+      frame();
+    }
+    pointer_event(pointer, x + 2, start + direction * 8 * lv_obj_get_height(grid) / 12,
+        LV_INDEV_STATE_RELEASED);
+    for (int settle = 0; settle < 20; ++settle) {
+      frame(); // exercise momentum, label animations and actual PNG decoding
+    }
+  }
+  lv_indev_delete(pointer);
+  std::puts("edge scrolling with momentum and thumbnail rendering passed");
+}
+
 static void test_navigation(KWebSocketClient &ws, std::mutex &lock) {
   auto &main = create_navigation(ws, lock);
   auto *tabs = navigation();
@@ -461,19 +495,16 @@ static void test_navigation(KWebSocketClient &ws, std::mutex &lock) {
   assert(lv_obj_get_y(next_row) > lv_obj_get_y(row_start));
   assert(!find_label(panel_root, "Back"));
   assert(lv_obj_get_scrollbar_mode(grid) == LV_SCROLLBAR_MODE_OFF);
-  // The empty right margin receives taps and swipes without opening a file.
+  // Swiping directly on a file scrolls the gallery without opening its modal.
   lv_obj_update_layout(tabs);
-  const int margin_x = grid->coords.x2 - lv_obj_get_style_pad_right(grid, 0) / 2;
-  const int margin_y = (grid->coords.y1 + grid->coords.y2) / 2;
+  const int swipe_x = (row_end->coords.x1 + row_end->coords.x2) / 2;
+  const int swipe_y = (row_end->coords.y1 + row_end->coords.y2) / 2;
   auto *pointer = create_pointer();
-  pointer_event(pointer, margin_x, margin_y, LV_INDEV_STATE_PRESSED);
-  assert(pointer->proc.types.pointer.act_obj == grid);
-  pointer_event(pointer, margin_x, margin_y, LV_INDEV_STATE_RELEASED);
-  assert(!find_action(lv_layer_top(), "Print"));
   lv_obj_clear_flag(grid, LV_OBJ_FLAG_SCROLL_MOMENTUM);
-  pointer_event(pointer, margin_x, margin_y, LV_INDEV_STATE_PRESSED);
-  pointer_event(pointer, margin_x, margin_y - Theme::scale_r(50), LV_INDEV_STATE_PRESSED);
-  pointer_event(pointer, margin_x, margin_y - Theme::scale_r(50), LV_INDEV_STATE_RELEASED);
+  pointer_event(pointer, swipe_x, swipe_y, LV_INDEV_STATE_PRESSED);
+  assert(pointer->proc.types.pointer.act_obj == row_end);
+  pointer_event(pointer, swipe_x, swipe_y - Theme::scale_r(50), LV_INDEV_STATE_PRESSED);
+  pointer_event(pointer, swipe_x, swipe_y - Theme::scale_r(50), LV_INDEV_STATE_RELEASED);
   assert(lv_obj_get_scroll_y(grid) > 0);
   assert(!find_action(lv_layer_top(), "Print"));
   lv_obj_add_flag(grid, LV_OBJ_FLAG_SCROLL_MOMENTUM);
@@ -566,6 +597,9 @@ int main(int argc, char **argv) {
       reply("server.files.metadata", {{"result", data["metadata"][path]}});
       ++loaded;
     }
+    if (std::getenv("PRINT_PANEL_STRESS") != nullptr) {
+      stress_preview_scrolling(data);
+    }
     if (const char *selected = std::getenv("PRINT_PANEL_FILE")) {
       click(selected, LV_EVENT_SHORT_CLICKED);
     }
@@ -626,7 +660,6 @@ int main(int argc, char **argv) {
   lv_obj_get_coords(grid, &grid_bounds);
   assert(!find_label(panel_root, "Back"));
   assert(grid_bounds.x2 >= screen_width - Theme::gap() - 1);
-  assert(lv_obj_get_style_pad_right(grid, 0) > 0);
   assert(lv_obj_get_scroll_bottom(grid) > 0);
   assert(find_spinner(first));
   assert(!find_spinner(lv_obj_get_parent(label("a \"b\"")))); // offscreen tiles do not animate

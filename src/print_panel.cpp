@@ -114,8 +114,6 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   lv_obj_set_flex_grow(file_grid, 1);
   lv_obj_set_flex_flow(file_grid, LV_FLEX_FLOW_ROW_WRAP);
   lv_obj_set_flex_align(file_grid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
-  // Keep empty space on the right for swiping without touching a file.
-  lv_obj_set_style_pad_right(file_grid, scale_r(18), 0);
   manage_scroll(file_grid);
   lv_obj_add_event_cb(file_grid, [](lv_event_t *e) {
     static_cast<PrintPanel *>(lv_event_get_user_data(e))->update_tile_animations();

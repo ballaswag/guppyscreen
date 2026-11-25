@@ -36,10 +36,12 @@ static int sdl_window_event_watch(void *userdata, SDL_Event *event) {
     (void) userdata;
 
     if (event->type == SDL_QUIT) {
+        LOG_INFO("SDL quit requested");
         std::_Exit(0);
     }
 
     if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_CLOSE) {
+        LOG_INFO("SDL window close requested");
         sdl_quit_qry = true;
     }
 
