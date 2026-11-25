@@ -149,9 +149,14 @@ async def run():
     listing = (await c.call("server.files.list", {"root": "gcodes"}))["result"]
     paths = {item["path"] for item in listing}
     check(len(paths) >= 24, "file library has several screens of tiles")
-    check({'Small parts tray.gcode', 'spare_parts/hinge "left".gcode',
+    check({'Small parts tray_PLA_5m20s.gcode', 'spare_parts/hinge "left".gcode',
            'spare_parts/knob.gcode', 'spare_parts/blue/knob.gcode'} <= paths,
           "file library includes spaces, quotes and nested duplicate basenames")
+    for name, material, seconds in (("cable_clip_PETG_6m32s.gcode", "PETG", 392),
+                                     ("hex_knob_PLA_4m32s.gcode", "PLA", 272)):
+        sample = (await c.call("server.files.metadata", {"filename": name}))["result"]
+        check(sample["filament_type"] == material and sample["estimated_time"] == seconds,
+              "Orca-style sample filename matches its material and duration: " + name)
     previews = []
     for name in ("spare_parts/knob.gcode", "spare_parts/blue/knob.gcode"):
         sample = (await c.call("server.files.metadata", {"filename": name}))["result"]

@@ -125,7 +125,7 @@ static void printer_state(const char *state) {
 }
 static json metadata(int seconds = 123) {
   return {{"result", {{"estimated_time", seconds}, {"filament_weight_total", 4.5},
-                       {"size", 1024}, {"thumbnails", json::array()}}}};
+                       {"filament_type", "PLA"}, {"size", 1024}, {"thumbnails", json::array()}}}};
 }
 static json file_list(int count = 18) {
   json files = json::array({{{"path", "parts/a \"b\".gcode"}, {"modified", 50}}});
@@ -149,6 +149,117 @@ static void flush(lv_disp_drv_t *driver, const lv_area_t *area, lv_color_t *pixe
     }
   }
   lv_disp_flush_ready(driver);
+}
+
+static void test_tile_captions(PrintPanel &panel, PrintStatusPanel &status) {
+  struct Example {
+    std::string filename;
+    std::string caption;
+    std::string material;
+    json metadata_type;
+    int seconds = 123;
+    std::string time = "2m3s";
+  };
+  const std::vector<Example> examples = {
+    {"pizza-Body_PLA_37m33s.gcode", "pizza-Body", "PLA", "PETG", 2253, "37m33s"},
+    {"part_with_x_PETG-CF_2h7m.gcode", "part_with_x", "PETG-CF", "PETG-CF", 7620, "2h7m"},
+    {"tower_PA6-CF_1d2h3m4s.gcode", "tower", "PA6-CF", "PA6-CF", 93784, "1d2h"},
+    {"clip_PLA+_45s.gcode", "clip", "PLA+", "PLA+", 45, "45s"},
+    {"part_ASA-Aero_2h.gcode", "part", "ASA-Aero", "ASA-Aero"},
+    {"part_ABS_0s.GCODE", "part", "ABS", "ABS"},
+    {"version.v2_PLA_37m.gcode", "version.v2", "PLA", "PLA"},
+    {"plain_part.gcode", "plain_part", "TPU", "TPU"},
+    {"part_PLA_37m33s_extra.gcode", "part_PLA_37m33s_extra", "PLA", "PLA"},
+    {"part_PLA_37m_bad.gcode", "part_PLA_37m_bad", "PLA", "PLA"},
+    {"part_PLA_.gcode", "part_PLA_", "PLA", "PLA"},
+    {"part_lower_37m33s.gcode", "part_lower_37m33s", "PLA", "PLA"},
+    {"part_37m33s.gcode", "part_37m33s", "PLA", "PLA"},
+    {"mixed.gcode", "mixed", "PLA/PETG", json::array({"PLA", "PLA", "PETG"})},
+    {"mixed.gcode", "mixed", "PLA/PETG", "[\"PLA\", \"PLA\", \"PETG\"]"},
+    {"mixed.gcode", "mixed", "PLA/PETG", "PLA; PETG"},
+    {"unknown.gcode", "unknown", "Unknown", nullptr},
+  };
+  bool check_start_path = true;
+  for (const auto &example : examples) {
+    const std::string path = "USB/models/" + example.filename;
+    reply("server.files.list", {{"result", json::array({{{"path", path}, {"modified", 1000}, {"size", 1024}}})}});
+    auto *name = label(example.caption.c_str());
+    auto *card = lv_obj_get_parent(name);
+    auto *footer = lv_obj_get_child(card, -1);
+    if (check_start_path) {
+      assert(find_label(footer, "PLA")); // parsed material appears before metadata arrives
+    }
+    assert(requests.front().params["filename"] == path);
+    auto details = metadata(example.seconds);
+    details["result"]["filament_type"] = example.metadata_type;
+    reply("server.files.metadata", details);
+    assert(requests.empty());
+    assert(std::strcmp(lv_label_get_text(name), example.caption.c_str()) == 0);
+    auto *material = find_label(footer, example.material.c_str());
+    auto *time = find_label(footer, example.time.c_str());
+    auto *weight = find_label(footer, "4.5 g");
+    assert(material && time && weight);
+    lv_obj_update_layout(footer);
+    // All three fields share the second line, without hiding time or weight.
+    assert(lv_obj_get_y(material) == lv_obj_get_y(time));
+    assert(lv_obj_get_y(time) == lv_obj_get_y(weight));
+    assert(lv_obj_get_x(material) + lv_obj_get_width(material) <= lv_obj_get_x(time));
+    assert(lv_obj_get_x(time) + lv_obj_get_width(time) <= lv_obj_get_x(weight));
+    assert(lv_obj_get_x(weight) + lv_obj_get_width(weight) <=
+        lv_obj_get_width(footer) - lv_obj_get_style_pad_right(footer, 0));
+    if (check_start_path) {
+      click(example.caption.c_str(), LV_EVENT_SHORT_CLICKED);
+      assert(find_label(lv_layer_top(), path.c_str()));
+      click("Print");
+      assert(take("printer.print.start").params["filename"] == path);
+      status.background();
+      check_start_path = false;
+    }
+    panel.background();
+    panel.foreground();
+  }
+
+  const std::string long_name = "a_very_long_model_name_that_should_scroll_across_the_tile_instead_of_being_shortened";
+  const std::string long_path = long_name + "_PLA_37m33s.gcode";
+  const std::string last_name = "another_long_model_name_in_a_folder_that_only_animates_when_scrolled_into_view";
+  auto listing = file_list();
+  listing["result"][1]["path"] = long_path;
+  listing["result"][0]["path"] = "parts/" + last_name + "_PETG_1h2m.gcode";
+  reply("server.files.list", listing);
+  auto *first = label(long_name.c_str());
+  auto *last = label(last_name.c_str());
+  auto *short_name = label("part_1");
+  assert(lv_label_get_long_mode(first) == LV_LABEL_LONG_SCROLL_CIRCULAR);
+  assert(lv_anim_get(first, nullptr));
+  assert(!lv_anim_get(short_name, nullptr));
+  assert(!lv_anim_get(last, nullptr));
+  click(long_name.c_str(), LV_EVENT_SHORT_CLICKED);
+  auto *modal_name = find_label(lv_layer_top(), long_path.c_str());
+  assert(modal_name);
+  lv_obj_update_layout(lv_layer_top());
+  assert(lv_label_get_long_mode(modal_name) == LV_LABEL_LONG_SCROLL_CIRCULAR);
+  assert(lv_anim_get(modal_name, nullptr)); // scrolls even before metadata arrives
+  reply("server.files.metadata", metadata());
+  assert(lv_anim_get(modal_name, nullptr)); // still scrolls when details arrive
+  click("Back");
+  assert(!lv_anim_get(modal_name, nullptr));
+  click("part_1", LV_EVENT_SHORT_CLICKED);
+  auto *short_modal_name = find_label(lv_layer_top(), "part_1.gcode");
+  assert(short_modal_name);
+  lv_obj_update_layout(lv_layer_top());
+  assert(!lv_anim_get(short_modal_name, nullptr));
+  click("Back");
+  auto *grid = lv_obj_get_parent(lv_obj_get_parent(first));
+  lv_obj_scroll_to_y(grid, LV_COORD_MAX, LV_ANIM_OFF);
+  assert(!lv_anim_get(first, nullptr));
+  assert(lv_anim_get(last, nullptr));
+  auto pending = take("server.files.metadata");
+  panel.background();
+  assert(!lv_anim_get(last, nullptr));
+  auto stale = metadata();
+  pending.callback(stale);
+  assert(requests.empty());
+  panel.foreground();
 }
 
 static void test_preview_cache(PrintPanel &panel) {
@@ -218,7 +329,8 @@ static void test_preview_cache(PrintPanel &panel) {
   assert(lv_obj_get_parent(label("cache_0")) == card);
   assert(lv_img_get_src(image) == source);
   assert(_lv_img_cache_open(source, lv_color_black(), 0)->dec_dsc.img_data == pixels);
-  assert(find_label(card, "2m 3s"));
+  assert(find_label(card, "PLA"));
+  assert(find_label(card, "2m3s"));
 
   // Modification times retain their subsecond precision; size also versions a file.
   for (const char *field : {"modified", "size"}) {
@@ -333,6 +445,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  test_tile_captions(panel, status);
   test_preview_cache(panel);
   reply("server.files.list", file_list());
   auto *grid = lv_obj_get_parent(lv_obj_get_parent(label("part_0")));
@@ -367,8 +480,10 @@ int main(int argc, char **argv) {
   auto unknown = metadata();
   unknown["result"]["estimated_time"] = nullptr;
   unknown["result"]["filament_weight_total"] = nullptr;
+  unknown["result"]["filament_type"] = nullptr;
   reply("server.files.metadata", unknown);
   assert(!find_spinner(first));
+  assert(find_label(first, "Unknown"));
   assert(find_label(first, "Time ?"));
   assert(find_label(first, "? g"));
   assert(!lv_obj_has_state(lv_obj_get_parent(label("Print")), LV_STATE_DISABLED));
@@ -380,7 +495,8 @@ int main(int argc, char **argv) {
     ++loaded;
   }
   assert(loaded > 0 && loaded < 18); // offscreen files are not loaded eagerly
-  assert(find_label(grid, "2m 3s"));
+  assert(find_label(grid, "PLA"));
+  assert(find_label(grid, "2m3s"));
   assert(find_label(grid, "4.5 g"));
   lv_obj_scroll_to_y(grid, LV_COORD_MAX, LV_ANIM_OFF);
   lv_event_send(grid, LV_EVENT_SCROLL_END, nullptr);
@@ -406,11 +522,12 @@ int main(int argc, char **argv) {
   with_usb["result"].push_back({{"path", "USB/models/a \"b\".gcode"}, {"modified", 2000}});
   reply("server.files.list", with_usb);
   auto stale_data = metadata(999);
+  stale_data["result"]["filament_type"] = "STALE";
   stale.callback(stale_data);
   assert(requests.size() == 1); // stale replies do not start a duplicate request
   assert(requests.front().params["filename"] == "USB/models/a \"b\".gcode");
   reply("server.files.metadata", metadata(42));
-  assert(!find_label(grid, "16m 39s"));
+  assert(!find_label(grid, "STALE"));
   assert(lv_obj_get_child_cnt(grid) == 20);
   assert(!find_label(grid, "USB"));
   while (!requests.empty()) {

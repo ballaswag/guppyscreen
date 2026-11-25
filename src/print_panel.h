@@ -66,17 +66,20 @@ class PrintPanel : public NotifyConsumer {
     std::string path;
     lv_obj_t *container;
     lv_obj_t *preview;
+    lv_obj_t *material;
     lv_obj_t *time;
     lv_obj_t *weight;
     bool requested = false;
     bool loading = true;
     lv_obj_t *loading_spinner = NULL;
+    std::string filename_material;
+    lv_obj_t *name = NULL;
   };
 
   void show_files();
   void clear_files();
   void update_tile(FileTile &tile, const PrintFile &file);
-  void update_tile_spinners();
+  void update_tile_animations();
   void stop_tile_spinner(FileTile &tile);
   void invalidate_thumbnail(const PrintFile &file);
   void show_browser();

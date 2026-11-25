@@ -89,14 +89,22 @@ Useful `SIM_ARGS` flags (`python3 tools/fake_moonraker.py --help` lists all):
 | `error_out_of_range.gcode` | Ends in Klipper's error state |
 | `no_object_labels.gcode`, `no_thumbnail.gcode` | Empty states |
 | `calibration/`, `spare_parts/` | Subfolders, a temperature tower and a long file name |
+| `cable_clip_PETG_6m32s.gcode`, `hex_knob_PLA_4m32s.gcode` | Orca-style material and duration suffixes |
 
 The print panel displays a flat gallery: files inside these folders appear
 alongside files at the top level. USB files exposed by Moonraker in a G-code
-subfolder join the same gallery. Each card shows its thumbnail, name without its extension,
-estimated time and filament weight. Open a card to see its full relative path,
+subfolder join the same gallery. Each card shows its thumbnail, model name,
+material, estimated print time and filament weight on the second line. For Orca-style names such as
+`pizza-Body_PLA_37m33s.gcode`, the caption is `pizza-Body` with `PLA` below it.
+The material and duration suffix is removed only when the whole pattern matches;
+other names keep their existing caption without the extension. Materials fall
+back to G-code metadata when no suffix is present. Time and weight come from
+G-code metadata; time uses two units at most (for example `37m33s` or `2h7m`).
+Open a card to see its full relative path,
 which distinguishes files with the same name in different folders. Visible cards
 show a small spinner while their previews load; it stops when loading finishes
-or fails. Off-screen cards do not animate.
+or fails. Names that exceed the card's width scroll horizontally; short names
+stay still. Long paths also scroll in the file-details modal. Off-screen cards do not animate.
 
 The Back tile has a reserved strip on the right of the gallery. Tap a card to
 open a modal with its preview and Back, Print and Delete image buttons. Delete's

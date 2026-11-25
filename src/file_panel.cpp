@@ -32,9 +32,10 @@ FilePanel::FilePanel(lv_obj_t *parent)
   // overdrawn; refresh_view() picks the zoom that fits the space left over
   lv_img_set_size_mode(thumbnail, LV_IMG_SIZE_MODE_REAL);
   lv_obj_set_width(fname_label, LV_PCT(100));
-  lv_label_set_long_mode(fname_label, LV_LABEL_LONG_DOT);
+  lv_label_set_long_mode(fname_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+  lv_obj_set_style_anim_speed(fname_label, Theme::scale_r(30), 0);
   lv_obj_set_style_text_font(fname_label, Theme::scale_font(14), 0);
-  lv_obj_set_style_max_height(fname_label, 2 * lv_font_get_line_height(Theme::scale_font(14)), 0);
+  lv_obj_set_height(fname_label, lv_font_get_line_height(Theme::scale_font(14)));
   lv_obj_set_style_text_align(fname_label, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_text(fname_label, "");
   lv_obj_add_style(detail_label, &Theme::styles().dim_label, 0);

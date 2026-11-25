@@ -598,19 +598,19 @@ LIBRARY = {
 
     # A few screens of distinct previews for the tiled file browser: tall,
     # wide, round, multi-part and multi-colour models, with readable names.
-    "hex_knob.gcode": dict(
+    "hex_knob_PLA_4m32s.gcode": dict(
         parts=[Part("hex_knob", circle(C, C, 10, n=6), 5.0)],
         filaments=[(ORANGE, "PLA", "Orange PLA")]),
-    "cable_clip.gcode": dict(
+    "cable_clip_PETG_6m32s.gcode": dict(
         parts=[Part("cable_clip", bracket(C - 14, C - 10), 2.0, hull_label=False)],
         filaments=[(GREEN, "PETG", "Green PETG")], temps=(240, 80)),
-    "round_coaster.gcode": dict(
+    "round_coaster_PLA_6m43s.gcode": dict(
         parts=[Part("round_coaster", circle(C, C, 20), 1.2)],
         filaments=[(TEAL, "PLA", "Teal PLA")]),
-    "tall_test_tower.gcode": dict(
+    "tall_test_tower_PLA_4m8s.gcode": dict(
         parts=[Part("test_tower", rect(C - 4, C - 4, 8, 8), 12.0)],
         filaments=[(PURPLE, "PLA", "Purple PLA")]),
-    "desk_name_plate.gcode": dict(
+    "desk_name_plate_PLA_5m32s.gcode": dict(
         parts=[Part("name_plate", rect(C - 32, C - 6, 64, 12), 1.6)],
         filaments=[(BLUE, "PLA", "Blue PLA")]),
     "spacer_set.gcode": dict(
@@ -620,7 +620,7 @@ LIBRARY = {
     "two_colour_badge.gcode": dict(
         parts=[Part("badge", circle(C, C, 16, n=6), 2.0, bands=[(1.0, 1)])],
         filaments=[(RED, "PLA", "Red PLA"), (WHITE, "PLA", "White PLA")]),
-    "Small parts tray.gcode": dict(
+    "Small parts tray_PLA_5m20s.gcode": dict(
         parts=[Part("tray", rect(C - 18, C - 12, 36, 24), 1.0)],
         filaments=[(CYAN, "PLA", "Cyan PLA")]),
     "a_really_long_filename_for_the_thumbnail_grid_with_spaces and details.gcode": dict(

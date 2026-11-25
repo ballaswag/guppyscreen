@@ -8,8 +8,73 @@
 
 #include <algorithm>
 #include <cstring>
+#include <regex>
 
 using namespace Theme;
+
+namespace {
+
+std::pair<std::string, std::string> tile_caption(const std::string &filename) {
+  std::string stem = filename;
+  const auto extension = stem.find_last_of('.');
+  if (extension != std::string::npos && extension > 0) {
+    stem.resize(extension);
+  }
+  // Only shorten a complete model_MATERIAL_duration suffix. Model names may
+  // themselves contain underscores; material variants may contain + or -.
+  static const std::regex suffix(R"(^(.+)_([A-Z][A-Za-z0-9+ .-]*)_((?:[0-9]+d)?(?:[0-9]+h)?(?:[0-9]+m)?(?:[0-9]+s)?)$)");
+  std::smatch match;
+  if (std::regex_match(stem, match, suffix) && match[3].length() > 0) {
+    return {match[1].str(), match[2].str()};
+  }
+  return {stem, ""};
+}
+
+std::string metadata_material(const json &metadata) {
+  json types = metadata.value("filament_type", json());
+  if (types.is_string()) {
+    const auto text = types.get<std::string>();
+    if (!text.empty() && text.front() == '[') {
+      auto parsed = json::parse(text, nullptr, false);
+      if (parsed.is_array()) {
+        types = std::move(parsed);
+      }
+    }
+  }
+  if (types.is_string()) {
+    types = KUtils::split(types.get<std::string>(), ';');
+  }
+  std::vector<std::string> materials;
+  if (types.is_array()) {
+    for (const auto &type : types) {
+      if (!type.is_string()) {
+        continue;
+      }
+      auto material = type.get<std::string>();
+      material.erase(0, material.find_first_not_of(" \t\""));
+      material.erase(material.find_last_not_of(" \t\"") + 1);
+      if (!material.empty() && std::find(materials.begin(), materials.end(), material) == materials.end()) {
+        materials.push_back(std::move(material));
+      }
+    }
+  }
+  return join(materials, "/");
+}
+
+std::string tile_time(int64_t seconds) {
+  if (seconds >= 86400) {
+    return fmt::format("{}d{}h", seconds / 86400, seconds / 3600 % 24);
+  }
+  if (seconds >= 3600) {
+    return fmt::format("{}h{}m", seconds / 3600, seconds / 60 % 60);
+  }
+  if (seconds >= 60) {
+    return fmt::format("{}m{}s", seconds / 60, seconds % 60);
+  }
+  return seconds > 0 ? fmt::format("{}s", seconds) : "Time ?";
+}
+
+} // namespace
 
 PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatusPanel &ps, MmuPanel *m)
   : NotifyConsumer(lock)
@@ -54,7 +119,7 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   lv_obj_set_flex_align(file_grid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
   manage_scroll(file_grid);
   lv_obj_add_event_cb(file_grid, [](lv_event_t *e) {
-    static_cast<PrintPanel *>(lv_event_get_user_data(e))->update_tile_spinners();
+    static_cast<PrintPanel *>(lv_event_get_user_data(e))->update_tile_animations();
   }, LV_EVENT_SCROLL, this);
   lv_obj_add_event_cb(file_grid, [](lv_event_t *e) {
     static_cast<PrintPanel *>(lv_event_get_user_data(e))->load_visible_metadata();
@@ -328,33 +393,36 @@ void PrintPanel::show_files() {
     lv_obj_set_height(name, lv_font_get_line_height(scale_font(12)) + scale_r(4));
     lv_obj_set_style_pad_hor(name, gap(), 0);
     lv_obj_set_style_pad_ver(name, scale_r(2), 0);
-    lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
-    std::string caption = entry->name;
-    const auto extension = caption.find_last_of('.');
-    if (extension != std::string::npos && extension > 0) {
-      caption.resize(extension);
-    }
-    lv_label_set_text(name, caption.c_str());
+    lv_label_set_long_mode(name, LV_LABEL_LONG_CLIP);
+    lv_obj_set_style_anim_speed(name, scale_r(30), 0);
+    const auto caption = tile_caption(entry->name);
+    lv_label_set_text(name, caption.first.c_str());
     auto *footer = create_row(tile);
+    const auto *footer_font = scale_font(10);
     lv_obj_clear_flag(footer, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_size(footer, LV_PCT(100), lv_font_get_line_height(scale_font(12)) + gap());
+    lv_obj_set_size(footer, LV_PCT(100), lv_font_get_line_height(footer_font) + gap());
     lv_obj_set_style_pad_hor(footer, gap(), 0);
     lv_obj_set_style_pad_bottom(footer, gap(), 0);
+    lv_obj_set_style_pad_column(footer, scale_r(4), 0);
     lv_obj_set_flex_flow(footer, LV_FLEX_FLOW_ROW);
+    auto *material = lv_label_create(footer);
     auto *time = lv_label_create(footer);
     auto *weight = lv_label_create(footer);
-    for (auto *field : {time, weight}) {
+    for (auto *field : {material, time, weight}) {
       lv_obj_add_style(field, &styles().dim_label, 0);
-      lv_obj_set_size(field, 0, lv_font_get_line_height(scale_font(12)));
-      lv_obj_set_flex_grow(field, 1);
+      lv_obj_set_style_text_font(field, footer_font, 0);
+      lv_obj_set_size(field, LV_SIZE_CONTENT, lv_font_get_line_height(footer_font));
       lv_label_set_long_mode(field, LV_LABEL_LONG_DOT);
     }
-    lv_obj_set_width(weight, LV_SIZE_CONTENT);
-    lv_obj_set_flex_grow(weight, 0);
+    lv_obj_set_width(material, 0);
+    lv_obj_set_flex_grow(material, 1);
     lv_obj_set_style_text_align(weight, LV_TEXT_ALIGN_RIGHT, 0);
-    lv_label_set_text(time, "Loading...");
+    lv_label_set_text(material, caption.second.empty() ? "Loading..." : caption.second.c_str());
+    lv_label_set_text(time, "");
     lv_label_set_text(weight, "");
-    tiles.push_back({entry->full_path, tile, preview, time, weight});
+    tiles.push_back({entry->full_path, tile, preview, material, time, weight});
+    tiles.back().filename_material = caption.second;
+    tiles.back().name = name;
   }
   for (const auto &tile : previous_tiles) {
     lv_obj_del(tile.second.container);
@@ -382,7 +450,8 @@ void PrintPanel::update_tile(FileTile &tile, const PrintFile &file) {
     stop_tile_spinner(tile);
   }
   if (!file.contains_metadata()) {
-    lv_label_set_text(tile.time, "Loading...");
+    lv_label_set_text(tile.material, tile.filename_material.empty() ? "Loading..." : tile.filename_material.c_str());
+    lv_label_set_text(tile.time, "");
     lv_label_set_text(tile.weight, "");
     lv_img_set_src(tile.preview, LV_SYMBOL_FILE);
     fit_img(tile.preview, scale_r(32), scale_r(32));
@@ -392,9 +461,11 @@ void PrintPanel::update_tile(FileTile &tile, const PrintFile &file) {
   const auto &metadata = file.metadata["result"];
   const auto eta_field = metadata.find("estimated_time");
   const auto weight_field = metadata.find("filament_weight_total");
-  const int eta = eta_field != metadata.end() && eta_field->is_number() ? eta_field->get<int>() : 0;
+  const int64_t eta = eta_field != metadata.end() && eta_field->is_number() ? eta_field->get<int64_t>() : 0;
   const double weight = weight_field != metadata.end() && weight_field->is_number() ? weight_field->get<double>() : 0.0;
-  lv_label_set_text(tile.time, eta > 0 ? KUtils::eta_string(eta).c_str() : "Time ?");
+  const std::string material = tile.filename_material.empty() ? metadata_material(metadata) : tile.filename_material;
+  lv_label_set_text(tile.material, material.empty() ? "Unknown" : material.c_str());
+  lv_label_set_text(tile.time, tile_time(eta).c_str());
   lv_label_set_text(tile.weight, weight > 0 ? fmt::format("{:.1f} g", weight).c_str() : "? g");
   if (!file.thumbnail_path.empty()) {
     const std::string source = "A:" + file.thumbnail_path;
@@ -418,12 +489,17 @@ void PrintPanel::stop_tile_spinner(FileTile &tile) {
   lv_obj_clear_flag(tile.preview, LV_OBJ_FLAG_HIDDEN);
 }
 
-void PrintPanel::update_tile_spinners() {
+void PrintPanel::update_tile_animations() {
   if (!visible) {
     return;
   }
   for (auto &tile : tiles) {
-    if (!tile.loading || !lv_obj_is_visible(tile.container)) {
+    const bool shown = lv_obj_is_visible(tile.container);
+    const auto name_mode = shown ? LV_LABEL_LONG_SCROLL_CIRCULAR : LV_LABEL_LONG_CLIP;
+    if (lv_label_get_long_mode(tile.name) != name_mode) {
+      lv_label_set_long_mode(tile.name, name_mode);
+    }
+    if (!tile.loading || !shown) {
       stop_tile_spinner(tile);
     } else if (tile.loading_spinner == NULL) {
       tile.loading_spinner = lv_spinner_create(lv_obj_get_parent(tile.preview), 1000, 60);
@@ -494,7 +570,7 @@ void PrintPanel::load_visible_metadata() {
   if (!visible) {
     return;
   }
-  update_tile_spinners();
+  update_tile_animations();
   if (refreshing_files || metadata_pending) {
     return;
   }
@@ -553,7 +629,8 @@ void PrintPanel::handle_metadata(const std::string &path, uint64_t generation, i
       } else {
         tile.loading = false;
         stop_tile_spinner(tile);
-        lv_label_set_text(tile.time, "Unavailable");
+        lv_label_set_text(tile.material, tile.filename_material.empty() ? "Unavailable" : tile.filename_material.c_str());
+        lv_label_set_text(tile.time, "");
         lv_label_set_text(tile.weight, "");
         if (cur_file == file) {
           file_panel.clear_view(path, "Could not load file details. Reopen to retry.");
