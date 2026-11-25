@@ -61,7 +61,7 @@ static void reply(const char *method, json data) { take(method).callback(data); 
 static lv_obj_t *panel_root = nullptr;
 static lv_obj_t *find_label(lv_obj_t *parent, const char *text, bool visible_only = false) {
   if (lv_obj_check_type(parent, &lv_label_class) && std::strcmp(lv_label_get_text(parent), text) == 0 &&
-      (!visible_only || lv_obj_is_visible(parent))) {
+      (!visible_only || lv_obj_is_visible(lv_obj_get_parent(parent)))) {
     return parent;
   }
   for (uint32_t i = 0; i < lv_obj_get_child_cnt(parent); ++i) {
@@ -72,7 +72,7 @@ static lv_obj_t *find_label(lv_obj_t *parent, const char *text, bool visible_onl
   return nullptr;
 }
 static lv_obj_t *label(const char *text) {
-  auto *found = find_label(lv_layer_top(), text);
+  auto *found = find_label(lv_layer_top(), text, true);
   if (found == nullptr) {
     found = find_label(panel_root == nullptr ? lv_scr_act() : panel_root, text);
   }
@@ -94,7 +94,7 @@ static lv_obj_t *find_spinner(lv_obj_t *parent) {
   return nullptr;
 }
 static lv_obj_t *find_action(lv_obj_t *parent, const char *text) {
-  auto *found = find_label(parent, text);
+  auto *found = find_label(parent, text, true);
   if (found != nullptr && lv_obj_is_visible(lv_obj_get_parent(found))) {
     return lv_obj_get_parent(found);
   }
@@ -222,17 +222,21 @@ static void test_tile_captions(PrintPanel &panel, PrintStatusPanel &status) {
   const std::string long_name = "a_very_long_model_name_that_should_scroll_across_the_tile_instead_of_being_shortened";
   const std::string long_path = long_name + "_PLA_37m33s.gcode";
   const std::string last_name = "another_long_model_name_in_a_folder_that_only_animates_when_scrolled_into_view";
+  const std::string last_material = "A-MATERIAL-NAME-WIDER-THAN-THE-TILE";
   auto listing = file_list();
   listing["result"][1]["path"] = long_path;
-  listing["result"][0]["path"] = "parts/" + last_name + "_PETG_1h2m.gcode";
+  listing["result"][0]["path"] = "parts/" + last_name + "_" + last_material + "_1h2m.gcode";
   reply("server.files.list", listing);
   auto *first = label(long_name.c_str());
   auto *last = label(last_name.c_str());
+  auto *material = find_label(lv_obj_get_parent(last), last_material.c_str());
+  assert(material);
   auto *short_name = label("part_1");
   assert(lv_label_get_long_mode(first) == LV_LABEL_LONG_SCROLL_CIRCULAR);
   assert(lv_anim_get(first, nullptr));
   assert(!lv_anim_get(short_name, nullptr));
   assert(!lv_anim_get(last, nullptr));
+  assert(!lv_anim_get(material, nullptr));
   click(long_name.c_str(), LV_EVENT_SHORT_CLICKED);
   auto *modal_name = find_label(lv_layer_top(), long_path.c_str());
   assert(modal_name);
@@ -253,9 +257,11 @@ static void test_tile_captions(PrintPanel &panel, PrintStatusPanel &status) {
   lv_obj_scroll_to_y(grid, LV_COORD_MAX, LV_ANIM_OFF);
   assert(!lv_anim_get(first, nullptr));
   assert(lv_anim_get(last, nullptr));
+  assert(lv_anim_get(material, nullptr));
   auto pending = take("server.files.metadata");
   panel.background();
   assert(!lv_anim_get(last, nullptr));
+  assert(!lv_anim_get(material, nullptr));
   auto stale = metadata();
   pending.callback(stale);
   assert(requests.empty());
@@ -379,6 +385,137 @@ static void test_preview_cache(PrintPanel &panel) {
   rmdir(directory);
 }
 
+static MainPanel &create_navigation(KWebSocketClient &ws, std::mutex &lock) {
+  auto &spoolman = *new SpoolmanPanel(ws, lock);
+  auto &mmu = *new MmuPanel(ws, lock);
+  auto &main = *new MainPanel(ws, lock, &spoolman, &mmu);
+  main.create_panel();
+  main.set_klipper_ready(true);
+  requests.clear();
+  return main;
+}
+
+static lv_obj_t *navigation() {
+  for (uint32_t i = 0; i < lv_obj_get_child_cnt(lv_scr_act()); ++i) {
+    auto *child = lv_obj_get_child(lv_scr_act(), i);
+    if (lv_obj_check_type(child, &lv_tabview_class)) {
+      return child;
+    }
+  }
+  assert(false);
+  return nullptr;
+}
+
+static lv_indev_data_t pointer_input;
+static lv_indev_t *create_pointer() {
+  static lv_indev_drv_t driver; // LVGL retains the driver pointer
+  lv_indev_drv_init(&driver);
+  driver.type = LV_INDEV_TYPE_POINTER;
+  driver.read_cb = [](lv_indev_drv_t *, lv_indev_data_t *data) { *data = pointer_input; };
+  return lv_indev_drv_register(&driver);
+}
+
+static void pointer_event(lv_indev_t *pointer, int x, int y, lv_indev_state_t state) {
+  pointer_input.point = {static_cast<lv_coord_t>(x), static_cast<lv_coord_t>(y)};
+  pointer_input.state = state;
+  lv_indev_read_timer_cb(pointer->driver->read_timer);
+}
+
+static void select_page(lv_obj_t *tabs, uint16_t index) {
+  lv_obj_update_layout(tabs);
+  auto *buttons = lv_tabview_get_tab_btns(tabs);
+  const auto &area = reinterpret_cast<lv_btnmatrix_t *>(buttons)->button_areas[index];
+  const int x = buttons->coords.x1 + (area.x1 + area.x2) / 2;
+  const int y = buttons->coords.y1 + (area.y1 + area.y2) / 2;
+  auto *pointer = create_pointer();
+  for (auto state : {LV_INDEV_STATE_PRESSED, LV_INDEV_STATE_RELEASED}) {
+    pointer_event(pointer, x, y, state);
+  }
+  lv_indev_delete(pointer);
+  lv_obj_update_layout(tabs);
+}
+
+static void test_navigation(KWebSocketClient &ws, std::mutex &lock) {
+  auto &main = create_navigation(ws, lock);
+  auto *tabs = navigation();
+  auto *buttons = lv_tabview_get_tab_btns(tabs);
+  auto *pages = lv_tabview_get_content(tabs);
+  const auto print_index = lv_obj_get_child_cnt(pages) - 2;
+  auto *page = lv_obj_get_child(pages, print_index);
+  panel_root = lv_obj_get_child(page, 0);
+  assert(lv_obj_has_flag(panel_root, LV_OBJ_FLAG_HIDDEN));
+  assert(!find_label(tabs, "Print")); // printing is a nav icon, not a Home action
+  select_page(tabs, print_index);
+  assert(!lv_obj_has_flag(panel_root, LV_OBJ_FLAG_HIDDEN));
+  assert(lv_obj_is_visible(buttons));
+  assert(requests.size() == 1 && requests.front().method == "server.files.list");
+  select_page(tabs, print_index);
+  assert(requests.size() == 1); // reselecting does not reload
+  reply("server.files.list", file_list());
+  auto *grid = lv_obj_get_parent(lv_obj_get_parent(label("part_0")));
+  const int columns = screen_width == 480 ? 3 : 4;
+  auto *row_start = lv_obj_get_parent(label("part_0"));
+  auto *row_end = lv_obj_get_parent(label(("part_" + std::to_string(columns - 1)).c_str()));
+  auto *next_row = lv_obj_get_parent(label(("part_" + std::to_string(columns)).c_str()));
+  assert(lv_obj_get_y(row_start) == lv_obj_get_y(row_end));
+  assert(lv_obj_get_y(next_row) > lv_obj_get_y(row_start));
+  assert(!find_label(panel_root, "Back"));
+  assert(lv_obj_get_scrollbar_mode(grid) == LV_SCROLLBAR_MODE_OFF);
+  // The empty right margin receives taps and swipes without opening a file.
+  lv_obj_update_layout(tabs);
+  const int margin_x = grid->coords.x2 - lv_obj_get_style_pad_right(grid, 0) / 2;
+  const int margin_y = (grid->coords.y1 + grid->coords.y2) / 2;
+  auto *pointer = create_pointer();
+  pointer_event(pointer, margin_x, margin_y, LV_INDEV_STATE_PRESSED);
+  assert(pointer->proc.types.pointer.act_obj == grid);
+  pointer_event(pointer, margin_x, margin_y, LV_INDEV_STATE_RELEASED);
+  assert(!find_action(lv_layer_top(), "Print"));
+  lv_obj_clear_flag(grid, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+  pointer_event(pointer, margin_x, margin_y, LV_INDEV_STATE_PRESSED);
+  pointer_event(pointer, margin_x, margin_y - Theme::scale_r(50), LV_INDEV_STATE_PRESSED);
+  pointer_event(pointer, margin_x, margin_y - Theme::scale_r(50), LV_INDEV_STATE_RELEASED);
+  assert(lv_obj_get_scroll_y(grid) > 0);
+  assert(!find_action(lv_layer_top(), "Print"));
+  lv_obj_add_flag(grid, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+  lv_indev_delete(pointer);
+  auto stale = take("server.files.metadata");
+  select_page(tabs, 0);
+  assert(lv_obj_has_flag(panel_root, LV_OBJ_FLAG_HIDDEN));
+  assert(lv_obj_get_child_cnt(grid) == 0); // leaving the tab releases its cards
+  auto details = metadata();
+  stale.callback(details);
+  assert(requests.empty());
+
+  select_page(tabs, print_index);
+  reply("server.files.list", file_list(1));
+  while (!requests.empty()) {
+    reply("server.files.metadata", metadata());
+  }
+  click("part_0", LV_EVENT_SHORT_CLICKED);
+  click("Print");
+  assert(take("printer.print.start").params["filename"] == "part_0.gcode");
+  assert(main.home_active()); // starting a print leaves the file browser
+  assert(lv_obj_has_flag(panel_root, LV_OBJ_FLAG_HIDDEN));
+  main.set_klipper_ready(false); // close the print-status overlay
+  main.set_klipper_ready(true);
+  select_page(tabs, print_index);
+  stale = take("server.files.list");
+  printer_state("printing");
+  json update = {{"params", json::array({{{"print_stats", {{"state", "printing"}}}}})}};
+  main.consume(update);
+  assert(main.home_active());
+  assert(lv_btnmatrix_has_btn_ctrl(buttons, print_index, LV_BTNMATRIX_CTRL_DISABLED));
+  select_page(tabs, print_index);
+  assert(main.home_active()); // the disabled Print item ignores pointer input
+  auto listing = file_list();
+  stale.callback(listing);
+  assert(lv_obj_get_child_cnt(grid) == 0 && requests.empty());
+  printer_state("standby");
+  main.set_klipper_ready(false);
+  lv_obj_move_background(tabs);
+  panel_root = nullptr;
+}
+
 int main(int argc, char **argv) {
   assert(Config::get_instance()->load("grumpyscreen.cfg"));
   screen_width = argc > 1 && std::strcmp(argv[1], "--small") == 0 ? 480 : 800;
@@ -406,16 +543,16 @@ int main(int argc, char **argv) {
 
   KWebSocketClient ws(nullptr);
   std::mutex lock;
-  auto &status = *new PrintStatusPanel(ws, lock, lv_scr_act());
-  PrintPanel panel(ws, lock, status, nullptr);
-  lv_obj_update_layout(lv_scr_act());
-  panel_root = panel.get_container();
-  requests.clear();
   printer_state("standby");
-  panel.foreground();
 
   // Optional fixture from the simulator for inspecting the actual rendered UI.
   if (const char *fixture = std::getenv("PRINT_PANEL_FIXTURE")) {
+    create_navigation(ws, lock);
+    auto *tabs = navigation();
+    auto *pages = lv_tabview_get_content(tabs);
+    const auto print_index = lv_obj_get_child_cnt(pages) - 2;
+    select_page(tabs, print_index);
+    panel_root = lv_obj_get_child(lv_obj_get_child(pages, print_index), 0);
     json data;
     std::ifstream(fixture) >> data;
     json roots = json::array({{{"name", "gcodes"}, {"path", data["root"]}}});
@@ -432,6 +569,9 @@ int main(int argc, char **argv) {
     if (const char *selected = std::getenv("PRINT_PANEL_FILE")) {
       click(selected, LV_EVENT_SHORT_CLICKED);
     }
+    if (std::getenv("PRINT_PANEL_HOME") != nullptr) {
+      select_page(tabs, 0);
+    }
     lv_refr_now(nullptr);
     if (const char *out = std::getenv("PRINT_PANEL_SCREENSHOT")) {
       unsigned char *png = nullptr;
@@ -445,27 +585,48 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  test_navigation(ws, lock);
+  auto &status = *new PrintStatusPanel(ws, lock, lv_scr_act());
+  {
+    auto *parent = lv_obj_create(lv_scr_act());
+    PrintPanel embedded(ws, lock, status, nullptr, parent);
+    embedded.foreground();
+    auto stale = take("server.files.list");
+    lv_obj_del(parent); // tabview teardown owns the embedded gallery's widgets
+    assert(embedded.get_container() == nullptr);
+    auto listing = file_list();
+    stale.callback(listing);
+    assert(requests.empty());
+  }
+  PrintPanel panel(ws, lock, status, nullptr);
+  lv_obj_update_layout(lv_scr_act());
+  panel_root = panel.get_container();
+  requests.clear();
+  panel.foreground();
   test_tile_captions(panel, status);
   test_preview_cache(panel);
   reply("server.files.list", file_list());
   auto *grid = lv_obj_get_parent(lv_obj_get_parent(label("part_0")));
   auto *first = lv_obj_get_parent(label("part_0"));
   auto *second = lv_obj_get_parent(label("part_1"));
-  auto *third = lv_obj_get_parent(label("part_2"));
+  const int columns = screen_width == 480 ? 3 : 4;
+  auto *row_end = lv_obj_get_parent(label(("part_" + std::to_string(columns - 1)).c_str()));
+  auto *next_row = lv_obj_get_parent(label(("part_" + std::to_string(columns)).c_str()));
   lv_obj_update_layout(grid);
   assert(lv_obj_get_height(label("part_0")) == lv_font_get_line_height(Theme::scale_font(12)) + Theme::scale_r(4));
   assert(lv_obj_get_x(first) < lv_obj_get_x(second));
   assert(lv_obj_get_y(first) == lv_obj_get_y(second));
-  assert((lv_obj_get_y(third) > lv_obj_get_y(first)) == (screen_width == 480));
+  assert(lv_obj_get_y(row_end) == lv_obj_get_y(first));
+  assert(lv_obj_get_y(next_row) > lv_obj_get_y(first));
   // Nested files are cards in the same gallery; folders never take a slot.
   assert(lv_obj_get_child_cnt(grid) == 19);
   assert(!find_label(grid, "parts"));
   assert(find_label(grid, "a \"b\""));
-  lv_area_t grid_bounds, back_bounds;
+  lv_area_t grid_bounds;
   lv_obj_get_coords(grid, &grid_bounds);
-  lv_obj_get_coords(lv_obj_get_parent(find_label(panel_root, "Back")), &back_bounds);
-  assert(grid_bounds.x2 < back_bounds.x1);
-  assert(back_bounds.y2 < screen_height);
+  assert(!find_label(panel_root, "Back"));
+  assert(grid_bounds.x2 >= screen_width - Theme::gap() - 1);
+  assert(lv_obj_get_style_pad_right(grid, 0) > 0);
   assert(lv_obj_get_scroll_bottom(grid) > 0);
   assert(find_spinner(first));
   assert(!find_spinner(lv_obj_get_parent(label("a \"b\"")))); // offscreen tiles do not animate
@@ -560,7 +721,7 @@ int main(int argc, char **argv) {
     assert(!find_action(lv_layer_top(), "Print"));
     assert(!find_label(lv_layer_top(), "Delete file", true));
     panel.foreground();
-    assert(lv_obj_get_index(panel_root) == 0);
+    assert(lv_obj_has_flag(panel_root, LV_OBJ_FLAG_HIDDEN));
     assert(requests.empty());
   }
   printer_state("standby");
@@ -602,7 +763,7 @@ int main(int argc, char **argv) {
   assert(lv_obj_get_child_cnt(grid) == 2);
   assert(!find_label(lv_layer_top(), "USB/models/a \"b\".gcode", true));
   assert(!find_action(lv_layer_top(), "Print"));
-  click("Back");
+  panel.background();
   panel.foreground();
   reply("server.files.list", {{"error", {{"message", "Test list failure"}}}});
   assert(find_label(lv_layer_top(), "File list failed"));

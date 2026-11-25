@@ -48,11 +48,12 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
                      ? lv_tabview_add_tab(tabview, " ") : NULL)
   , console_tab(lv_tabview_add_tab(tabview, " "))
   , console_panel(ws, lock, console_tab)
+  , print_tab(lv_tabview_add_tab(tabview, " "))
   , setting_tab(lv_tabview_add_tab(tabview, " "))
   , setting_panel(websocket, lock, setting_tab)
   , main_cont(create_screen(main_tab))  // fills the tab: it is the page
   , print_status_panel(websocket, lock, main_cont)
-  , print_panel(ws, lock, print_status_panel, mmu)
+  , print_panel(ws, lock, print_status_panel, mmu, print_tab)
   , numpad(Numpad(main_cont))
   , extruder_panel(ws, lock, numpad)
   , prompt_panel(websocket, lock, main_cont, print_status_panel)
@@ -65,11 +66,11 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , extrude_btn(main_cont, Icons::EXTRUDE_IMG, "Extruder", &MainPanel::_handle_extrude_cb, this)
   , action_btn(main_cont, Icons::FAN, "Fans", &MainPanel::_handle_fanpanel_cb, this)
   , led_btn(main_cont, Icons::LIGHT_IMG, "LED", &MainPanel::_handle_ledpanel_cb, this)
-  , print_btn(main_cont, Icons::PRINT, "Print", &MainPanel::_handle_print_cb, this)
   , emergency_btn(main_cont, Icons::EMERGENCY, "Stop", &MainPanel::_handle_emergency_cb, this,
                   "Emergency Stop", "Do you want to emergency stop?",
                   {"Back", "Emergency Stop"})
 {
+  print_panel.print_started = [this] { show_home(); };
   emergency_btn.set_prompt_condition([] {
     return Config::get_instance()->get<bool>("/ui/prompt_emergency_stop");
   });
@@ -90,6 +91,7 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
 }
 
 MainPanel::~MainPanel() {
+  print_panel.background();
   if (tabview != NULL) {
     if (spoolman_panel != NULL) {
       spoolman_panel->detach();
@@ -128,7 +130,7 @@ void MainPanel::set_klipper_ready(bool ready) {
       button->disable();
     }
   }
-  update_print_button();
+  update_print_tab();
   for (const auto &sensor : sensors) {
     sensor.second->set_enabled(ready);
   }
@@ -147,12 +149,22 @@ void MainPanel::set_klipper_ready(bool ready) {
   }
 }
 
-void MainPanel::update_print_button() {
+void MainPanel::update_print_tab() {
+  auto *buttons = lv_tabview_get_tab_btns(tabview);
+  const auto index = lv_obj_get_index(print_tab);
   if (klipper_ready && !PrintPanel::printer_busy()) {
-    print_btn.enable();
+    lv_btnmatrix_clear_btn_ctrl(buttons, index, LV_BTNMATRIX_CTRL_DISABLED);
   } else {
-    print_btn.disable();
+    lv_btnmatrix_set_btn_ctrl(buttons, index, LV_BTNMATRIX_CTRL_DISABLED);
+    if (lv_tabview_get_tab_act(tabview) == index) {
+      show_home();
+    }
   }
+}
+
+void MainPanel::show_home() {
+  lv_tabview_set_act(tabview, lv_obj_get_index(main_tab), LV_ANIM_OFF);
+  lv_event_send(tabview, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 void MainPanel::append_console_output(const std::string &text) {
@@ -169,7 +181,7 @@ bool MainPanel::printer_menu_visible() {
   const int main_index = lv_obj_get_index(tabview);
   for (auto *panel : {homing_panel.get_container(), extruder_panel.get_container(),
                       fan_panel.get_container(), led_panel.get_container(),
-                      print_panel.get_container(), print_status_panel.get_container(),
+                      print_status_panel.get_container(),
                       prompt_panel.get_container()}) {
     if (lv_obj_get_index(panel) > main_index) {
       return false;
@@ -234,7 +246,7 @@ void MainPanel::init(json &j) {
   fit_chart_range();
   auto fans = State::get_instance()->get_display_fans();
   print_status_panel.init(fans);
-  update_print_button();
+  update_print_tab();
   if (mmu_panel != NULL) {
     mmu_panel->init_state();
   }
@@ -260,7 +272,7 @@ void MainPanel::consume(json &j) {
 
   json &pstat_state = j["/params/0/print_stats/state"_json_pointer];
   if (!pstat_state.is_null()) {
-    update_print_button();
+    update_print_tab();
     if (klipper_ready && pstat_state.template get<std::string>() != "printing") {
       homing_btn.enable();
       extrude_btn.enable();
@@ -287,6 +299,9 @@ const lv_img_dsc_t *MainPanel::tab_icon(uint16_t id) const {
   auto is = [id](lv_obj_t *tab) { return tab != NULL && lv_obj_get_index(tab) == id; };
   if (is(main_tab)) {
     return Icons::NAV_HOME;
+  }
+  if (is(print_tab)) {
+    return Icons::PRINT;
   }
   if (is(mmu_tab)) {
     return Icons::NAV_SPOOL;
@@ -357,10 +372,25 @@ void MainPanel::_tabview_event_cb(lv_event_t *e) {
     }
 
     auto *self = static_cast<MainPanel*>(lv_event_get_user_data(e));
-    lv_obj_t *tv = lv_event_get_target(e);
+    // Navigation button events bubble up with the button matrix as their
+    // target. Read the tabview receiving the event, and ignore page controls.
+    lv_obj_t *tv = lv_event_get_current_target(e);
+    auto *target = lv_event_get_target(e);
+    if (target != tv && target != lv_tabview_get_tab_btns(tv)) {
+      return;
+    }
 
     const uint16_t idx = lv_tabview_get_tab_act(tv);
 
+    if (idx == lv_obj_get_index(self->print_tab)) {
+        if (!self->klipper_ready || PrintPanel::printer_busy()) {
+            self->update_print_tab();
+            return;
+        }
+        self->print_panel.foreground();
+        return;
+    }
+    self->print_panel.background();
     if (self->spoolman_tab != NULL && idx == lv_obj_get_index(self->spoolman_tab)) {
         self->spoolman_panel->foreground();
     } else if (idx == lv_obj_get_index(self->console_tab)) {
@@ -406,7 +436,7 @@ void MainPanel::create_panel() {
   lv_obj_set_style_bg_color(lv_scr_act(), col(BG), 0);
   lv_obj_set_style_bg_color(tabview, col(BG), 0);
   lv_obj_set_style_bg_opa(tabview, LV_OPA_COVER, 0);
-  for (lv_obj_t *tab : {main_tab, console_tab, setting_tab, mmu_tab, spoolman_tab}) {
+  for (lv_obj_t *tab : {main_tab, print_tab, console_tab, setting_tab, mmu_tab, spoolman_tab}) {
     if (tab == NULL) {
       continue;
     }
@@ -457,13 +487,6 @@ void MainPanel::handle_ledpanel_cb(lv_event_t *event) {
   }
 }
 
-void MainPanel::handle_print_cb(lv_event_t *event) {
-  if (lv_event_get_code(event) == LV_EVENT_CLICKED && klipper_ready && !PrintPanel::printer_busy()) {
-    LOG_TRACE("clicked print");
-    print_panel.foreground();
-  }
-}
-
 void MainPanel::handle_emergency_cb(lv_event_t *event) {
   if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
     LOG_TRACE("clicked emergency");
@@ -489,9 +512,9 @@ void MainPanel::create_main(lv_obj_t * parent) {
 
   lv_obj_set_grid_dsc_array(main_cont, grid_main_col_dsc, grid_main_row_dsc);
 
-  // the six actions are tappable tiles, the same look as an MMU slot card
+  // The five actions are tappable tiles, the same look as an MMU slot card.
   for (ButtonContainer *b : {&homing_btn, &extrude_btn, &action_btn,
-                             &led_btn, &print_btn, &emergency_btn}) {
+                             &led_btn, &emergency_btn}) {
     b->use_plain();
   }
 
@@ -499,7 +522,6 @@ void MainPanel::create_main(lv_obj_t * parent) {
   lv_obj_set_grid_cell(extrude_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
   lv_obj_set_grid_cell(action_btn.get_container(), LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
   lv_obj_set_grid_cell(led_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
-  lv_obj_set_grid_cell(print_btn.get_container(), LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 2, 1);
   lv_obj_set_grid_cell(emergency_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 2, 1);
 
   lv_obj_clear_flag(temp_cont, LV_OBJ_FLAG_SCROLLABLE);
@@ -657,7 +679,7 @@ void MainPanel::create_leds(json &leds) {
   std::lock_guard<std::mutex> lock(lv_lock);
   // runs again on every klipper reconnect, so a hidden button has to come back.
   // Leave the LED cell empty when absent: Fans stays on the left, with
-  // Print and Stop together on the bottom row.
+  // Stop on the bottom row.
   const bool has_leds = leds.is_array() && !leds.empty();
   if (has_leds) {
     led_btn.show();

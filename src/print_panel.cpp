@@ -76,10 +76,11 @@ std::string tile_time(int64_t seconds) {
 
 } // namespace
 
-PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatusPanel &ps, MmuPanel *m)
+PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatusPanel &ps, MmuPanel *m,
+                       lv_obj_t *parent)
   : NotifyConsumer(lock)
   , ws(websocket)
-  , files_cont(create_screen(NULL))
+  , files_cont(create_screen(parent))
   , spinner(lv_spinner_create(files_cont, 1000, 60))
   , browser_view(create_row(files_cont))
   , file_view(lv_obj_create(lv_layer_top()))
@@ -89,7 +90,6 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   , delete_btn(file_dialog, Icons::DELETE_IMG, "Delete", [](lv_event_t *e) {
       static_cast<PrintPanel *>(lv_event_get_user_data(e))->confirm_delete();
     }, this)
-  , back_btn(files_cont, Icons::BACK, "Back", &PrintPanel::_handle_back_btn, this)
   , cur_file(NULL)
   , file_panel(file_dialog)
   , print_status(ps)
@@ -98,16 +98,13 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   , refresh_pending(false)
   , visible(false)
 {
-  lv_obj_move_background(files_cont);
-  // The gallery leaves the existing Back tile its own strip on the right.
-  static lv_coord_t screen_cols[] = {LV_GRID_FR(1), 0, LV_GRID_TEMPLATE_LAST};
-  screen_cols[1] = ButtonContainer::float_w();
-  static lv_coord_t screen_rows[] = {LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-  lv_obj_set_grid_dsc_array(files_cont, screen_cols, screen_rows);
-  lv_obj_set_grid_cell(browser_view, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
-  back_btn.use_plain();
-  lv_obj_set_height(back_btn.get_container(), ButtonContainer::float_w());
-  lv_obj_set_grid_cell(back_btn.get_container(), LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_END, 0, 1);
+  lv_obj_add_flag(files_cont, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_event_cb(files_cont, [](lv_event_t *e) {
+    auto *panel = static_cast<PrintPanel *>(lv_event_get_user_data(e));
+    panel->visible = false;
+    panel->files_cont = NULL;
+    panel->file_grid = NULL;
+  }, LV_EVENT_DELETE, this);
 
   lv_obj_set_size(browser_view, LV_PCT(100), LV_PCT(100));
   lv_obj_set_flex_flow(browser_view, LV_FLEX_FLOW_COLUMN);
@@ -117,6 +114,8 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   lv_obj_set_flex_grow(file_grid, 1);
   lv_obj_set_flex_flow(file_grid, LV_FLEX_FLOW_ROW_WRAP);
   lv_obj_set_flex_align(file_grid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
+  // Keep empty space on the right for swiping without touching a file.
+  lv_obj_set_style_pad_right(file_grid, scale_r(18), 0);
   manage_scroll(file_grid);
   lv_obj_add_event_cb(file_grid, [](lv_event_t *e) {
     static_cast<PrintPanel *>(lv_event_get_user_data(e))->update_tile_animations();
@@ -282,12 +281,12 @@ void PrintPanel::subscribe() {
 }
 
 void PrintPanel::foreground() {
-  if (printer_busy()) {
+  if (printer_busy() || visible) {
     return;
   }
   visible = true;
   update_actions();
-  lv_obj_move_foreground(files_cont);
+  lv_obj_clear_flag(files_cont, LV_OBJ_FLAG_HIDDEN);
   subscribe();
 }
 
@@ -296,7 +295,7 @@ void PrintPanel::background() {
   show_browser();
   clear_files();
   lv_obj_add_flag(spinner, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_move_background(files_cont);
+  lv_obj_add_flag(files_cont, LV_OBJ_FLAG_HIDDEN);
 }
 
 void PrintPanel::invalidate_thumbnail(const PrintFile &file) {
@@ -316,7 +315,9 @@ void PrintPanel::clear_files() {
     invalidate_thumbnail(file.second);
   }
   tiles.clear();
-  lv_obj_clean(file_grid);
+  if (file_grid != NULL) {
+    lv_obj_clean(file_grid);
+  }
   files.clear();
   tiles.shrink_to_fit();
 }
@@ -350,7 +351,7 @@ void PrintPanel::show_files() {
     return a->date_modified != b->date_modified ? a->date_modified > b->date_modified : a->full_path < b->full_path;
   });
   lv_obj_update_layout(browser_view);
-  const int columns = std::clamp(lv_obj_get_content_width(file_grid) / std::max(scale_r(110), 160), 2, 3);
+  const int columns = std::clamp(lv_obj_get_content_width(file_grid) / std::max(scale_r(95), 128), 3, 4);
   const int tile_w = (lv_obj_get_content_width(file_grid) - (columns - 1) * gap()) / columns;
   const int tile_h = std::max(scale_r(96), (lv_obj_get_content_height(file_grid) - gap()) / 2);
   tiles.reserve(entries.size());
@@ -391,7 +392,7 @@ void PrintPanel::show_files() {
     lv_obj_set_width(name, LV_PCT(100));
     lv_obj_set_style_text_font(name, scale_font(12), 0);
     lv_obj_set_height(name, lv_font_get_line_height(scale_font(12)) + scale_r(4));
-    lv_obj_set_style_pad_hor(name, gap(), 0);
+    lv_obj_set_style_pad_hor(name, scale_r(4), 0);
     lv_obj_set_style_pad_ver(name, scale_r(2), 0);
     lv_label_set_long_mode(name, LV_LABEL_LONG_CLIP);
     lv_obj_set_style_anim_speed(name, scale_r(30), 0);
@@ -401,7 +402,7 @@ void PrintPanel::show_files() {
     const auto *footer_font = scale_font(10);
     lv_obj_clear_flag(footer, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(footer, LV_PCT(100), lv_font_get_line_height(footer_font) + gap());
-    lv_obj_set_style_pad_hor(footer, gap(), 0);
+    lv_obj_set_style_pad_hor(footer, scale_r(4), 0);
     lv_obj_set_style_pad_bottom(footer, gap(), 0);
     lv_obj_set_style_pad_column(footer, scale_r(4), 0);
     lv_obj_set_flex_flow(footer, LV_FLEX_FLOW_ROW);
@@ -416,6 +417,8 @@ void PrintPanel::show_files() {
     }
     lv_obj_set_width(material, 0);
     lv_obj_set_flex_grow(material, 1);
+    lv_label_set_long_mode(material, LV_LABEL_LONG_CLIP);
+    lv_obj_set_style_anim_speed(material, scale_r(30), 0);
     lv_obj_set_style_text_align(weight, LV_TEXT_ALIGN_RIGHT, 0);
     lv_label_set_text(material, caption.second.empty() ? "Loading..." : caption.second.c_str());
     lv_label_set_text(time, "");
@@ -496,8 +499,10 @@ void PrintPanel::update_tile_animations() {
   for (auto &tile : tiles) {
     const bool shown = lv_obj_is_visible(tile.container);
     const auto name_mode = shown ? LV_LABEL_LONG_SCROLL_CIRCULAR : LV_LABEL_LONG_CLIP;
-    if (lv_label_get_long_mode(tile.name) != name_mode) {
-      lv_label_set_long_mode(tile.name, name_mode);
+    for (auto *label : {tile.name, tile.material}) {
+      if (lv_label_get_long_mode(label) != name_mode) {
+        lv_label_set_long_mode(label, name_mode);
+      }
     }
     if (!tile.loading || !shown) {
       stop_tile_spinner(tile);
@@ -677,12 +682,7 @@ void PrintPanel::delete_file(uint32_t index) {
 }
 
 void PrintPanel::handle_back_btn(lv_event_t *) {
-  if (!lv_obj_has_flag(file_view, LV_OBJ_FLAG_HIDDEN)) {
-    show_browser();
-  } else {
-    background();
-    print_status.background();
-  }
+  show_browser();
 }
 
 void PrintPanel::handle_print_callback(lv_event_t *event) {
@@ -708,6 +708,9 @@ void PrintPanel::start_print(const std::string &path) {
   if (!state.is_null() && state != "printing" && state != "paused") {
     background();
     ws.send_jsonrpc("printer.print.start", {{"filename", path}});
+    if (print_started) {
+      print_started();
+    }
     print_status.foreground();
   }
 }

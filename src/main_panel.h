@@ -58,7 +58,6 @@ class MainPanel : public NotifyConsumer {
   void handle_extrude_cb(lv_event_t *event);
   void handle_fanpanel_cb(lv_event_t *event);
   void handle_ledpanel_cb(lv_event_t *event);
-  void handle_print_cb(lv_event_t *event);
   void handle_emergency_cb(lv_event_t *event);
 
   lv_obj_t *create_button(lv_obj_t *parent,
@@ -91,18 +90,14 @@ class MainPanel : public NotifyConsumer {
     panel->handle_ledpanel_cb(event);
   };
 
-  static void _handle_print_cb(lv_event_t *event) {
-    MainPanel *panel = (MainPanel*)event->user_data;
-    panel->handle_print_cb(event);
-  };
-
   static void _handle_emergency_cb(lv_event_t *event) {
       MainPanel *panel = (MainPanel*)event->user_data;
       panel->handle_emergency_cb(event);
     };
 
  private:
-  void update_print_button();
+  void update_print_tab();
+  void show_home();
   void create_main(lv_obj_t *parent);
   static void _tabview_event_cb(lv_event_t *e);
   static void _draw_tab_icon(lv_event_t *e);
@@ -120,6 +115,7 @@ class MainPanel : public NotifyConsumer {
   lv_area_t tab_icon_area{};
   lv_obj_t *console_tab;
   ConsolePanel console_panel;
+  lv_obj_t *print_tab;
   lv_obj_t *setting_tab;
   SettingPanel setting_panel;
   lv_obj_t *main_cont;
@@ -145,7 +141,6 @@ class MainPanel : public NotifyConsumer {
   ButtonContainer extrude_btn;
   ButtonContainer action_btn;
   ButtonContainer led_btn;
-  ButtonContainer print_btn;
   ButtonContainer emergency_btn;
   bool klipper_ready = false;
 };

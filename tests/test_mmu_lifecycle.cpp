@@ -111,7 +111,9 @@ int main(int argc, char **argv) {
     auto *tabview = main_tabview();
     assert(tabview);
     auto *pages = lv_tabview_get_content(tabview);
-    assert(lv_obj_get_child_cnt(pages) == (hidden ? 3 : 5));
+    assert(lv_obj_get_child_cnt(pages) == (hidden ? 4 : 6));
+    assert(lv_btnmatrix_has_btn_ctrl(lv_tabview_get_tab_btns(tabview), lv_obj_get_child_cnt(pages) - 2,
+                                     LV_BTNMATRIX_CTRL_DISABLED));
     if (!hidden) {
       assert(lv_btnmatrix_has_btn_ctrl(lv_tabview_get_tab_btns(tabview), 1,
                                        LV_BTNMATRIX_CTRL_DISABLED));
@@ -141,7 +143,9 @@ int main(int argc, char **argv) {
   main.create_panel();
   auto *tabview = main_tabview();
   auto *button = lv_tabview_get_tab_btns(tabview);
-  auto *page = lv_obj_get_child(lv_tabview_get_content(tabview), 1);
+  auto *pages = lv_tabview_get_content(tabview);
+  const auto print_index = lv_obj_get_child_cnt(pages) - 2;
+  auto *page = lv_obj_get_child(pages, 1);
   auto disabled = [&] { return lv_btnmatrix_has_btn_ctrl(button, 1, LV_BTNMATRIX_CTRL_DISABLED); };
 
   load_printer(nullptr);
@@ -149,7 +153,7 @@ int main(int argc, char **argv) {
   assert(disabled());
   assert(lv_obj_get_child_cnt(page) == 0);
 
-  auto *print_button = lv_obj_get_parent(find_label(tabview, "Print"));
+  assert(!find_label(tabview, "Print"));
   for (const char *state : {"printing", "paused", "complete", "cancelled", "error", "standby"}) {
     json printer = {{"print_stats", {{"state", state}}}};
     State::get_instance()->set_data("printer_state", printer, "");
@@ -157,9 +161,9 @@ int main(int argc, char **argv) {
     main.consume(update);
     main.set_klipper_ready(true);
     const bool busy = std::strcmp(state, "printing") == 0 || std::strcmp(state, "paused") == 0;
-    assert(lv_obj_has_state(print_button, LV_STATE_DISABLED) == busy);
+    assert(lv_btnmatrix_has_btn_ctrl(button, print_index, LV_BTNMATRIX_CTRL_DISABLED) == busy);
     main.set_klipper_ready(false);
-    assert(lv_obj_has_state(print_button, LV_STATE_DISABLED));
+    assert(lv_btnmatrix_has_btn_ctrl(button, print_index, LV_BTNMATRIX_CTRL_DISABLED));
   }
 
   auto connect = [&](const char *object, MmuBackend *expected) {

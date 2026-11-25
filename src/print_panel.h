@@ -13,7 +13,8 @@
 
 class PrintPanel : public NotifyConsumer {
  public:
-  PrintPanel(KWebSocketClient &ws, std::mutex &lv_lock, PrintStatusPanel &ps, MmuPanel *mmu);
+  PrintPanel(KWebSocketClient &ws, std::mutex &lv_lock, PrintStatusPanel &ps, MmuPanel *mmu,
+             lv_obj_t *parent = NULL);
   ~PrintPanel();
 
   void consume(json &data);
@@ -23,6 +24,7 @@ class PrintPanel : public NotifyConsumer {
   void background();
   lv_obj_t *get_container() { return files_cont; }
   static bool printer_busy();
+  std::function<void()> print_started;
   void handle_callback(lv_event_t *event);
   void handle_back_btn(lv_event_t *event);
   void handle_print_callback(lv_event_t *event);
@@ -102,7 +104,6 @@ class PrintPanel : public NotifyConsumer {
   ButtonContainer close_btn;
   ButtonContainer print_btn;
   ButtonContainer delete_btn;
-  ButtonContainer back_btn;
   std::map<std::string, PrintFile> files;
   PrintFile *cur_file;
   FilePanel file_panel;

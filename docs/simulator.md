@@ -106,8 +106,14 @@ show a small spinner while their previews load; it stops when loading finishes
 or fails. Names that exceed the card's width scroll horizontally; short names
 stay still. Long paths also scroll in the file-details modal. Off-screen cards do not animate.
 
-The Back tile has a reserved strip on the right of the gallery. Tap a card to
-open a modal with its preview and Back, Print and Delete image buttons. Delete's
+Open Print from the left navigation, below Console and directly above Tools.
+The navigation stays visible beside the gallery, which uses the usual tile spacing
+and swipe scrolling without a scrollbar or a gallery Back button. The small
+480×272 screen fits three cards across; the normal 800×480 screen fits four.
+The cards use narrower previews and compact caption padding. Long material names
+scroll when needed, while time and weight stay in place. A narrow empty
+strip on the right of the gallery accepts swipes without touching any tiles.
+Tap a card to open a modal with its preview and Back, Print and Delete image buttons. Delete's
 icon uses the danger colour. There is no
 long-press action. The Print entry is disabled while a job is printing or paused;
 an active job also closes the gallery and any open file dialog.
