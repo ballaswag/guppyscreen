@@ -34,12 +34,16 @@ FilePanel::FilePanel(lv_obj_t *parent)
   lv_obj_set_width(fname_label, LV_PCT(100));
   lv_label_set_long_mode(fname_label, LV_LABEL_LONG_DOT);
   lv_obj_set_style_text_font(fname_label, Theme::scale_font(14), 0);
+  lv_obj_set_style_max_height(fname_label, 2 * lv_font_get_line_height(Theme::scale_font(14)), 0);
   lv_obj_set_style_text_align(fname_label, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_text(fname_label, "");
   lv_obj_add_style(detail_label, &Theme::styles().dim_label, 0);
   lv_obj_set_style_text_font(detail_label, Theme::scale_font(14), 0);
   lv_obj_set_style_text_align(detail_label, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_text(detail_label, "");
+  lv_obj_add_event_cb(file_cont, [](lv_event_t *e) {
+    static_cast<FilePanel *>(lv_event_get_user_data(e))->file_cont = NULL;
+  }, LV_EVENT_DELETE, this);
 }
 
 FilePanel::~FilePanel() {
@@ -49,7 +53,14 @@ FilePanel::~FilePanel() {
   }
 }
 
-void FilePanel::refresh_view(json &j, const std::string &gcode_path) {
+void FilePanel::clear_view(const std::string &gcode_path, const char *message) {
+  lv_label_set_text(fname_label, gcode_path.c_str());
+  lv_label_set_text(detail_label, message);
+  lv_img_set_src(thumbnail, NULL);
+  lv_obj_add_flag(thumbnail, LV_OBJ_FLAG_HIDDEN);
+}
+
+void FilePanel::refresh_view(json &j, const std::string &gcode_path, const std::string &thumbnail_path) {
   auto v = j["/result/modified"_json_pointer];
   std::stringstream time_stream;  
   if (!v.is_null()) {
@@ -63,21 +74,19 @@ void FilePanel::refresh_view(json &j, const std::string &gcode_path) {
   v = j["/result/estimated_time"_json_pointer];
   int eta =  v.is_null() ? -1 : v.template get<int>();
   v = j["/result/filament_weight_total"_json_pointer];
-  int fweight = v.is_null() ? -1 : v.template get<int>();
+  double fweight = v.is_null() ? -1 : v.template get<double>();
 
-  auto filename = fs::path(gcode_path).filename();
-  lv_label_set_text(fname_label, filename.string().c_str());
+  lv_label_set_text(fname_label, gcode_path.c_str());
   
   std::string detail = fmt::format("Filament Weight: {} g\nPrint Time: {}\nSize: {} MB",
-				   fweight > 0 ? std::to_string(fweight) : "(unknown)",
+				   fweight > 0 ? fmt::format("{:.1f}", fweight) : "(unknown)",
 				   eta > 0 ? KUtils::eta_string(eta) : "(unknown)",
-				   KUtils::bytes_to_mb(j["result"]["size"].template get<size_t>()));
+				   KUtils::bytes_to_mb(j["result"].value("size", size_t(0))));
 
   lv_label_set_text(detail_label, detail.c_str());
-  auto thumb_detail = KUtils::get_thumbnail(gcode_path, j, Theme::scale_w(180));
-  std::string fullpath = thumb_detail.first;
-  if (fullpath.length() > 0) {
-    lv_img_set_src(thumbnail, ("A:" + fullpath).c_str());
+  if (!thumbnail_path.empty()) {
+    lv_img_set_src(thumbnail, ("A:" + thumbnail_path).c_str());
+    lv_obj_clear_flag(thumbnail, LV_OBJ_FLAG_HIDDEN);
     // fit the bitmap to the slot the labels leave it, both ways; a small
     // thumbnail may grow to fill it, but no further than 2x or it blurs
     lv_obj_update_layout(file_cont);
@@ -86,10 +95,8 @@ void FilePanel::refresh_view(json &j, const std::string &gcode_path) {
                               - lv_obj_get_height(detail_label) - 2 * lv_obj_get_style_pad_row(file_cont, 0);
     Theme::fit_img(thumbnail, slot_w, slot_h, 2 * LV_IMG_ZOOM_NONE);
   } else {
-    // free src
     lv_img_set_src(thumbnail, NULL);
-    // hack to color in empty space.
-    ((lv_img_t*)thumbnail)->src_type = LV_IMG_SRC_SYMBOL;
+    lv_obj_add_flag(thumbnail, LV_OBJ_FLAG_HIDDEN);
   }
 }
 

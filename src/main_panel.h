@@ -102,6 +102,7 @@ class MainPanel : public NotifyConsumer {
     };
 
  private:
+  void update_print_button();
   void create_main(lv_obj_t *parent);
   static void _tabview_event_cb(lv_event_t *e);
   static void _draw_tab_icon(lv_event_t *e);

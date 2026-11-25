@@ -90,6 +90,24 @@ Useful `SIM_ARGS` flags (`python3 tools/fake_moonraker.py --help` lists all):
 | `no_object_labels.gcode`, `no_thumbnail.gcode` | Empty states |
 | `calibration/`, `spare_parts/` | Subfolders, a temperature tower and a long file name |
 
+The print panel displays a flat gallery: files inside these folders appear
+alongside files at the top level. USB files exposed by Moonraker in a G-code
+subfolder join the same gallery. Each card shows its thumbnail, name without its extension,
+estimated time and filament weight. Open a card to see its full relative path,
+which distinguishes files with the same name in different folders. Visible cards
+show a small spinner while their previews load; it stops when loading finishes
+or fails. Off-screen cards do not animate.
+
+The Back tile has a reserved strip on the right of the gallery. Tap a card to
+open a modal with its preview and Back, Print and Delete image buttons. Delete's
+icon uses the danger colour. There is no
+long-press action. The Print entry is disabled while a job is printing or paused;
+an active job also closes the gallery and any open file dialog.
+
+Loaded previews remain cached while the gallery is open. Deleting or uploading
+a file preserves the other cards and the scroll position. A changed file reloads
+its own preview; leaving the print panel releases the cache and decoded images.
+
 ## Commands
 
 From the console panel or `python3 tools/sim_send.py "SIM_PRINT"`:

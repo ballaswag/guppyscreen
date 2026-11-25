@@ -8,7 +8,8 @@
 #include "file_panel.h"
 #include "print_status_panel.h"
 #include "mmu_panel.h"
-#include "tree.h"
+
+#include <map>
 
 class PrintPanel : public NotifyConsumer {
  public:
@@ -20,14 +21,11 @@ class PrintPanel : public NotifyConsumer {
   void subscribe();
   void foreground();
   void background();
-#ifdef OS_ANDROID
   lv_obj_t *get_container() { return files_cont; }
-#endif
+  static bool printer_busy();
   void handle_callback(lv_event_t *event);
-  void handle_metadata(const std::string& full_path, json & data);
   void handle_back_btn(lv_event_t *event);
   void handle_print_callback(lv_event_t *event);
-  void handle_status_btn(lv_event_t *event);
   void handle_file_list_change(json &d);
   void delete_file(uint32_t btn_idx);
 
@@ -46,40 +44,73 @@ class PrintPanel : public NotifyConsumer {
     panel->handle_print_callback(event);
   };
 
-  static void _handle_status_btn(lv_event_t *event) {
-    PrintPanel *panel = (PrintPanel*)event->user_data;
-    panel->handle_status_btn(event);
-  };
-
   static void _delete_file(lv_obj_t *, uint32_t btn_idx, void *user_data) {
-    static_cast<PrintPanel *>(user_data)->delete_file(btn_idx);
+    auto *panel = static_cast<PrintPanel *>(user_data);
+    panel->delete_dialog = NULL; // the confirmation closes itself after this callback
+    panel->delete_file(btn_idx);
   };
 
  private:
-  void show_dir(Tree *dir, uint32_t sort_type);
-  void show_file_detail(Tree *f);
+  struct PrintFile {
+    std::string name;
+    std::string full_path;
+    double date_modified;
+    uint64_t size;
+    json metadata;
+    std::string thumbnail_path;
+
+    bool contains_metadata() const { return !metadata.is_null(); }
+  };
+
+  struct FileTile {
+    std::string path;
+    lv_obj_t *container;
+    lv_obj_t *preview;
+    lv_obj_t *time;
+    lv_obj_t *weight;
+    bool requested = false;
+    bool loading = true;
+    lv_obj_t *loading_spinner = NULL;
+  };
+
+  void show_files();
+  void clear_files();
+  void update_tile(FileTile &tile, const PrintFile &file);
+  void update_tile_spinners();
+  void stop_tile_spinner(FileTile &tile);
+  void invalidate_thumbnail(const PrintFile &file);
+  void show_browser();
+  void show_file_detail(PrintFile *f);
+  void load_visible_metadata();
+  void handle_metadata(const std::string &path, uint64_t generation, int width, json &data);
+  void update_actions();
+  void confirm_delete();
+  PrintFile *find_file(const std::string &path);
   void start_print(const std::string &path);
   
   KWebSocketClient &ws;
   lv_obj_t *files_cont;
   lv_obj_t *spinner;
-  lv_obj_t *left_cont;
-  lv_obj_t *file_table;
+  lv_obj_t *browser_view;
+  lv_obj_t *file_grid;
   lv_obj_t *file_view;
-  ButtonContainer status_btn;
+  lv_obj_t *file_dialog;
+  lv_obj_t *delete_dialog = NULL;
+  ButtonContainer close_btn;
   ButtonContainer print_btn;
+  ButtonContainer delete_btn;
   ButtonContainer back_btn;
-  Tree root;
-  Tree *cur_dir;
-  Tree *cur_file;
+  std::map<std::string, PrintFile> files;
+  PrintFile *cur_file;
   FilePanel file_panel;
   PrintStatusPanel &print_status;
   MmuPanel *mmu;
-  uint32_t sorted_by;
+  std::vector<FileTile> tiles;
+  uint64_t view_generation = 0;
+  bool metadata_pending = false;
   bool refreshing_files;
   bool refresh_pending;
   bool visible;
-  bool suppress_next_table_selection = false;
   std::string pending_delete_path;
 };
 

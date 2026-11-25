@@ -595,6 +595,50 @@ LIBRARY = {
         parts=[Part("stripes.stl_id_0_copy_0", circle(C, C, 14), 2.4, tool=0,
                     bands=[(z / 10, (k + 1) % 2) for k, z in enumerate(range(4, 24, 4))])],
         filaments=[(BLUE, "PLA", "Blue PLA"), (WHITE, "PLA", "White PLA")]),
+
+    # A few screens of distinct previews for the tiled file browser: tall,
+    # wide, round, multi-part and multi-colour models, with readable names.
+    "hex_knob.gcode": dict(
+        parts=[Part("hex_knob", circle(C, C, 10, n=6), 5.0)],
+        filaments=[(ORANGE, "PLA", "Orange PLA")]),
+    "cable_clip.gcode": dict(
+        parts=[Part("cable_clip", bracket(C - 14, C - 10), 2.0, hull_label=False)],
+        filaments=[(GREEN, "PETG", "Green PETG")], temps=(240, 80)),
+    "round_coaster.gcode": dict(
+        parts=[Part("round_coaster", circle(C, C, 20), 1.2)],
+        filaments=[(TEAL, "PLA", "Teal PLA")]),
+    "tall_test_tower.gcode": dict(
+        parts=[Part("test_tower", rect(C - 4, C - 4, 8, 8), 12.0)],
+        filaments=[(PURPLE, "PLA", "Purple PLA")]),
+    "desk_name_plate.gcode": dict(
+        parts=[Part("name_plate", rect(C - 32, C - 6, 64, 12), 1.6)],
+        filaments=[(BLUE, "PLA", "Blue PLA")]),
+    "spacer_set.gcode": dict(
+        parts=[Part("spacer_%d" % i, circle(C - 18 + i * 18, C, 6), 2.0 + i)
+               for i in range(3)],
+        filaments=[(YELLOW, "PLA", "Yellow PLA")]),
+    "two_colour_badge.gcode": dict(
+        parts=[Part("badge", circle(C, C, 16, n=6), 2.0, bands=[(1.0, 1)])],
+        filaments=[(RED, "PLA", "Red PLA"), (WHITE, "PLA", "White PLA")]),
+    "Small parts tray.gcode": dict(
+        parts=[Part("tray", rect(C - 18, C - 12, 36, 24), 1.0)],
+        filaments=[(CYAN, "PLA", "Cyan PLA")]),
+    "a_really_long_filename_for_the_thumbnail_grid_with_spaces and details.gcode": dict(
+        parts=[Part("long_label", rect(C - 20, C - 4, 40, 8), 1.2)],
+        filaments=[(GREEN, "PLA", "Green PLA")]),
+
+    # The basename is shared intentionally: remote thumbnail caching must
+    # keep the red and blue previews separate across folders. The second
+    # folder also checks navigation beyond a single directory level.
+    "spare_parts/knob.gcode": dict(
+        parts=[Part("red_knob", circle(C, C, 9), 4.0)],
+        filaments=[(RED, "PLA", "Red PLA")]),
+    "spare_parts/blue/knob.gcode": dict(
+        parts=[Part("blue_knob", circle(C, C, 9, n=6), 4.0)],
+        filaments=[(BLUE, "PLA", "Blue PLA")]),
+    'spare_parts/hinge "left".gcode': dict(
+        parts=[Part("left_hinge", rect(C - 12, C - 5, 24, 10), 2.0)],
+        filaments=[(WHITE, "PETG", "White PETG")], temps=(240, 80)),
 }
 
 

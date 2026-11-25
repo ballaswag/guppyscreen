@@ -149,6 +149,19 @@ int main(int argc, char **argv) {
   assert(disabled());
   assert(lv_obj_get_child_cnt(page) == 0);
 
+  auto *print_button = lv_obj_get_parent(find_label(tabview, "Print"));
+  for (const char *state : {"printing", "paused", "complete", "cancelled", "error", "standby"}) {
+    json printer = {{"print_stats", {{"state", state}}}};
+    State::get_instance()->set_data("printer_state", printer, "");
+    json update = {{"params", json::array({printer})}};
+    main.consume(update);
+    main.set_klipper_ready(true);
+    const bool busy = std::strcmp(state, "printing") == 0 || std::strcmp(state, "paused") == 0;
+    assert(lv_obj_has_state(print_button, LV_STATE_DISABLED) == busy);
+    main.set_klipper_ready(false);
+    assert(lv_obj_has_state(print_button, LV_STATE_DISABLED));
+  }
+
   auto connect = [&](const char *object, MmuBackend *expected) {
     load_printer(object);
     assert(mmu.select_backend() == expected);

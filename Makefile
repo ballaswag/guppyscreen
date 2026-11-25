@@ -276,7 +276,13 @@ test-prompt-panel: libhv.a wpaclient $(MMU_TEST_OBJS)
 	$(BUILD_DIR)/test_prompt_panel --phone
 	$(BUILD_DIR)/test_prompt_panel --tablet
 
-test: libhv.a test-console-font test-notification-banner test-mmu-lifecycle test-prompt-panel
+.PHONY: test-print-panel
+test-print-panel: libhv.a wpaclient $(MMU_TEST_OBJS)
+	@$(CXX) -std=c++17 -I./src $(INC) $(DEFINES) tests/test_print_panel.cpp $(filter-out $(BUILD_OBJ_DIR)/src/websocket_client.o,$(MMU_TEST_OBJS)) $(LDFLAGS) $(LDLIBS) -o $(BUILD_DIR)/test_print_panel
+	$(BUILD_DIR)/test_print_panel
+	$(BUILD_DIR)/test_print_panel --small
+
+test: libhv.a test-console-font test-notification-banner test-mmu-lifecycle test-prompt-panel test-print-panel
 	@mkdir -p $(BUILD_DIR)
 	g++ -std=gnu++17 -O2 -I./src -I$(DEPS_DIR)/include/ tests/test_config.cpp -o $(BUILD_DIR)/test_config
 	$(BUILD_DIR)/test_config

@@ -146,6 +146,20 @@ async def run():
           "afc: console samples leave the message queue empty")
 
     # --- files and metadata
+    listing = (await c.call("server.files.list", {"root": "gcodes"}))["result"]
+    paths = {item["path"] for item in listing}
+    check(len(paths) >= 24, "file library has several screens of tiles")
+    check({'Small parts tray.gcode', 'spare_parts/hinge "left".gcode',
+           'spare_parts/knob.gcode', 'spare_parts/blue/knob.gcode'} <= paths,
+          "file library includes spaces, quotes and nested duplicate basenames")
+    previews = []
+    for name in ("spare_parts/knob.gcode", "spare_parts/blue/knob.gcode"):
+        sample = (await c.call("server.files.metadata", {"filename": name}))["result"]
+        thumb_path = os.path.join("/tmp/grumpy-sim-%d/gcodes" % PORT,
+                                  os.path.dirname(name), sample["thumbnails"][-1]["relative_path"])
+        with open(thumb_path, "rb") as f:
+            previews.append(f.read())
+    check(previews[0] != previews[1], "same-named files in different folders have distinct previews")
     r = await c.call("server.files.metadata", {"filename": "nope.gcode"})
     check(r.get("error") == {"code": -32601, "message": "Metadata not available for <nope.gcode>"},
           "missing metadata error")

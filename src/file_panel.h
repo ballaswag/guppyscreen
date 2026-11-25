@@ -15,7 +15,8 @@ class FilePanel {
   ~FilePanel();
 
   void foreground();
-  void refresh_view(json &j, const std::string &gcode_path);  
+  void clear_view(const std::string &gcode_path, const char *message = "Loading details...");
+  void refresh_view(json &j, const std::string &gcode_path, const std::string &thumbnail_path);
   lv_obj_t *get_container();
 
  private:

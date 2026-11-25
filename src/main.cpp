@@ -21,6 +21,7 @@ namespace fs = std::experimental::filesystem;
 static void hal_init(lv_color_t p, lv_color_t s);
 
 #include "guppyscreen.h"
+#include "logger.h"
 #include "hv/hlog.h"
 #include "config.h"
 

@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <experimental/filesystem>
 #include <regex>
+#include <functional>
 
 namespace fs = std::experimental::filesystem;
 
@@ -88,7 +89,9 @@ namespace KUtils {
         fullpath = fmt::format("{}/{}", gcode_root, relative_path);
       } else { // download thumbnail
         if (fs::exists(fs::path(thumbnail_path))) {
-          fullpath = fmt::format("{}/{}", thumbnail_path, fname);
+          // Different folders can contain identically named G-code previews.
+          fullpath = fmt::format("{}/{:x}{}", thumbnail_path, std::hash<std::string>{}(relative_path),
+              fs::path(fname).extension().string());
           std::string thumb_url = fmt::format("http://{}:{}/server/files/gcodes/{}",
                       moonraker_host,
                       conf->get<uint32_t>("/moonraker/port"),

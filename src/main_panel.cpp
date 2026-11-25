@@ -120,7 +120,7 @@ void MainPanel::set_klipper_ready(bool ready) {
   console_panel.set_gcode_input_enabled(ready);
 
   for (ButtonContainer *button : {&homing_btn, &extrude_btn, &action_btn,
-                                  &led_btn, &print_btn, &emergency_btn}) {
+                                  &led_btn, &emergency_btn}) {
     if (ready) {
       button->enable();
     }
@@ -128,6 +128,7 @@ void MainPanel::set_klipper_ready(bool ready) {
       button->disable();
     }
   }
+  update_print_button();
   for (const auto &sensor : sensors) {
     sensor.second->set_enabled(ready);
   }
@@ -143,6 +144,14 @@ void MainPanel::set_klipper_ready(bool ready) {
     led_panel.background();
     print_panel.background();
     numpad.background();
+  }
+}
+
+void MainPanel::update_print_button() {
+  if (klipper_ready && !PrintPanel::printer_busy()) {
+    print_btn.enable();
+  } else {
+    print_btn.disable();
   }
 }
 
@@ -225,6 +234,7 @@ void MainPanel::init(json &j) {
   fit_chart_range();
   auto fans = State::get_instance()->get_display_fans();
   print_status_panel.init(fans);
+  update_print_button();
   if (mmu_panel != NULL) {
     mmu_panel->init_state();
   }
@@ -250,6 +260,7 @@ void MainPanel::consume(json &j) {
 
   json &pstat_state = j["/params/0/print_stats/state"_json_pointer];
   if (!pstat_state.is_null()) {
+    update_print_button();
     if (klipper_ready && pstat_state.template get<std::string>() != "printing") {
       homing_btn.enable();
       extrude_btn.enable();
@@ -447,7 +458,7 @@ void MainPanel::handle_ledpanel_cb(lv_event_t *event) {
 }
 
 void MainPanel::handle_print_cb(lv_event_t *event) {
-  if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+  if (lv_event_get_code(event) == LV_EVENT_CLICKED && klipper_ready && !PrintPanel::printer_busy()) {
     LOG_TRACE("clicked print");
     print_panel.foreground();
   }
