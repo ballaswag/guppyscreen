@@ -46,9 +46,9 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , mmu_tab(mmu != NULL ? lv_tabview_add_tab(tabview, " ") : NULL)
   , spoolman_tab(!SpoolmanPanel::hidden()
                      ? lv_tabview_add_tab(tabview, " ") : NULL)
+  , print_tab(lv_tabview_add_tab(tabview, " "))
   , console_tab(lv_tabview_add_tab(tabview, " "))
   , console_panel(ws, lock, console_tab)
-  , print_tab(lv_tabview_add_tab(tabview, " "))
   , setting_tab(lv_tabview_add_tab(tabview, " "))
   , setting_panel(websocket, lock, setting_tab)
   , main_cont(create_screen(main_tab))  // fills the tab: it is the page

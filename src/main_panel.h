@@ -113,9 +113,9 @@ class MainPanel : public NotifyConsumer {
   lv_obj_t *mmu_tab;
   lv_obj_t *spoolman_tab;
   lv_area_t tab_icon_area{};
+  lv_obj_t *print_tab;
   lv_obj_t *console_tab;
   ConsolePanel console_panel;
-  lv_obj_t *print_tab;
   lv_obj_t *setting_tab;
   SettingPanel setting_panel;
   lv_obj_t *main_cont;

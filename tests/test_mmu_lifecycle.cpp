@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
     assert(tabview);
     auto *pages = lv_tabview_get_content(tabview);
     assert(lv_obj_get_child_cnt(pages) == (hidden ? 4 : 6));
-    assert(lv_btnmatrix_has_btn_ctrl(lv_tabview_get_tab_btns(tabview), lv_obj_get_child_cnt(pages) - 2,
+    assert(lv_btnmatrix_has_btn_ctrl(lv_tabview_get_tab_btns(tabview), lv_obj_get_child_cnt(pages) - 3,
                                      LV_BTNMATRIX_CTRL_DISABLED));
     if (!hidden) {
       assert(lv_btnmatrix_has_btn_ctrl(lv_tabview_get_tab_btns(tabview), 1,
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
   auto *tabview = main_tabview();
   auto *button = lv_tabview_get_tab_btns(tabview);
   auto *pages = lv_tabview_get_content(tabview);
-  const auto print_index = lv_obj_get_child_cnt(pages) - 2;
+  const auto print_index = lv_obj_get_child_cnt(pages) - 3;
   auto *page = lv_obj_get_child(pages, 1);
   auto disabled = [&] { return lv_btnmatrix_has_btn_ctrl(button, 1, LV_BTNMATRIX_CTRL_DISABLED); };
 

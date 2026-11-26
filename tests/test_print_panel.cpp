@@ -474,7 +474,7 @@ static void test_navigation(KWebSocketClient &ws, std::mutex &lock) {
   auto *tabs = navigation();
   auto *buttons = lv_tabview_get_tab_btns(tabs);
   auto *pages = lv_tabview_get_content(tabs);
-  const auto print_index = lv_obj_get_child_cnt(pages) - 2;
+  const auto print_index = lv_obj_get_child_cnt(pages) - 3;
   auto *page = lv_obj_get_child(pages, print_index);
   panel_root = lv_obj_get_child(page, 0);
   assert(lv_obj_has_flag(panel_root, LV_OBJ_FLAG_HIDDEN));
@@ -581,7 +581,7 @@ int main(int argc, char **argv) {
     create_navigation(ws, lock);
     auto *tabs = navigation();
     auto *pages = lv_tabview_get_content(tabs);
-    const auto print_index = lv_obj_get_child_cnt(pages) - 2;
+    const auto print_index = lv_obj_get_child_cnt(pages) - 3;
     select_page(tabs, print_index);
     panel_root = lv_obj_get_child(lv_obj_get_child(pages, print_index), 0);
     json data;
