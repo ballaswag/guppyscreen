@@ -533,6 +533,8 @@ void PrintPanel::show_files(int scroll_y) {
     tiles[i].requested = file->contains_metadata();
     update_tile(tiles[i], *file);
   }
+  const auto alignment = entries.empty() ? LV_FLEX_ALIGN_CENTER : LV_FLEX_ALIGN_START;
+  lv_obj_set_flex_align(file_grid, alignment, alignment, alignment);
   if (entries.empty()) {
     auto *label = lv_label_create(file_grid);
     lv_label_set_text(label, "No G-code files");
