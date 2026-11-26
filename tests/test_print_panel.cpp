@@ -833,9 +833,10 @@ static void test_home_actions(MainPanel &main, lv_obj_t *tabs) {
   const int above_stop = stop_icon->coords.y1 - last_top - icon_h;
   const int below_stop = screen_height - 1 - stop_icon->coords.y2;
   assert(nav_gap > 0);
-  // Integer image zoom and row division can differ by a pixel or two.
+  // Icons are centered in their targets, leaving half an icon gap at the
+  // screen edge. Integer image zoom can differ by a pixel or two.
   assert(std::abs(above_stop - nav_gap) <= 2);
-  assert(std::abs(below_stop - nav_gap) <= 2);
+  assert(std::abs(below_stop - nav_gap / 2) <= 2);
 
   json fans = {{"fan", {{"display_name", "Part cooling"}}}};
   main.create_fans(fans);

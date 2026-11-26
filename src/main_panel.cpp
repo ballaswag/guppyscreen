@@ -11,26 +11,24 @@ using namespace Theme;
 #include <algorithm>
 #include <string>
 
-static constexpr int FULL_TAB_BAR_W = 60;
-static constexpr int COMPACT_TAB_BAR_W = 45;
+static constexpr int FULL_TAB_BAR_W = 80;
+static constexpr int COMPACT_TAB_BAR_W = 50;
 
-// Keep the compact screen's nav strip narrow enough to leave more room for the
-// page. On larger displays it grows only as far as the established 60px width.
+// Square buttons on the normal screen; the compact strip is a little wider
+// than its rows so six touch targets still fit in 272px of height.
 static int tab_bar_w() {
 #ifdef OS_ANDROID
-  // phones and tablets are far denser than 800x480: past it the strip keeps
-  // growing as the rest of the UI does (60px at 800x480), or its icons end up
-  // tiny. Their icons follow the strip, see nav_icon_px.
-  return std::clamp(scale_w(45), COMPACT_TAB_BAR_W, std::max(FULL_TAB_BAR_W, scale_r(36)));
+  // Keep scaling past 800x480 on dense phone and tablet displays.
+  return std::clamp(scale_w(50), COMPACT_TAB_BAR_W, std::max(FULL_TAB_BAR_W, scale_r(48)));
 #else
-  return std::clamp(scale_w(45), COMPACT_TAB_BAR_W, FULL_TAB_BAR_W);
+  return std::clamp(scale_w(50), COMPACT_TAB_BAR_W, FULL_TAB_BAR_W);
 #endif
 }
 
 static int reclaimed_tab_bar_w() { return std::max(0, FULL_TAB_BAR_W - tab_bar_w()); }
 
-// The nav icons are 40px, or two thirds of a strip that has grown past 60px.
-static int nav_icon_px() { return std::max(40, tab_bar_w() * 2 / 3); }
+// Stop uses the shared action icon sizing, so the drawn tab icons share its cap.
+static int nav_icon_px() { return std::min(action_icon_size(), std::max(40, tab_bar_w() * 2 / 3)); }
 
 MainPanel::MainPanel(KWebSocketClient &websocket,
 		     std::mutex &lock,
@@ -448,23 +446,26 @@ void MainPanel::create_panel() {
   android_place_menu(tab_bar_w(), android_menu_height());
 #endif
 
-  // Space all icons evenly, including the gaps above and below E-stop. Its
-  // separate click target keeps the same icon size and row height as the tabs.
+  // Give tabs and Stop the same square target, limited by the height available
+  // on compact screens. Distribute any spare height between and around them.
   const int menu_h = lv_obj_get_style_pad_top(tab_btns, 0);
   const int rows = lv_obj_get_child_cnt(tv_content) + 1;
   const int available_h = lv_disp_get_ver_res(NULL) - menu_h;
+  const int row_h = std::max(1, std::min(tab_bar_w(), available_h / rows));
   const int icon_px = std::max(1, std::min({nav_icon_px(), tab_bar_w() - 2 * gap(),
-                                         available_h / rows - 2 * gap()}));
-  const int icon_gap = std::max(0, (available_h - rows * icon_px) / (rows + 1));
-  const int edge = icon_gap / 2;
-  const int row_h = icon_px + icon_gap;
-  lv_obj_set_style_pad_row(tab_btns, 0, 0);
-  lv_obj_set_style_pad_top(tab_btns, menu_h + icon_gap - edge, 0);
-  lv_obj_set_style_pad_bottom(tab_btns, row_h + edge, 0);
+                                         row_h - 2 * gap()}));
+  const int spare_h = std::max(0, available_h - rows * row_h);
+  const int row_gap = spare_h / (rows + 1);
+  const int remainder = spare_h - row_gap * (rows + 1);
+  const int top = row_gap + remainder / 2;
+  const int bottom = row_gap + remainder - remainder / 2;
+  lv_obj_set_style_pad_row(tab_btns, row_gap, 0);
+  lv_obj_set_style_pad_top(tab_btns, menu_h + top, 0);
+  lv_obj_set_style_pad_bottom(tab_btns, row_h + row_gap + bottom, 0);
   lv_obj_set_style_pad_left(stop, (tab_bar_w() - icon_px) / 2, 0);
   lv_obj_set_style_pad_right(stop, tab_bar_w() - icon_px - (tab_bar_w() - icon_px) / 2, 0);
   lv_obj_set_size(stop, tab_bar_w(), row_h);
-  lv_obj_align(stop, LV_ALIGN_BOTTOM_LEFT, 0, -edge);
+  lv_obj_align(stop, LV_ALIGN_BOTTOM_LEFT, 0, -bottom);
 
   // The page is the theme's background everywhere: the screen, the tabview and
   // each tab. Left alone they paint LVGL's own dark card grey, which only
