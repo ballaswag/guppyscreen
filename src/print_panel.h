@@ -18,7 +18,7 @@ class PrintPanel : public NotifyConsumer {
   ~PrintPanel();
 
   void consume(json &data);
-  void populate_files(json &data);
+  void populate_files(json &data, bool usb_available);
   void subscribe();
   void foreground();
   void background();
@@ -78,7 +78,10 @@ class PrintPanel : public NotifyConsumer {
     lv_obj_t *name = NULL;
   };
 
-  void show_files();
+  void show_files(int scroll_y);
+  void update_source_tabs(bool usb_available);
+  void select_source();
+  void finish_refresh();
   void clear_files();
   void update_tile(FileTile &tile, const PrintFile &file);
   void update_tile_animations();
@@ -96,6 +99,9 @@ class PrintPanel : public NotifyConsumer {
   KWebSocketClient &ws;
   lv_obj_t *files_cont;
   lv_obj_t *spinner;
+  lv_obj_t *source_tabs = NULL;
+  lv_obj_t *printer_tab = NULL;
+  lv_obj_t *usb_tab = NULL;
   lv_obj_t *browser_view;
   lv_obj_t *file_grid;
   lv_obj_t *file_view;
@@ -111,6 +117,10 @@ class PrintPanel : public NotifyConsumer {
   MmuPanel *mmu;
   std::vector<FileTile> tiles;
   uint64_t view_generation = 0;
+  uint64_t refresh_generation = 0;
+  bool usb_available = false;
+  bool active_usb = false;
+  int source_scroll_y[2] = {0, 0};
   bool metadata_pending = false;
   bool refreshing_files;
   bool refresh_pending;

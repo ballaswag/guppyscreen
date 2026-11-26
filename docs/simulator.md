@@ -98,8 +98,12 @@ Useful `SIM_ARGS` flags (`python3 tools/fake_moonraker.py --help` lists all):
 | `cable_clip_PETG_6m32s.gcode`, `hex_knob_PLA_4m32s.gcode` | Orca-style material and duration suffixes |
 
 The print panel displays a flat gallery: files inside these folders appear
-alongside files at the top level. USB files exposed by Moonraker in a G-code
-subfolder join the same gallery. Each card shows its thumbnail, model name,
+alongside files at the top level. If Moonraker reports a `usb` directory
+at the G-code root, Printer and USB tabs appear, even if that directory is empty.
+Without USB, the gallery fills the panel with no tab header. Files
+under `usb/`, including nested subfolders, appear only in the USB tab. Each tab
+sorts files by modification time, newest first, and retains its own scroll
+position while switching tabs. Each card shows its thumbnail, model name,
 material, estimated print time and filament weight on the second line. For Orca-style names such as
 `pizza-Body_PLA_37m33s.gcode`, the caption is `pizza-Body` with `PLA` below it.
 The material and duration suffix is removed only when the whole pattern matches;
@@ -126,6 +130,10 @@ an active job also closes the gallery and any open file dialog.
 Loaded previews remain cached while the gallery is open. Deleting or uploading
 a file preserves the other cards and the scroll position. A changed file reloads
 its own preview; leaving the print panel releases the cache and decoded images.
+If Moonraker has not indexed a visible file, the panel requests a metadata scan
+to extract its preview, print time and filament weight. This also handles files
+on a newly mounted USB key. A failed scan stops loading and can be retried by
+opening the file again.
 
 ## Commands
 

@@ -13,6 +13,7 @@ extern "C" {
 #include <cstring>
 #include <deque>
 #include <fstream>
+#include <sys/stat.h>
 #include <unistd.h>
 
 // Exercise the panel's real asynchronous callbacks, with replies supplied in
@@ -57,6 +58,25 @@ static Request take(const char *method) {
   return request;
 }
 static void reply(const char *method, json data) { take(method).callback(data); }
+
+// Model the two Moonraker responses: the recursive G-code list and the root's
+// directory entries, which can include an empty USB directory.
+static void reply_files(json data, bool empty_usb = false) {
+  const bool success = data.contains("result") && data["result"].is_array();
+  bool usb = empty_usb;
+  if (success) {
+    for (const auto &file : data["result"]) {
+      usb = usb || file["path"].get<std::string>().compare(0, 4, "usb/") == 0;
+    }
+  }
+  reply("server.files.list", data);
+  if (success) {
+    auto directory = take("server.files.get_directory");
+    assert(directory.params == json({{"path", "gcodes"}}));
+    json response = {{"result", {{"dirs", usb ? json::array({{{"dirname", "usb"}}}) : json::array()}}}};
+    directory.callback(response);
+  }
+}
 
 static lv_obj_t *panel_root = nullptr;
 static lv_obj_t *find_label(lv_obj_t *parent, const char *text, bool visible_only = false) {
@@ -182,7 +202,7 @@ static void test_tile_captions(PrintPanel &panel, PrintStatusPanel &status) {
   bool check_start_path = true;
   for (const auto &example : examples) {
     const std::string path = "USB/models/" + example.filename;
-    reply("server.files.list", {{"result", json::array({{{"path", path}, {"modified", 1000}, {"size", 1024}}})}});
+    reply_files({{"result", json::array({{{"path", path}, {"modified", 1000}, {"size", 1024}}})}});
     auto *name = label(example.caption.c_str());
     auto *card = lv_obj_get_parent(name);
     auto *footer = lv_obj_get_child(card, -1);
@@ -226,7 +246,7 @@ static void test_tile_captions(PrintPanel &panel, PrintStatusPanel &status) {
   auto listing = file_list();
   listing["result"][1]["path"] = long_path;
   listing["result"][0]["path"] = "parts/" + last_name + "_" + last_material + "_1h2m.gcode";
-  reply("server.files.list", listing);
+  reply_files(listing);
   auto *first = label(long_name.c_str());
   auto *last = label(last_name.c_str());
   auto *material = find_label(lv_obj_get_parent(last), last_material.c_str());
@@ -298,7 +318,7 @@ static void test_preview_cache(PrintPanel &panel) {
     }
     return count;
   };
-  reply("server.files.list", listing);
+  reply_files(listing);
   auto *loading_card = lv_obj_get_parent(label("cache_0"));
   auto *loading_spinner = find_spinner(loading_card);
   assert(loading_spinner && lv_anim_get(loading_spinner, nullptr));
@@ -327,8 +347,8 @@ static void test_preview_cache(PrintPanel &panel) {
   json deleted = {{"result", {{"action", "delete_file"}}}};
   deletion.callback(deleted);
   listing["result"].erase(1);
-  reply("server.files.list", listing);
-  reply("server.files.list", listing);
+  reply_files(listing);
+  reply_files(listing);
   assert(requests.empty()); // no metadata requests for surviving files
   assert(!find_spinner(grid)); // cached cards do not restart their spinners
   assert(lv_obj_get_child_cnt(grid) == 2);
@@ -342,7 +362,7 @@ static void test_preview_cache(PrintPanel &panel) {
   for (const char *field : {"modified", "size"}) {
     listing["result"][0][field] = std::strcmp(field, "modified") == 0 ? 1000.25 : 2048.0;
     panel.handle_file_list_change(changed);
-    reply("server.files.list", listing);
+    reply_files(listing);
     assert(requests.size() == 1);
     assert(requests.front().params["filename"] == "cache_0.gcode");
     assert(find_spinner(card));
@@ -357,13 +377,13 @@ static void test_preview_cache(PrintPanel &panel) {
   assert(lv_obj_get_child_cnt(grid) == 0);
   assert(decoded->dec_dsc.src == nullptr); // decoded image memory was released
   panel.foreground();
-  reply("server.files.list", listing);
+  reply_files(listing);
   assert(load_previews() == 2); // a new visit starts with an empty cache
 
   // Neither late metadata nor a late list reply may repopulate a hidden panel.
   panel.background();
   panel.foreground();
-  reply("server.files.list", listing);
+  reply_files(listing);
   auto stale = take("server.files.metadata");
   loading_spinner = find_spinner(grid);
   assert(loading_spinner && lv_anim_get(loading_spinner, nullptr));
@@ -377,7 +397,7 @@ static void test_preview_cache(PrintPanel &panel) {
   panel.foreground();
   stale.callback(listing);
   assert(lv_obj_get_child_cnt(grid) == 0);
-  reply("server.files.list", listing);
+  reply_files(listing);
   assert(load_previews() == 2);
   panel.background();
   panel.foreground(); // leave the original fixture's list request pending
@@ -435,8 +455,236 @@ static void select_page(lv_obj_t *tabs, uint16_t index) {
   lv_obj_update_layout(tabs);
 }
 
+static lv_obj_t *file_tabs() {
+  for (uint32_t i = 0; i < lv_obj_get_child_cnt(panel_root); ++i) {
+    auto *child = lv_obj_get_child(panel_root, i);
+    if (lv_obj_check_type(child, &lv_tabview_class)) {
+      return child;
+    }
+  }
+  assert(false);
+  return nullptr;
+}
+
+static lv_obj_t *gallery() {
+  auto *tabs = file_tabs();
+  auto *page = lv_obj_get_child(lv_tabview_get_content(tabs), lv_tabview_get_tab_act(tabs));
+  return lv_obj_get_child(lv_obj_get_child(page, 0), 0);
+}
+
+static void test_source_tabs(PrintPanel &panel) {
+  auto tab_count = [] {
+    return lv_obj_get_child_cnt(lv_tabview_get_content(file_tabs()));
+  };
+  json changed = {{"params", json::array({{{"item", {{"root", "gcodes"}}}}})}};
+  reply_files({{"result", json::array()}});
+  assert(tab_count() == 1);
+  assert(std::strcmp(lv_btnmatrix_get_btn_text(lv_tabview_get_tab_btns(file_tabs()), 0), "Printer") == 0);
+  assert(find_label(gallery(), "No G-code files"));
+  assert(!lv_obj_is_visible(lv_tabview_get_tab_btns(file_tabs())));
+  lv_obj_update_layout(panel_root);
+  const int full_gallery_height = lv_obj_get_height(gallery());
+  const int full_gallery_top = gallery()->coords.y1;
+
+  panel.handle_file_list_change(changed);
+  reply_files({{"result", json::array()}}, true);
+  assert(tab_count() == 2); // directory existence is sufficient, even with no files
+  assert(std::strcmp(lv_btnmatrix_get_btn_text(lv_tabview_get_tab_btns(file_tabs()), 1), "USB") == 0);
+  assert(lv_obj_is_visible(lv_tabview_get_tab_btns(file_tabs())));
+  lv_obj_update_layout(panel_root);
+  assert(lv_obj_get_height(gallery()) < full_gallery_height);
+  assert(gallery()->coords.y1 > full_gallery_top);
+  select_page(file_tabs(), 1);
+  assert(lv_tabview_get_tab_act(file_tabs()) == 1);
+  assert(find_label(gallery(), "No G-code files"));
+  assert(requests.empty());
+
+  // Losing the USB directory removes the header and restores the gallery space.
+  panel.handle_file_list_change(changed);
+  reply_files({{"result", json::array()}});
+  assert(tab_count() == 1 && lv_tabview_get_tab_act(file_tabs()) == 0);
+  assert(!lv_obj_is_visible(lv_tabview_get_tab_btns(file_tabs())));
+  assert(lv_obj_get_height(gallery()) == full_gallery_height);
+  assert(gallery()->coords.y1 == full_gallery_top);
+
+  auto listing = file_list();
+  for (const auto &path : {"usb_backup/backup.gcode", "parts/usb/nested.gcode", "usb.gcode"}) {
+    listing["result"].push_back({{"path", path}, {"modified", 25}});
+  }
+  for (int i = 0; i < 20; ++i) {
+    listing["result"].push_back({{"path", "usb/models/usb_" + std::to_string(i) + ".gcode"},
+                                 {"modified", 2000 - i}});
+  }
+  panel.handle_file_list_change(changed);
+  reply_files(listing);
+  auto *grid = gallery();
+  assert(lv_obj_get_child_cnt(grid) == 22);
+  assert(find_label(grid, "backup") && find_label(grid, "nested") && find_label(grid, "usb"));
+  assert(!find_label(grid, "usb_0"));
+  while (!requests.empty()) {
+    assert(requests.front().params["filename"].get<std::string>().compare(0, 4, "usb/") != 0);
+    reply("server.files.metadata", metadata());
+  }
+  lv_obj_scroll_to_y(grid, LV_COORD_MAX, LV_ANIM_OFF);
+  const int printer_scroll = lv_obj_get_scroll_y(grid);
+  lv_event_send(grid, LV_EVENT_SCROLL_END, nullptr);
+  auto old_preview = take("server.files.metadata");
+  select_page(file_tabs(), 1);
+  assert(gallery() == grid);
+  assert(lv_obj_get_scroll_y(grid) == 0);
+  assert(lv_obj_get_child_cnt(grid) == 20);
+  assert(!find_label(grid, "part_0") && !find_label(grid, "backup"));
+  assert(lv_obj_get_parent(label("usb_0")) == lv_obj_get_child(grid, 0));
+  assert(lv_obj_get_parent(label("usb_1")) == lv_obj_get_child(grid, 1));
+  auto stale_data = metadata(999);
+  stale_data["result"]["filament_type"] = "STALE";
+  old_preview.callback(stale_data);
+  assert(requests.size() == 1);
+  while (!requests.empty()) {
+    assert(requests.front().params["filename"].get<std::string>().compare(0, 4, "usb/") == 0);
+    reply("server.files.metadata", metadata());
+  }
+  assert(!find_label(grid, "STALE"));
+  lv_obj_scroll_to_y(grid, LV_COORD_MAX, LV_ANIM_OFF);
+  const int usb_scroll = lv_obj_get_scroll_y(grid);
+  select_page(file_tabs(), 0);
+  assert(lv_obj_get_scroll_y(grid) == printer_scroll);
+  while (!requests.empty()) {
+    reply("server.files.metadata", metadata());
+  }
+  // Switching source during a file refresh must not invalidate that refresh.
+  panel.handle_file_list_change(changed);
+  select_page(file_tabs(), 1);
+  reply_files(listing);
+  assert(lv_obj_get_scroll_y(grid) == usb_scroll);
+  while (!requests.empty()) {
+    reply("server.files.metadata", metadata());
+  }
+  assert(!lv_obj_is_visible(find_spinner(panel_root)));
+
+  // A late directory reply cannot repopulate a closed or reopened browser.
+  panel.handle_file_list_change(changed);
+  reply("server.files.list", listing);
+  auto directory = take("server.files.get_directory");
+  panel.background();
+  panel.foreground();
+  json old_directory = {{"result", {{"dirs", json::array({{{"dirname", "usb"}}})}}}};
+  directory.callback(old_directory);
+  assert(lv_obj_get_child_cnt(grid) == 0);
+  reply_files(file_list(1));
+  assert(tab_count() == 1);
+  while (!requests.empty()) {
+    reply("server.files.metadata", metadata());
+  }
+
+  // If the directory query fails, listed USB files must still be reachable.
+  panel.handle_file_list_change(changed);
+  reply("server.files.list", listing);
+  reply("server.files.get_directory", {{"error", {{"message", "Directory unavailable"}}}});
+  assert(tab_count() == 2);
+  select_page(file_tabs(), 1);
+  while (!requests.empty()) {
+    reply("server.files.metadata", metadata());
+  }
+  assert(find_label(gallery(), "usb_0"));
+  panel.background();
+  panel.foreground();
+}
+
+static void test_usb_metadata_scan(PrintPanel &panel) {
+  char directory[] = "/tmp/grumpy-usb-preview-XXXXXX";
+  assert(mkdtemp(directory));
+  const std::string root = std::string(directory) + "/gcodes";
+  const std::string drive = std::string(directory) + "/drive";
+  assert(mkdir(root.c_str(), 0700) == 0);
+  assert(mkdir(drive.c_str(), 0700) == 0);
+  assert(mkdir((drive + "/models").c_str(), 0700) == 0);
+  assert(symlink(drive.c_str(), (root + "/usb").c_str()) == 0);
+  unsigned char rgba[] = {40, 180, 100, 255};
+  unsigned char *png = nullptr;
+  size_t size = 0;
+  assert(lodepng_encode32(&png, &size, rgba, 1, 1) == 0);
+  {
+    std::ofstream image_file(drive + "/models/preview.png", std::ios::binary);
+    image_file.write(reinterpret_cast<const char *>(png), size);
+  }
+  lv_mem_free(png);
+  json roots = json::array({{{"name", "gcodes"}, {"path", root}}});
+  State::get_instance()->set_data("roots", roots, "");
+  const std::string path = "usb/models/usb_preview.gcode";
+  const json listing = {{"result", json::array({{{"path", path}, {"modified", 1000}, {"size", 1024}}})}};
+  const json missing = {{"error", {{"code", -32601}, {"message", "Metadata not available for <" + path + ">"}}}};
+  auto preview = metadata();
+  preview["result"]["thumbnails"] = json::array({{{"width", 1}, {"height", 1}, {"relative_path", "preview.png"}}});
+  reply_files(listing);
+  assert(requests.empty()); // no USB scans while browsing Printer
+  select_page(file_tabs(), 1);
+  assert(requests.front().params == json({{"filename", path}}));
+  reply("server.files.metadata", missing);
+  assert(requests.size() == 1 && requests.front().method == "server.files.metascan");
+  assert(requests.front().params == json({{"filename", path}}));
+  auto *card = lv_obj_get_parent(label("usb_preview"));
+  assert(find_spinner(card));
+  click("usb_preview", LV_EVENT_SHORT_CLICKED);
+  assert(lv_obj_has_state(lv_obj_get_parent(label("Print")), LV_STATE_DISABLED));
+  reply("server.files.metascan", preview);
+  assert(requests.empty() && !find_spinner(card));
+  assert(find_label(card, "2m3s") && find_label(card, "4.5 g"));
+  assert(!lv_obj_has_state(lv_obj_get_parent(label("Print")), LV_STATE_DISABLED));
+  auto *image = lv_obj_get_child(lv_obj_get_child(card, 0), 0);
+  const std::string image_path = "A:" + root + "/usb/models/preview.png";
+  assert(std::strcmp(static_cast<const char *>(lv_img_get_src(image)), image_path.c_str()) == 0);
+  auto *decoded = _lv_img_cache_open(lv_img_get_src(image), lv_color_black(), 0);
+  assert(decoded && decoded->dec_dsc.img_data); // decode through the USB symlink
+  click("Back");
+  select_page(file_tabs(), 0);
+  select_page(file_tabs(), 1);
+  assert(requests.empty()); // switching sources reuses the scanned metadata
+
+  panel.background();
+  panel.foreground();
+  reply_files(listing);
+  select_page(file_tabs(), 1);
+  reply("server.files.metadata", missing);
+  reply("server.files.metascan", missing);
+  assert(requests.empty()); // a failed scan must not recurse
+  card = lv_obj_get_parent(label("usb_preview"));
+  assert(!find_spinner(card) && find_label(card, "Unavailable"));
+
+  // Upstream Moonraker uses 404 for the same missing-metadata response.
+  click("usb_preview", LV_EVENT_SHORT_CLICKED);
+  auto not_found = missing;
+  not_found["error"]["code"] = 404;
+  reply("server.files.metadata", not_found);
+  auto stale_scan = take("server.files.metascan");
+  json changed = {{"params", json::array({{{"item", {{"root", "gcodes"}}}}})}};
+  panel.handle_file_list_change(changed);
+  reply_files({{"result", json::array()}}); // unplug while the scan is pending
+  stale_scan.callback(preview);
+  assert(requests.empty());
+  assert(find_label(gallery(), "No G-code files"));
+  assert(!find_action(lv_layer_top(), "Print"));
+
+  panel.handle_file_list_change(changed);
+  reply_files(listing);
+  select_page(file_tabs(), 1);
+  auto stale_metadata = take("server.files.metadata");
+  select_page(file_tabs(), 0);
+  auto missing_data = missing;
+  stale_metadata.callback(missing_data);
+  assert(requests.empty()); // do not scan a source that is no longer displayed
+  panel.background();
+  panel.foreground();
+  assert(unlink((root + "/usb").c_str()) == 0);
+  std::remove((drive + "/models/preview.png").c_str());
+  rmdir((drive + "/models").c_str());
+  rmdir(drive.c_str());
+  rmdir(root.c_str());
+  rmdir(directory);
+}
+
 static void stress_preview_scrolling(const json &fixture) {
-  auto *grid = lv_obj_get_child(lv_obj_get_child(panel_root, 0), 0);
+  auto *grid = gallery();
   auto *pointer = create_pointer();
   int frames = 0;
   auto frame = [&] {
@@ -485,7 +733,7 @@ static void test_navigation(KWebSocketClient &ws, std::mutex &lock) {
   assert(requests.size() == 1 && requests.front().method == "server.files.list");
   select_page(tabs, print_index);
   assert(requests.size() == 1); // reselecting does not reload
-  reply("server.files.list", file_list());
+  reply_files(file_list());
   auto *grid = lv_obj_get_parent(lv_obj_get_parent(label("part_0")));
   const int columns = screen_width == 480 ? 3 : 4;
   auto *row_start = lv_obj_get_parent(label("part_0"));
@@ -518,7 +766,7 @@ static void test_navigation(KWebSocketClient &ws, std::mutex &lock) {
   assert(requests.empty());
 
   select_page(tabs, print_index);
-  reply("server.files.list", file_list(1));
+  reply_files(file_list(1));
   while (!requests.empty()) {
     reply("server.files.metadata", metadata());
   }
@@ -588,7 +836,10 @@ int main(int argc, char **argv) {
     std::ifstream(fixture) >> data;
     json roots = json::array({{{"name", "gcodes"}, {"path", data["root"]}}});
     State::get_instance()->set_data("roots", roots, "");
-    reply("server.files.list", {{"result", data["files"]}});
+    reply_files({{"result", data["files"]}}, access((data["root"].get<std::string>() + "/usb").c_str(), F_OK) == 0);
+    if (std::getenv("PRINT_PANEL_USB") != nullptr) {
+      select_page(file_tabs(), 1);
+    }
     const char *limit_setting = std::getenv("PRINT_PANEL_METADATA_LIMIT");
     const int limit = limit_setting == nullptr ? -1 : std::atoi(limit_setting);
     int loaded = 0;
@@ -639,7 +890,9 @@ int main(int argc, char **argv) {
   panel.foreground();
   test_tile_captions(panel, status);
   test_preview_cache(panel);
-  reply("server.files.list", file_list());
+  test_source_tabs(panel);
+  test_usb_metadata_scan(panel);
+  reply_files(file_list());
   auto *grid = lv_obj_get_parent(lv_obj_get_parent(label("part_0")));
   auto *first = lv_obj_get_parent(label("part_0"));
   auto *second = lv_obj_get_parent(label("part_1"));
@@ -701,35 +954,40 @@ int main(int argc, char **argv) {
   const int saved_scroll = lv_obj_get_scroll_y(grid);
   json changed = {{"params", json::array({{{"item", {{"root", "gcodes"}}}}})}};
   panel.handle_file_list_change(changed);
-  reply("server.files.list", file_list());
+  reply_files(file_list());
   assert(requests.empty());
   assert(lv_obj_get_scroll_y(grid) == saved_scroll);
 
   lv_obj_scroll_to_y(grid, saved_scroll / 2, LV_ANIM_OFF);
   lv_event_send(grid, LV_EVENT_SCROLL_END, nullptr);
 
-  // A USB insertion refreshes the same gallery while an old preview is pending.
+  // A USB insertion adds a separate source while an old preview is pending.
   auto stale = take("server.files.metadata");
   lv_obj_scroll_to_y(grid, 0, LV_ANIM_OFF);
   panel.handle_file_list_change(changed);
   auto with_usb = file_list();
-  with_usb["result"].push_back({{"path", "USB/models/a \"b\".gcode"}, {"modified", 2000}});
-  reply("server.files.list", with_usb);
+  with_usb["result"].push_back({{"path", "usb/models/a \"b\".gcode"}, {"modified", 2000}});
+  reply_files(with_usb);
+  assert(lv_obj_get_child_cnt(grid) == 19);
+  while (!requests.empty()) {
+    reply("server.files.metadata", metadata());
+  }
+  select_page(file_tabs(), 1);
   auto stale_data = metadata(999);
   stale_data["result"]["filament_type"] = "STALE";
   stale.callback(stale_data);
   assert(requests.size() == 1); // stale replies do not start a duplicate request
-  assert(requests.front().params["filename"] == "USB/models/a \"b\".gcode");
+  assert(requests.front().params["filename"] == "usb/models/a \"b\".gcode");
   reply("server.files.metadata", metadata(42));
   assert(!find_label(grid, "STALE"));
-  assert(lv_obj_get_child_cnt(grid) == 20);
+  assert(lv_obj_get_child_cnt(grid) == 1);
   assert(!find_label(grid, "USB"));
   while (!requests.empty()) {
     reply("server.files.metadata", metadata());
   }
   // The USB and printer files share a basename but retain their full paths.
   click("a \"b\"", LV_EVENT_SHORT_CLICKED);
-  assert(find_label(lv_layer_top(), "USB/models/a \"b\".gcode"));
+  assert(find_label(lv_layer_top(), "usb/models/a \"b\".gcode"));
   assert(lv_obj_is_visible(find_label(panel_root, "a \"b\""))); // the gallery remains behind the modal
   auto *modal = lv_obj_get_parent(lv_obj_get_parent(label("Print")));
   lv_obj_update_layout(modal);
@@ -737,10 +995,11 @@ int main(int argc, char **argv) {
   assert(lv_obj_get_height(modal) < screen_height);
   assert(!lv_obj_has_state(lv_obj_get_parent(label("Print")), LV_STATE_DISABLED));
   click("Print");
-  assert(take("printer.print.start").params["filename"] == "USB/models/a \"b\".gcode");
+  assert(take("printer.print.start").params["filename"] == "usb/models/a \"b\".gcode");
   status.background();
   panel.foreground();
-  reply("server.files.list", with_usb);
+  reply_files(with_usb);
+  select_page(file_tabs(), 1);
   while (!requests.empty()) {
     reply("server.files.metadata", metadata());
   }
@@ -759,7 +1018,8 @@ int main(int argc, char **argv) {
   }
   printer_state("standby");
   panel.foreground();
-  reply("server.files.list", with_usb);
+  reply_files(with_usb);
+  select_page(file_tabs(), 1);
   while (!requests.empty()) {
     reply("server.files.metadata", metadata());
   }
@@ -774,31 +1034,32 @@ int main(int argc, char **argv) {
   click("Delete");
   dialog = lv_obj_get_parent(find_label(lv_layer_top(), "Delete file"));
   choose(dialog, 0);
-  assert(requests.front().params["path"] == "gcodes/USB/models/a \"b\".gcode");
+  assert(requests.front().params["path"] == "gcodes/usb/models/a \"b\".gcode");
   reply("server.files.delete_file", {{"result", {{"action", "delete_file"}}}});
-  reply("server.files.list", {{"result", json::array()}});
+  reply_files({{"result", json::array()}}, true);
+  assert(lv_obj_get_child_cnt(lv_tabview_get_content(file_tabs())) == 2);
   assert(find_label(lv_scr_act(), "No G-code files"));
   assert(!find_action(lv_layer_top(), "Print"));
 
   // Unplugging USB while its selected file is loading returns to the gallery.
   panel.handle_file_list_change(changed);
-  reply("server.files.list", {{"result", json::array({with_usb["result"].back()})}});
+  reply_files({{"result", json::array({with_usb["result"].back()})}});
   click("a \"b\"", LV_EVENT_SHORT_CLICKED);
   assert(lv_obj_has_state(lv_obj_get_parent(label("Print")), LV_STATE_DISABLED));
   stale = take("server.files.metadata");
   panel.handle_file_list_change(changed);
-  reply("server.files.list", file_list(1));
+  reply_files(file_list(1));
   stale_data = metadata(999);
   stale.callback(stale_data);
   while (!requests.empty()) {
     reply("server.files.metadata", metadata());
   }
   assert(lv_obj_get_child_cnt(grid) == 2);
-  assert(!find_label(lv_layer_top(), "USB/models/a \"b\".gcode", true));
+  assert(!find_label(lv_layer_top(), "usb/models/a \"b\".gcode", true));
   assert(!find_action(lv_layer_top(), "Print"));
   panel.background();
   panel.foreground();
-  reply("server.files.list", {{"error", {{"message", "Test list failure"}}}});
+  reply_files({{"error", {{"message", "Test list failure"}}}});
   assert(find_label(lv_layer_top(), "File list failed"));
-  std::puts("print card layout, merged USB files, lazy metadata, print and delete tests passed");
+  std::puts("print card layout, Printer/USB tabs, lazy metadata, print and delete tests passed");
 }

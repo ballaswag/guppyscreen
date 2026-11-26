@@ -14,6 +14,10 @@ using namespace Theme;
 
 namespace {
 
+bool usb_file(const std::string &path) {
+  return path.compare(0, 4, "usb/") == 0;
+}
+
 std::pair<std::string, std::string> tile_caption(const std::string &filename) {
   std::string stem = filename;
   const auto extension = stem.find_last_of('.');
@@ -108,6 +112,8 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
 
   lv_obj_set_size(browser_view, LV_PCT(100), LV_PCT(100));
   lv_obj_set_flex_flow(browser_view, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_style_pad_all(files_cont, 0, 0);
+  update_source_tabs(false);
 
   file_grid = create_row(browser_view);
   lv_obj_set_size(file_grid, LV_PCT(100), 0);
@@ -172,9 +178,15 @@ PrintPanel::~PrintPanel() {
   }
 }
 
-void PrintPanel::populate_files(json &j) {
+void PrintPanel::populate_files(json &j, bool available) {
   const std::string selected = cur_file == NULL ? "" : cur_file->full_path;
   cur_file = NULL;
+  int scroll_y = lv_obj_get_scroll_y(file_grid);
+  if (available != usb_available) {
+    source_scroll_y[active_usb] = scroll_y;
+    update_source_tabs(available);
+    scroll_y = source_scroll_y[active_usb];
+  }
   std::map<std::string, PrintFile> updated;
   for (const auto &f : j["result"]) {
     const std::string path = f["path"];
@@ -196,9 +208,9 @@ void PrintPanel::populate_files(json &j) {
     }
   }
   files = std::move(updated);
-  show_files();
+  show_files(scroll_y);
   if (!selected.empty()) {
-    if (auto *file = find_file(selected)) {
+    if (auto *file = find_file(selected); file != NULL && usb_file(selected) == active_usb) {
       show_file_detail(file);
     } else {
       show_browser();
@@ -255,27 +267,106 @@ void PrintPanel::subscribe() {
   refresh_pending = false;
   update_actions();
   lv_obj_clear_flag(spinner, LV_OBJ_FLAG_HIDDEN);
-  const uint64_t generation = view_generation;
+  const uint64_t generation = refresh_generation;
   ws.send_jsonrpc("server.files.list", {{"root", "gcodes"}}, [this, generation](json &d) {
     std::lock_guard<std::mutex> lock(lv_lock);
-    if (!visible || generation != view_generation) {
+    if (!visible || generation != refresh_generation) {
       return;
     }
     if (d.contains("result") && d["result"].is_array()) {
-      populate_files(d);
+      // A file list cannot distinguish a missing USB directory from an empty
+      // one. Ask the printer, rather than inspecting the UI host's filesystem.
+      ws.send_jsonrpc("server.files.get_directory", {{"path", "gcodes"}},
+          [this, generation, listing = d](json &directory) mutable {
+        std::lock_guard<std::mutex> lock(lv_lock);
+        if (!visible || generation != refresh_generation) {
+          return;
+        }
+        bool available = usb_available;
+        const auto dirs = directory.value("/result/dirs"_json_pointer, json());
+        if (dirs.is_array()) {
+          available = std::any_of(dirs.begin(), dirs.end(), [](const json &dir) {
+            return dir.value("dirname", std::string()) == "usb";
+          });
+        } else {
+          // Keep files reachable if directory information is unavailable.
+          for (const auto &file : listing["result"]) {
+            available = available || usb_file(file["path"].get<std::string>());
+          }
+        }
+        populate_files(listing, available);
+        finish_refresh();
+      });
+      return;
     } else if (visible) {
       create_simple_dialog(lv_layer_top(), "File list failed",
           d.value("/error/message"_json_pointer, std::string("Moonraker could not list the files")).c_str(), true, true);
     }
-    refreshing_files = false;
-    lv_obj_add_flag(spinner, LV_OBJ_FLAG_HIDDEN);
-    update_actions();
-    if (refresh_pending) {
-      subscribe();
-    } else {
-      load_visible_metadata();
-    }
+    finish_refresh();
   });
+}
+
+void PrintPanel::finish_refresh() {
+  refreshing_files = false;
+  lv_obj_add_flag(spinner, LV_OBJ_FLAG_HIDDEN);
+  update_actions();
+  if (refresh_pending) {
+    subscribe();
+  } else {
+    load_visible_metadata();
+  }
+}
+
+void PrintPanel::update_source_tabs(bool available) {
+  usb_available = available;
+  if (!usb_available) {
+    active_usb = false;
+    source_scroll_y[1] = 0;
+  }
+  // LVGL 8 can add tabs but cannot remove them. Keep the gallery alive while
+  // replacing the tabview when the USB directory appears or disappears.
+  lv_obj_set_parent(browser_view, files_cont);
+  if (source_tabs != NULL) {
+    lv_obj_del(source_tabs);
+  }
+  source_tabs = lv_tabview_create(files_cont, LV_DIR_TOP, scale_r(36));
+  lv_obj_set_size(source_tabs, LV_PCT(100), LV_PCT(100));
+  style_embedded_tabview(source_tabs);
+  if (!usb_available) {
+    lv_obj_add_flag(lv_tabview_get_tab_btns(source_tabs), LV_OBJ_FLAG_HIDDEN);
+  }
+  lv_obj_clear_flag(lv_tabview_get_content(source_tabs), LV_OBJ_FLAG_SCROLLABLE);
+  printer_tab = lv_tabview_add_tab(source_tabs, "Printer");
+  usb_tab = usb_available ? lv_tabview_add_tab(source_tabs, "USB") : NULL;
+  for (auto *page : {printer_tab, usb_tab}) {
+    if (page != NULL) {
+      lv_obj_set_style_pad_all(page, gap(), 0);
+      lv_obj_clear_flag(page, LV_OBJ_FLAG_SCROLLABLE);
+    }
+  }
+  lv_obj_set_parent(browser_view, active_usb ? usb_tab : printer_tab);
+  lv_tabview_set_act(source_tabs, active_usb ? 1 : 0, LV_ANIM_OFF);
+  lv_obj_add_event_cb(source_tabs, [](lv_event_t *e) {
+    auto *panel = static_cast<PrintPanel *>(lv_event_get_user_data(e));
+    auto *target = lv_event_get_target(e);
+    if (target == panel->source_tabs || target == lv_tabview_get_tab_btns(panel->source_tabs)) {
+      panel->select_source();
+    }
+  }, LV_EVENT_VALUE_CHANGED, this);
+  lv_obj_move_foreground(spinner);
+}
+
+void PrintPanel::select_source() {
+  const bool next_usb = usb_available && lv_tabview_get_tab_act(source_tabs) == 1;
+  if (next_usb == active_usb) {
+    return;
+  }
+  source_scroll_y[active_usb] = lv_obj_get_scroll_y(file_grid);
+  active_usb = next_usb;
+  metadata_pending = true; // suppress preview requests during reparenting
+  lv_obj_set_parent(browser_view, active_usb ? usb_tab : printer_tab);
+  show_files(source_scroll_y[active_usb]);
+  show_browser();
 }
 
 void PrintPanel::foreground() {
@@ -304,6 +395,7 @@ void PrintPanel::invalidate_thumbnail(const PrintFile &file) {
 
 void PrintPanel::clear_files() {
   ++view_generation;
+  ++refresh_generation;
   metadata_pending = false;
   refreshing_files = false;
   refresh_pending = false;
@@ -318,6 +410,12 @@ void PrintPanel::clear_files() {
   }
   files.clear();
   tiles.shrink_to_fit();
+  source_scroll_y[0] = source_scroll_y[1] = 0;
+  if (files_cont != NULL && active_usb) {
+    active_usb = false;
+    lv_obj_set_parent(browser_view, printer_tab);
+    lv_tabview_set_act(source_tabs, 0, LV_ANIM_OFF);
+  }
 }
 
 PrintPanel::PrintFile *PrintPanel::find_file(const std::string &path) {
@@ -325,13 +423,12 @@ PrintPanel::PrintFile *PrintPanel::find_file(const std::string &path) {
   return file == files.end() ? NULL : &file->second;
 }
 
-void PrintPanel::show_files() {
+void PrintPanel::show_files(int scroll_y) {
   ++view_generation;
   // An unanswered request from an earlier view (or connection) must not
   // prevent previews in this one from loading.
   metadata_pending = false;
   cur_file = NULL;
-  const int scroll_y = lv_obj_get_scroll_y(file_grid);
   std::map<std::string, FileTile> previous_tiles;
   for (auto &tile : tiles) {
     const std::string path = tile.path;
@@ -343,7 +440,9 @@ void PrintPanel::show_files() {
   }
   std::vector<PrintFile *> entries;
   for (auto &file : files) {
-    entries.push_back(&file.second);
+    if (usb_file(file.first) == active_usb) {
+      entries.push_back(&file.second);
+    }
   }
   std::sort(entries.begin(), entries.end(), [](const PrintFile *a, const PrintFile *b) {
     return a->date_modified != b->date_modified ? a->date_modified > b->date_modified : a->full_path < b->full_path;
@@ -591,6 +690,20 @@ void PrintPanel::load_visible_metadata() {
     // Prefer the larger embedded preview over a slicer's tiny 32px icon.
     const int width = std::max(scale_r(96), 180);
     ws.send_jsonrpc("server.files.metadata", {{"filename", path}}, [this, path, generation, width](json &data) {
+      const auto message = data.value("/error/message"_json_pointer, std::string());
+      if (data.value("/error/code"_json_pointer, 0) == 404 || message.find("Metadata not available for") == 0) {
+        std::lock_guard<std::mutex> lock(lv_lock);
+        if (!visible || generation != view_generation) {
+          return;
+        }
+        // Files on a newly mounted USB key can be listed before Moonraker has
+        // indexed them. Scan only this visible file, keeping the preview pending.
+        LOG_DEBUG("Scanning missing metadata for {}", path);
+        ws.send_jsonrpc("server.files.metascan", {{"filename", path}}, [this, path, generation, width](json &scanned) {
+          handle_metadata(path, generation, width, scanned);
+        });
+        return;
+      }
       handle_metadata(path, generation, width, data);
     });
     return;
