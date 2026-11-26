@@ -146,6 +146,8 @@ async def run():
           "afc: console samples leave the message queue empty")
 
     # --- files and metadata
+    directory = (await c.call("server.files.get_directory", {"path": "gcodes"}))["result"]
+    check(all(d["dirname"] != "usb" for d in directory["dirs"]), "USB is absent by default")
     listing = (await c.call("server.files.list", {"root": "gcodes"}))["result"]
     paths = {item["path"] for item in listing}
     check(len(paths) >= 24, "file library has several screens of tiles")
@@ -311,6 +313,21 @@ async def run_none():
     await c.ws.close()
 
 
+async def run_usb():
+    c = await connect()
+    directory = (await c.call("server.files.get_directory", {"path": "gcodes"}))["result"]
+    check(any(d["dirname"] == "usb" for d in directory["dirs"]), "USB appears at the G-code root")
+    listing = (await c.call("server.files.list", {"root": "gcodes"}))["result"]
+    sample = "cable_clip_PETG_6m32s.gcode"
+    path = "usb/" + sample
+    check({sample, path} <= {item["path"] for item in listing}, "USB has a separate copy of the print")
+    meta = (await c.call("server.files.metadata", {"filename": path}))["result"]
+    thumb = meta["thumbnails"][-1]["relative_path"]
+    check(os.path.isfile(os.path.join("/tmp/grumpy-sim-%d/gcodes/usb" % PORT, thumb)),
+          "USB preview is extracted next to the file")
+    await c.ws.close()
+
+
 def with_mock(flags, coro):
     session = "/tmp/grumpy-sim-%d" % PORT
     mock = subprocess.Popen([sys.executable, "-u", os.path.join(HERE, "fake_moonraker.py"), "--port", str(PORT),
@@ -340,6 +357,8 @@ def main():
     with_mock(["--backend", "hh", "--lanes", "4"], run_hh)
     print("-- no changer, two extruders")
     with_mock(["--backend", "none", "--extruders", "2"], run_none)
+    print("-- simulated USB drive")
+    with_mock(["--usb"], run_usb)
     print("\n%d failed" % len(FAILS) if FAILS else "\nall passed")
     sys.exit(1 if FAILS else 0)
 

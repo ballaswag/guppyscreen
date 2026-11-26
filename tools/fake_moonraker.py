@@ -205,8 +205,10 @@ def parse_args(argv=None):
     g.add_argument("--host", default="127.0.0.1", help="address to listen on")
     g.add_argument("--session-dir", help="this session's sandbox (default /tmp/grumpy-sim-<port>); "
                                          "its gcodes/ copy is recreated on every start")
-    g.add_argument("--gcodes", default=os.path.join(HERE, "sim_gcodes"),
+    g.add_argument("--gcodes", default=files.SAMPLE_GCODES,
                    help="library of test prints copied into the session")
+    g.add_argument("--usb", action="store_true",
+                   help="start with a simulated USB drive containing sample G-code files")
     g.add_argument("--latency", type=float, default=0.2, help="seconds before each rpc reply")
     g.add_argument("--ui-config", help="write a grumpyscreen.cfg for this session here")
     g.add_argument("--ui-config-base", default=os.path.join(HERE, "..", "grumpyscreen.cfg"),

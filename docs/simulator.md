@@ -44,6 +44,7 @@ Point the screen's `[moonraker]` `host` and `port` at it, and set `thumbnail_pat
 | `SIM_LEDS` | `1` | How many of its output_pin LEDs exist (0-5) |
 | `SIM_SPOOLMAN` | `push` | `off`, `readonly`, `push` or `pull` |
 | `SIM_PRINTING` | `0` | `1` starts `quick_cube.gcode`, or name a file |
+| `SIM_USB` | `0` | `1` starts with a simulated USB drive containing sample prints |
 | `SIM_ARGS` | | Any `fake_moonraker.py` flag, see below |
 | `SIM_WIFI` | `1` | `0` runs without the fake wpa_supplicant |
 | `SIM_WIFI_ARGS` | | Any `fake_wpa_supplicant.py` flag |
@@ -97,6 +98,12 @@ Useful `SIM_ARGS` flags (`python3 tools/fake_moonraker.py --help` lists all):
 | `no_object_labels.gcode`, `no_thumbnail.gcode` | Empty states |
 | `calibration/`, `spare_parts/` | Subfolders, a temperature tower and a long file name |
 | `cable_clip_PETG_6m32s.gcode`, `hex_knob_PLA_4m32s.gcode` | Orca-style material and duration suffixes |
+
+Run `SIM_USB=1 ./sim.sh`, then open **Print** to see the **Printer** and **USB**
+tabs. Select **USB** to see the drive's sample G-code files and thumbnails.
+The fake drive lives in the session's `gcodes/usb` directory. When running
+`fake_moonraker.py` directly, use `--usb`. If your `--gcodes` library already
+contains a `usb` directory, the simulator uses its contents, even if it's empty.
 
 The print panel displays a flat gallery: files inside these folders appear
 alongside files at the top level. If Moonraker reports a `usb` directory

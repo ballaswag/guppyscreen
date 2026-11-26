@@ -9,6 +9,7 @@
 # /tmp/grumpy-sim-$SIM_PORT (logs too); nothing outside it is touched.
 #
 #   SIM_BACKEND=hh SIM_LANES=8 ./sim.sh
+#   SIM_USB=1 ./sim.sh
 #   SIM_CFG_OVERRIDE=/path/to/grumpyscreen.ini ./sim.sh
 #   SIM_ARGS="--extruders 2 --rgb-led --update nightly" ./sim.sh
 #   python3 tools/fake_moonraker.py --help      # every SIM_ARGS flag
@@ -27,6 +28,9 @@ BIN="${SIM_BUILD:-build/sdl-small}/bin/grumpyscreen"
 
 ARGS=(--port "$PORT" --lanes "${SIM_LANES:-4}" --backend "${SIM_BACKEND:-afc}"
       --fans "${SIM_FANS:-1}" --leds "${SIM_LEDS:-1}" --spoolman "${SIM_SPOOLMAN:-push}")
+if [ "${SIM_USB:-0}" = 1 ]; then
+    ARGS+=(--usb)
+fi
 case "${SIM_PRINTING:-0}" in
     0) ;;
     1) ARGS+=(--printing) ;;

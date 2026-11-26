@@ -19,6 +19,9 @@ from . import state as S
 from .state import RpcError, STATE, notify
 
 GCODE_EXT = (".gcode", ".g", ".gco", ".ufp", ".nc")
+SAMPLE_GCODES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sim_gcodes")
+USB_SAMPLE_FILES = ("cable_clip_PETG_6m32s.gcode", "hex_knob_PLA_4m32s.gcode",
+                    "round_coaster_PLA_6m43s.gcode", "two_colour_badge.gcode")
 METADATA = {}           # relative path -> metadata dict
 
 
@@ -31,6 +34,11 @@ def setup():
     if os.path.isdir(root()):
         shutil.rmtree(root())
     shutil.copytree(S.ARGS.gcodes, root())
+    usb = os.path.join(root(), "usb")
+    if S.ARGS.usb and not os.path.isdir(usb):
+        os.mkdir(usb)
+        for name in USB_SAMPLE_FILES:
+            shutil.copy2(os.path.join(SAMPLE_GCODES, name), usb)
     METADATA.clear()
     now = time.time()
     for i, rel in enumerate(walk()):
