@@ -30,11 +30,12 @@ class SpoolmanPanel {
   ~SpoolmanPanel();
   static bool hidden();
 
-  // Embed the list in main navigation; the MMU picker temporarily uses the screen.
+  // Embed the list in main navigation; MMU browsing and picking use the screen.
   void attach(lv_obj_t *parent);
   void detach();
   void init();
   void foreground();
+  void background();
   // the list, to pick a spool for an MMU lane: done gets the spool id, or -1
   // from the lane's own spool's Remove. caller holds lv_lock
   void pick(const std::string &lane, int current_spool, std::function<void(int)> done);

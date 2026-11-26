@@ -219,6 +219,7 @@ void SpoolmanPanel::attach(lv_obj_t *parent) {
 }
 
 void SpoolmanPanel::detach() {
+  end_pick();
   tab_parent = NULL;
   lv_obj_set_parent(cont, lv_scr_act());
   lv_obj_add_flag(cont, LV_OBJ_FLAG_HIDDEN);
@@ -226,9 +227,20 @@ void SpoolmanPanel::detach() {
 
 void SpoolmanPanel::foreground() {
   end_pick();
+  if (tab_parent == NULL) {
+    back_btn.show();
+  }
   lv_obj_clear_flag(cont, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_foreground(cont);
   init();
+}
+
+void SpoolmanPanel::background() {
+  end_pick();
+  if (tab_parent == NULL) {
+    lv_obj_add_flag(cont, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_background(cont);
+  }
 }
 
 void SpoolmanPanel::pick(const std::string &lane, int current_spool, std::function<void(int)> done) {
@@ -384,11 +396,7 @@ void SpoolmanPanel::handle_callback(lv_event_t *event) {
   lv_obj_t *btn = lv_event_get_current_target(event);
   if (btn == back_btn.get_container()) {
     LOG_TRACE("spoolman back button pressed");
-    end_pick();
-    if (tab_parent == NULL) {
-      lv_obj_add_flag(cont, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_move_background(cont);
-    }
+    background();
   } else if (btn == reload_btn.get_container()) {
     LOG_TRACE("spoolman reload button pressed");
     init();

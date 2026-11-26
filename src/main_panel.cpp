@@ -43,8 +43,7 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , led_panel(ws, lock)    
   , tabview(lv_tabview_create(lv_scr_act(), LV_DIR_LEFT, tab_bar_w()))
   , main_tab(lv_tabview_add_tab(tabview, " "))
-  , mmu_tab(mmu != NULL ? lv_tabview_add_tab(tabview, " ") : NULL)
-  , spoolman_tab(!SpoolmanPanel::hidden()
+  , filament_tab(mmu != NULL || (sm != NULL && !SpoolmanPanel::hidden())
                      ? lv_tabview_add_tab(tabview, " ") : NULL)
   , print_tab(lv_tabview_add_tab(tabview, " "))
   , console_tab(lv_tabview_add_tab(tabview, " "))
@@ -75,11 +74,12 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   emergency_btn.set_prompt_condition([] {
     return Config::get_instance()->get<bool>("/ui/prompt_emergency_stop");
   });
-    if (spoolman_tab != NULL) {
-      spoolman_panel->attach(spoolman_tab);
+    if (spoolman_panel != NULL && !SpoolmanPanel::hidden()) {
+      spoolman_panel->attach(filament_tab);
     }
     ws.register_notify_update(this);
-    if (mmu_panel != NULL) {
+    if (mmu_panel != NULL && spoolman_panel != NULL) {
+      mmu_panel->open_spoolman = [this]() { spoolman_panel->foreground(); };
       mmu_panel->pick_spool = [this](const std::string &lane, int current, std::function<void(int)> done) {
         spoolman_panel->pick(lane, current, std::move(done));
       };
@@ -309,11 +309,8 @@ const lv_img_dsc_t *MainPanel::tab_icon(uint16_t id) const {
   if (is(print_tab)) {
     return Icons::PRINT;
   }
-  if (is(mmu_tab)) {
-    return Icons::NAV_SPOOL;
-  }
-  if (is(spoolman_tab)) {
-    return Icons::NAV_SPOOLMAN;
+  if (is(filament_tab)) {
+    return mmu_available || SpoolmanPanel::hidden() ? Icons::NAV_SPOOL : Icons::NAV_SPOOLMAN;
   }
   if (is(console_tab)) {
     return Icons::NAV_CONSOLE;
@@ -407,7 +404,8 @@ void MainPanel::_tabview_event_cb(lv_event_t *e) {
         return;
     }
     self->print_panel.background();
-    if (self->spoolman_tab != NULL && idx == lv_obj_get_index(self->spoolman_tab)) {
+    if (self->filament_tab != NULL && idx == lv_obj_get_index(self->filament_tab) &&
+        !self->mmu_available && self->spoolman_available && !SpoolmanPanel::hidden()) {
         self->spoolman_panel->foreground();
     } else if (idx == lv_obj_get_index(self->console_tab)) {
         self->console_panel.select_first_tab();
@@ -474,7 +472,7 @@ void MainPanel::create_panel() {
   lv_obj_set_style_bg_color(lv_scr_act(), col(BG), 0);
   lv_obj_set_style_bg_color(tabview, col(BG), 0);
   lv_obj_set_style_bg_opa(tabview, LV_OPA_COVER, 0);
-  for (lv_obj_t *tab : {main_tab, print_tab, console_tab, setting_tab, mmu_tab, spoolman_tab}) {
+  for (lv_obj_t *tab : {main_tab, print_tab, console_tab, setting_tab, filament_tab}) {
     if (tab == NULL) {
       continue;
     }
@@ -484,14 +482,7 @@ void MainPanel::create_panel() {
     lv_obj_set_style_pad_all(tab, 0, 0);
   }
 
-  if (spoolman_tab != NULL) {
-    lv_btnmatrix_set_btn_ctrl(tab_btns, lv_obj_get_index(spoolman_tab), LV_BTNMATRIX_CTRL_DISABLED);
-  }
-
-  if (mmu_tab != NULL) {
-    // Greyed out until Klipper reports a supported backend.
-    lv_btnmatrix_set_btn_ctrl(tab_btns, lv_obj_get_index(mmu_tab), LV_BTNMATRIX_CTRL_DISABLED);
-  }
+  update_filament_tab();
 
   // These panels keep their existing foreground/background lifecycle, but
   // occupy only the page to the right of the shared navigation strip.
@@ -709,40 +700,67 @@ void MainPanel::create_leds(json &leds) {
 }
 
 void MainPanel::enable_spoolman() {
-  if (spoolman_tab == NULL) {
+  if (spoolman_panel == NULL) {
     return;
   }
   spoolman_panel->init();
   std::lock_guard<std::mutex> lock(lv_lock);
-  lv_btnmatrix_clear_btn_ctrl(lv_tabview_get_tab_btns(tabview),
-                              lv_obj_get_index(spoolman_tab), LV_BTNMATRIX_CTRL_DISABLED);
+  spoolman_available = true;
+  if (mmu_panel != NULL) {
+    mmu_panel->set_spoolman_available(true);
+  }
+  update_filament_tab();
+}
+
+void MainPanel::update_filament_tab() {
+  if (filament_tab == NULL) {
+    return;
+  }
+  auto *buttons = lv_tabview_get_tab_btns(tabview);
+  const auto index = lv_obj_get_index(filament_tab);
+  if (mmu_available || (spoolman_available && !SpoolmanPanel::hidden())) {
+    lv_btnmatrix_clear_btn_ctrl(buttons, index, LV_BTNMATRIX_CTRL_DISABLED);
+  } else {
+    lv_btnmatrix_set_btn_ctrl(buttons, index, LV_BTNMATRIX_CTRL_DISABLED);
+  }
+  lv_obj_invalidate(buttons);
 }
 
 void MainPanel::enable_mmu() {
-  if (mmu_tab == NULL || mmu_panel == NULL) {
+  if (filament_tab == NULL || mmu_panel == NULL) {
     return;
   }
 
   LOG_DEBUG("enabling mmu panel");
   std::lock_guard<std::mutex> lock(lv_lock);
-  mmu_panel->create(mmu_tab);
-  lv_btnmatrix_clear_btn_ctrl(lv_tabview_get_tab_btns(tabview),
-                              lv_obj_get_index(mmu_tab), LV_BTNMATRIX_CTRL_DISABLED);
+  if (spoolman_panel != NULL) {
+    spoolman_panel->detach();
+  }
+  mmu_panel->create(filament_tab);
+  mmu_available = true;
+  update_filament_tab();
 }
 
 // Klipper is offline or has no supported backend. Clear the previous session
-// and leave the MMU tab before disabling its navigation button.
+// and restore Spoolman navigation when its browser is enabled.
 void MainPanel::disable_mmu() {
-  if (mmu_tab == NULL || mmu_panel == NULL) {
+  if (filament_tab == NULL || mmu_panel == NULL) {
     return;
   }
 
   LOG_DEBUG("disabling mmu panel");
   std::lock_guard<std::mutex> lock(lv_lock);
+  const bool was_available = mmu_available;
   mmu_panel->clear();
-  const uint16_t idx = lv_obj_get_index(mmu_tab);
-  if (lv_tabview_get_tab_act(tabview) == idx) {
+  mmu_available = false;
+  if (spoolman_panel != NULL) {
+    spoolman_panel->background();
+    if (!SpoolmanPanel::hidden()) {
+      spoolman_panel->attach(filament_tab);
+    }
+  }
+  if (was_available && lv_tabview_get_tab_act(tabview) == lv_obj_get_index(filament_tab)) {
     lv_tabview_set_act(tabview, lv_obj_get_index(main_tab), LV_ANIM_OFF);
   }
-  lv_btnmatrix_set_btn_ctrl(lv_tabview_get_tab_btns(tabview), idx, LV_BTNMATRIX_CTRL_DISABLED);
+  update_filament_tab();
 }

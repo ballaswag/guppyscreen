@@ -268,6 +268,9 @@ test-mmu-lifecycle: libhv.a wpaclient $(MMU_TEST_OBJS)
 	$(BUILD_DIR)/test_mmu_lifecycle
 	$(BUILD_DIR)/test_mmu_lifecycle --startup
 	$(BUILD_DIR)/test_mmu_lifecycle --hidden
+	$(BUILD_DIR)/test_mmu_lifecycle --mmu-hidden
+	$(BUILD_DIR)/test_mmu_lifecycle --spoolman-hidden
+	$(BUILD_DIR)/test_mmu_lifecycle --small
 
 .PHONY: test-prompt-panel
 test-prompt-panel: libhv.a wpaclient $(MMU_TEST_OBJS)

@@ -277,6 +277,7 @@ MmuPanel::~MmuPanel() {
 // =========================================================================
 void MmuPanel::create(lv_obj_t *parent) {
   if (cont != NULL) {
+    lv_obj_clear_flag(cont, LV_OBJ_FLAG_HIDDEN);
     return;
   }
 
@@ -308,6 +309,20 @@ void MmuPanel::create(lv_obj_t *parent) {
   lv_obj_align(status_label, LV_ALIGN_LEFT_MID, 0, 0);
   lv_obj_set_width(status_label, LV_PCT(100));
   lv_obj_clear_flag(status_label, LV_OBJ_FLAG_CLICKABLE);
+
+  if (open_spoolman) {
+    spoolman_btn = std::make_unique<ButtonContainer>(header_row, Icons::NAV_SPOOLMAN, "Spoolman",
+        [](lv_event_t *e) {
+          auto *self = static_cast<MmuPanel *>(lv_event_get_user_data(e));
+          if (self->spoolman_available && self->open_spoolman) {
+            self->open_spoolman();
+          }
+        }, this);
+    spoolman_btn->use_plain();
+    spoolman_btn->hide_label();
+    lv_obj_set_size(spoolman_btn->get_container(), scale_r(HEADER_HEIGHT), LV_PCT(100));
+    set_spoolman_available(spoolman_available);
+  }
 
   // Row 1: Spools 1 - 4. The card rows flex-grow to split whatever height
   // the header and nav rows leave over
@@ -342,6 +357,17 @@ void MmuPanel::create(lv_obj_t *parent) {
   nav_next_btn = create_text_btn(nav_row, "Next >", &MmuPanel::_handle_page_next, this);
   lv_obj_set_size(nav_next_btn, scale_w(70), LV_PCT(100));
   lv_obj_align(nav_next_btn, LV_ALIGN_RIGHT_MID, 0, 0);
+}
+
+void MmuPanel::set_spoolman_available(bool available) {
+  spoolman_available = available;
+  if (spoolman_btn != NULL) {
+    if (available) {
+      spoolman_btn->enable();
+    } else {
+      spoolman_btn->disable();
+    }
+  }
 }
 
 // =========================================================================
@@ -693,6 +719,7 @@ void MmuPanel::clear() {
   refresh();
   if (cont != NULL) {
     close_edit();
+    lv_obj_add_flag(cont, LV_OBJ_FLAG_HIDDEN);
   }
 }
 

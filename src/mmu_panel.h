@@ -39,7 +39,7 @@ class MmuPanel : public NotifyConsumer {
   void add_backend(MmuBackend *b) { backends.push_back(b); }
   // /ui/hide_mmu controls visibility; visible by default.
   static bool enabled();
-  // Detect a supported backend; NULL keeps the navigation button disabled.
+  // Detect a supported backend; NULL leaves MMU unavailable.
   MmuBackend *select_backend();
   // names of the lanes holding spool_id, ", " separated
   std::string spool_lanes(int spool_id) const {
@@ -48,6 +48,8 @@ class MmuPanel : public NotifyConsumer {
   // a long-pressed lane asks for a spool: the lane's name, its spool now (-1
   // for none), and what to call with the chosen spool (-1 clears)
   std::function<void(const std::string &, int, std::function<void(int)>)> pick_spool;
+  std::function<void()> open_spoolman;
+  void set_spoolman_available(bool available);
 
   // build the UI into the MMU tab. caller must hold lv_lock.
   void create(lv_obj_t *parent);
@@ -58,7 +60,7 @@ class MmuPanel : public NotifyConsumer {
   // Caller holds lv_lock.
   bool open_tool_map(const json &metadata, const std::string &filename,
                      std::function<void()> print);
-  // Detach the backend and empty the panel. Caller must hold lv_lock.
+  // Detach the backend and hide the panel. Caller must hold lv_lock.
   void clear();
   void consume(json &j);
 
@@ -126,6 +128,8 @@ class MmuPanel : public NotifyConsumer {
   lv_obj_t *header_row;
   lv_obj_t *status_bar;
   lv_obj_t *status_label;
+  std::unique_ptr<ButtonContainer> spoolman_btn;
+  bool spoolman_available = false;
   lv_obj_t *cards_row1;
   lv_obj_t *cards_row2;
   lv_obj_t *nav_row;

@@ -97,6 +97,7 @@ class MainPanel : public NotifyConsumer {
 
  private:
   void update_print_tab();
+  void update_filament_tab();
   void show_home();
   void create_main(lv_obj_t *parent);
   static void _tabview_event_cb(lv_event_t *e);
@@ -108,10 +109,10 @@ class MainPanel : public NotifyConsumer {
   LedPanel led_panel;
   lv_obj_t *tabview;
   lv_obj_t *main_tab;
-  // NULL when MMU is hidden; otherwise the tab exists from startup and
-  // its button stays disabled until the backend is detected
-  lv_obj_t *mmu_tab;
-  lv_obj_t *spoolman_tab;
+  // MMU when a backend is available; otherwise the Spoolman browser.
+  lv_obj_t *filament_tab;
+  bool mmu_available = false;
+  bool spoolman_available = false;
   lv_area_t tab_icon_area{};
   lv_obj_t *print_tab;
   lv_obj_t *console_tab;

@@ -197,12 +197,18 @@ outlives the panel:
 mmu_panel.add_backend(&afc_backend);
 ```
 
-The MMU navigation button is visible from startup, disabled until Klipper
-reports a supported backend. `MmuPanel::select_backend()` calls `detect()` on
-the compiled-in backends in registration order (AFC, then Happy Hare), choosing
-the first match. If neither is available, the button stays disabled and no MMU
-screens are allocated. Detection runs again on every Klipper reconnect; going
-offline detaches the backend, closes its controls and disables the button.
+MMU and Spoolman share a main navigation slot. When Klipper reports a supported
+MMU backend, the slot opens MMU and Spoolman moves to an icon at the top right
+of its panel. Otherwise, including with `hide_mmu: true`, the slot opens
+Spoolman once Moonraker reports the component. The Spoolman browser's Back
+button returns to MMU. `hide_spoolman: true` hides the main-nav Spoolman entry;
+the MMU shortcut and spool assignment remain available.
+
+`MmuPanel::select_backend()` calls `detect()` on the compiled-in backends in
+registration order (AFC, then Happy Hare), choosing the first match. If neither
+is available, no MMU screens are allocated. Detection runs again on every
+Klipper reconnect; going offline detaches the backend, closes its controls
+and restores Spoolman navigation.
 
 To hide the button and disable MMU integration entirely, set:
 
