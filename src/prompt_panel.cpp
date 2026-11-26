@@ -667,6 +667,8 @@ void PromptPanel::handle_macro_response(json &j) {
         add_button(parent, prompt_footer_button, prompt_button_command, prompt_button_type);
       } else if (command.find("prompt_show") == 0) {
         LOG_DEBUG("PROMPT_SHOW");
+        // The recovery prompt replaces any preceding Klipper error banner.
+        NotificationBanner::instance().clear(NotificationBanner::Source::Klipper);
         restore_print_status_foreground_ = print_status_panel.is_foreground();
         foreground();
         fit_box();

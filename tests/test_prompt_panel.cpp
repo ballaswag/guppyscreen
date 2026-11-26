@@ -1,5 +1,6 @@
 #include "config.h"
 #include "guppyscreen.h"
+#include "notification_banner.h"
 #include "state.h"
 #include "theme.h"
 
@@ -20,9 +21,65 @@ static lv_obj_t *find_label(lv_obj_t *parent, const char *text) {
   return nullptr;
 }
 
-static void action(PromptPanel &prompt, const std::string &command) {
-  json response = {{"params", json::array({"// action:" + command})}};
+static void macro_response(PromptPanel &prompt, const std::string &text) {
+  json response = {{"params", json::array({text})}};
   prompt.handle_macro_response(response);
+}
+
+static void action(PromptPanel &prompt, const std::string &command) {
+  macro_response(prompt, "// action:" + command);
+}
+
+static void test_prompt_errors(PromptPanel &prompt, lv_obj_t *box) {
+  using Source = NotificationBanner::Source;
+  using Level = NotificationBanner::Level;
+  auto &banner = NotificationBanner::instance();
+
+  // The runout error may arrive before prompt_begin or while the prompt is
+  // being built. Showing the recovery prompt replaces that banner in both cases.
+  for (bool error_before_begin : {true, false}) {
+    if (error_before_begin) {
+      macro_response(prompt, "!! Filament not detected");
+    }
+    action(prompt, "prompt_begin Print aborted");
+    action(prompt, "prompt_text Please load filament.");
+    action(prompt, "prompt_footer_button OK|RESPOND TYPE=command MSG=action:prompt_end");
+    if (!error_before_begin) {
+      macro_response(prompt, "!! Filament not detected");
+    }
+    assert(banner.visible(Source::Klipper));
+    auto *overlay = lv_obj_get_parent(find_label(lv_layer_top(), "Filament not detected"));
+    assert(!lv_obj_has_flag(overlay, LV_OBJ_FLAG_HIDDEN));
+
+    action(prompt, "prompt_show");
+    assert(find_label(box, "Please load filament."));
+    assert(!banner.visible(Source::Klipper));
+    assert(lv_obj_has_flag(overlay, LV_OBJ_FLAG_HIDDEN));
+    assert(!find_label(box, "Filament not detected"));
+
+    // A failed prompt button still needs feedback inside the prompt.
+    macro_response(prompt, "!! Printer not homed");
+    assert(find_label(box, "Printer not homed"));
+    assert(!banner.visible(Source::Klipper));
+    action(prompt, "prompt_end");
+    assert(!find_label(box, "Printer not homed"));
+    assert(lv_obj_has_flag(overlay, LV_OBJ_FLAG_HIDDEN));
+  }
+
+  // Standalone command errors still appear, and opening a prompt only clears
+  // the Klipper error, preserving messages from other sources.
+  macro_response(prompt, "!! Move out of range");
+  assert(banner.visible(Source::Klipper));
+  banner.show(Source::Display, "Heating", Level::Info);
+  banner.show(Source::Mmu, "Filament jam", Level::Error);
+  action(prompt, "prompt_begin Recovery");
+  action(prompt, "prompt_show");
+  assert(!banner.visible(Source::Klipper));
+  assert(banner.visible(Source::Display));
+  assert(banner.visible(Source::Mmu));
+  action(prompt, "prompt_end");
+  assert(!banner.visible(Source::Klipper));
+  banner.clear_all();
 }
 
 int main(int argc, char **argv) {
@@ -105,5 +162,6 @@ int main(int argc, char **argv) {
   assert(footer_bounds.y1 == scrolled_footer_bounds.y1);
   assert(footer_bounds.y2 == scrolled_footer_bounds.y2);
   action(prompt, "prompt_end");
-  std::puts("prompt layout tests passed");
+  test_prompt_errors(prompt, box);
+  std::puts("prompt panel tests passed");
 }
