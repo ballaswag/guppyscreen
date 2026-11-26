@@ -208,6 +208,7 @@ SettingPanel::SettingPanel(KWebSocketClient &c, std::mutex &l, lv_obj_t *parent)
 #endif
   add_about_line(about_panel, std::string("Branch: ") + GUPPYSCREEN_BRANCH);
   add_about_line(about_panel, std::string("Version: ") + GUPPYSCREEN_VERSION);
+  add_about_line(about_panel, "Print Statistics", true);
   total_print_time_label = add_about_line(about_panel, "Total print time: -");
 
 #ifndef OS_ANDROID
