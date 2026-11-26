@@ -108,9 +108,8 @@ void ButtonContainer::float_bottom_right() {
 
 int ButtonContainer::float_w() { return scale_w(76); }
 
-// Shrink the icon until icon + label fit the tile; never enlarge it, a scaled
-// up bitmap only blurs. fit_img is a no-op when the fit is unchanged, so this
-// is free on the layout passes that do not resize the tile.
+// The theme sets the shared icon size. Available space still bounds the image
+// so a small control or a longer label cannot make it clip.
 void ButtonContainer::fit_icon() {
   const lv_img_dsc_t *src = static_cast<const lv_img_dsc_t *>(lv_img_get_src(btn));
   if (src == NULL || lv_img_src_get_type(src) != LV_IMG_SRC_VARIABLE) {
@@ -120,7 +119,7 @@ void ButtonContainer::fit_icon() {
   if (!lv_obj_has_flag(label, LV_OBJ_FLAG_HIDDEN)) {
     avail_h -= lv_obj_get_height(label) + lv_obj_get_style_pad_row(btn_cont, 0);
   }
-  fit_img(btn, lv_obj_get_content_width(btn_cont), avail_h);
+  fit_action_icon(btn, lv_obj_get_content_width(btn_cont), avail_h);
 }
 
 lv_obj_t *ButtonContainer::get_button() {

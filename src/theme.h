@@ -164,13 +164,17 @@ void refresh_scroll(lv_obj_t *scrollee);
 // this LVGL does not refresh a REAL-mode image's box on zoom, and a stale box
 // tiles the drawing inside it. Returns the zoom applied.
 int fit_img(lv_obj_t *img, int w, int h, int max_zoom = LV_IMG_ZOOM_NONE);
+// Action tiles share one icon size, with smaller controls allowed to fit it down.
+int fit_action_icon(lv_obj_t *img, int w, int h);
 // an LV_EVENT_SIZE_CHANGED handler: fits the target's first child (an image)
 // to the target's content height, for a card whose icon is its first child
 void fit_first_icon(lv_event_t *e);
 
 // the height of anything a finger taps: buttons, list rows, entry lines
 int touch_h();
-// Height of an icon-and-label action in a group anchored to the top of a page.
+// Shared image size for icon-and-label action buttons on every panel.
+int action_icon_size();
+// Height of an icon-and-label action tile.
 int action_tile_h();
 // a finger-sized slider's track height; no slider in the UI is taller, so the
 // shared slider style insets every track by this one's knob overhang

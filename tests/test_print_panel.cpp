@@ -741,14 +741,18 @@ static void test_home_chart(MainPanel &main, lv_obj_t *home) {
   auto *fans = lv_obj_get_parent(find_label(home, "Fans"));
   auto *led = lv_obj_get_parent(find_label(home, "LED"));
   assert(homing->coords.y1 == page->coords.y1 + Theme::gap());
-  assert(extruder->coords.y1 == homing->coords.y1);
+  assert(homing->coords.x1 == extruder->coords.x1);
   assert(fans->coords.x1 == extruder->coords.x1 && led->coords.x1 == extruder->coords.x1);
-  assert(fans->coords.y1 == homing->coords.y2 + 1 + Theme::gap());
+  assert(extruder->coords.y1 == homing->coords.y2 + 1 + Theme::gap());
+  assert(fans->coords.y1 == extruder->coords.y2 + 1 + Theme::gap());
   assert(led->coords.y1 == fans->coords.y2 + 1 + Theme::gap());
-  assert(box->coords.y1 == fans->coords.y1);
   assert(box->coords.x1 == page->coords.x1 + Theme::gap());
-  assert(box->coords.x2 == homing->coords.x2);
+  assert(box->coords.x2 < homing->coords.x1);
   assert(box->coords.y2 == led->coords.y2);
+  for (auto *button : {homing, extruder, fans, led}) {
+    assert(lv_obj_get_height(button) >= Theme::touch_h());
+    assert(lv_obj_get_height(lv_obj_get_child(button, 0)) <= Theme::action_icon_size());
+  }
   assert(lv_obj_get_height(box) >= Theme::scale_h(60));
   const auto bounds = box->coords;
 
@@ -771,6 +775,7 @@ static void test_home_chart(MainPanel &main, lv_obj_t *home) {
       auto *first = lv_obj_get_parent(find_label(home, "Tool 0"));
       auto *last = lv_obj_get_parent(find_label(home, "Tool 2"));
       auto *readouts = lv_obj_get_parent(first);
+      assert(readouts->coords.x1 == box->coords.x1 && readouts->coords.x2 == box->coords.x2);
       assert(first->coords.y1 >= readouts->coords.y1);
       assert(last->coords.y2 <= readouts->coords.y2);
       assert(!lv_obj_has_flag(readouts, LV_OBJ_FLAG_SCROLLABLE));
@@ -793,6 +798,15 @@ static void test_home_chart(MainPanel &main, lv_obj_t *home) {
     assert(box->coords.x1 == bounds.x1 && box->coords.x2 == bounds.x2);
     assert(box->coords.y1 == bounds.y1 && box->coords.y2 == bounds.y2);
   }
+
+  // Keep the temperature keypad usable beside the narrow action column.
+  auto *sensor = lv_obj_get_parent(find_label(home, "Tool 0"));
+  lv_event_send(sensor, LV_EVENT_CLICKED, nullptr);
+  auto *keypad = lv_obj_get_child(page, -1);
+  lv_obj_update_layout(home);
+  assert(lv_obj_check_type(lv_obj_get_child(keypad, 1), &lv_keyboard_class));
+  assert(lv_obj_get_width(keypad) >= lv_obj_get_content_width(page) / 2);
+  lv_event_send(lv_obj_get_child(keypad, 0), LV_EVENT_CANCEL, nullptr);
 }
 
 static void test_home_actions(MainPanel &main, lv_obj_t *tabs) {
@@ -828,6 +842,15 @@ static void test_home_actions(MainPanel &main, lv_obj_t *tabs) {
   json leds = json::array({{{"id", "output_pin light"}, {"display_name", "Light"}, {"pwm", true}}});
   main.create_leds(leds);
   test_home_chart(main, home);
+  auto *home_icon = lv_obj_get_child(lv_obj_get_parent(find_label(home, "Homing")), 0);
+  auto same_icon_size = [&](lv_obj_t *panel, const char *text) {
+    auto *caption = find_label(panel, text);
+    assert(caption);
+    auto *icon = lv_obj_get_child(lv_obj_get_parent(caption), 0);
+    assert(lv_obj_check_type(icon, &lv_img_class));
+    assert(std::abs(lv_obj_get_width(icon) - lv_obj_get_width(home_icon)) <= 1);
+    assert(std::abs(lv_obj_get_height(icon) - lv_obj_get_height(home_icon)) <= 1);
+  };
   const auto console_index = lv_obj_get_child_cnt(pages) - 2;
   for (const auto &action : {std::make_pair("Homing", "Home All"),
                              std::make_pair("Extruder", "Load"),
@@ -842,18 +865,29 @@ static void test_home_actions(MainPanel &main, lv_obj_t *tabs) {
       assert(panel->coords.x1 == stop->coords.x2 + 1);
       assert(panel->coords.x2 == screen_width - 1);
       assert(panel->coords.y1 == 0 && panel->coords.y2 == screen_height - 1);
-      if (std::strcmp(action.first, "Extruder") == 0) {
+      if (std::strcmp(action.first, "Homing") == 0) {
+        for (const char *text : {"Home All", "Home XY", "Motors Off", "X-", "Y+", "Z+"}) {
+          same_icon_size(panel, text);
+        }
+      } else if (std::strcmp(action.first, "Extruder") == 0) {
         auto *tabs = lv_obj_get_child(panel, 0);
         for (int index : {0, 1}) {
           select_page(tabs, index);
           auto *tab = lv_obj_get_child(lv_tabview_get_content(tabs), index);
           auto *cooldown = lv_obj_get_parent(find_label(tab, "Cooldown"));
+          same_icon_size(tab, "Cooldown");
+          same_icon_size(tab, index == 0 ? "Load" : "Extrude");
+          same_icon_size(tab, index == 0 ? "Unload" : "Retract");
           assert(cooldown->coords.y2 == tab->coords.y2 - Theme::gap());
           assert(lv_obj_get_height(cooldown) == Theme::action_tile_h());
         }
       } else if (std::strcmp(action.first, "Fans") == 0 || std::strcmp(action.first, "LED") == 0) {
         auto *on = lv_obj_get_parent(find_label(panel, "All On"));
         auto *off = lv_obj_get_parent(find_label(panel, "All Off"));
+        same_icon_size(panel, "All On");
+        same_icon_size(panel, "All Off");
+        same_icon_size(panel, "Off");
+        same_icon_size(panel, "Max");
         assert(off->coords.y2 == panel->coords.y2 - Theme::gap());
         assert(off->coords.y1 == on->coords.y2 + 1 + Theme::gap());
         assert(lv_obj_get_height(on) == Theme::action_tile_h());

@@ -128,6 +128,7 @@ class MainPanel : public NotifyConsumer {
   MmuPanel *mmu_panel;
 
   lv_obj_t *temp_cont;
+  lv_obj_t *actions_cont;
   // lv_chart draws primary-Y tick labels outside its own left edge, so the
   // chart lives inside this box and the labels land in the box's padding
   lv_obj_t *temp_chart_box;

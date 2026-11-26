@@ -60,12 +60,13 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , spoolman_panel(sm)
   , mmu_panel(mmu)
   , temp_cont(lv_obj_create(main_cont))
+  , actions_cont(create_row(main_cont))
   , temp_chart_box(lv_obj_create(main_cont))
   , temp_chart(lv_chart_create(temp_chart_box))
-  , homing_btn(main_cont, Icons::MOVE, "Homing", &MainPanel::_handle_homing_cb, this)
-  , extrude_btn(main_cont, Icons::EXTRUDE_IMG, "Extruder", &MainPanel::_handle_extrude_cb, this)
-  , action_btn(main_cont, Icons::FAN, "Fans", &MainPanel::_handle_fanpanel_cb, this)
-  , led_btn(main_cont, Icons::LIGHT_IMG, "LED", &MainPanel::_handle_ledpanel_cb, this)
+  , homing_btn(actions_cont, Icons::MOVE, "Homing", &MainPanel::_handle_homing_cb, this)
+  , extrude_btn(actions_cont, Icons::EXTRUDE_IMG, "Extruder", &MainPanel::_handle_extrude_cb, this)
+  , action_btn(actions_cont, Icons::FAN, "Fans", &MainPanel::_handle_fanpanel_cb, this)
+  , led_btn(actions_cont, Icons::LIGHT_IMG, "LED", &MainPanel::_handle_ledpanel_cb, this)
   , emergency_btn(tabview, Icons::EMERGENCY, "Stop", &MainPanel::_handle_emergency_cb, this,
                   "Emergency Stop", "Do you want to emergency stop?",
                   {"Back", "Emergency Stop"})
@@ -543,33 +544,22 @@ void MainPanel::handle_emergency_cb(lv_event_t *event) {
 void MainPanel::create_main(lv_obj_t * parent) {
   lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_ROW_WRAP);
 
-  // The top row fits three temperature readings; the lower rows put Fans and
-  // LED down the right while the graph fills the space to their left.
-  static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(42), LV_GRID_FR(29), LV_GRID_FR(29), LV_GRID_TEMPLATE_LAST};
-  static lv_coord_t grid_main_col_dsc[] = {0, 0, 0, 0, LV_GRID_TEMPLATE_LAST};
-
-  // Give the temperature side all of the width recovered from the compact
-  // nav strip, plus a little more room from the action side. At 480px this is
-  // 16:16:13:13 (about 55:45); at 800px it returns to four equal columns.
-  const int compact_range = FULL_TAB_BAR_W - COMPACT_TAB_BAR_W;
-  const int temp_col_weight = 13 + 3 * reclaimed_tab_bar_w() / compact_range;
-  grid_main_col_dsc[0] = LV_GRID_FR(temp_col_weight);
-  grid_main_col_dsc[1] = LV_GRID_FR(temp_col_weight);
-  grid_main_col_dsc[2] = LV_GRID_FR(13);
-  grid_main_col_dsc[3] = LV_GRID_FR(13);
+  // Temperature readings and graph line up on the left; four compact actions
+  // share one vertical column on the right.
+  static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(42), LV_GRID_FR(58), LV_GRID_TEMPLATE_LAST};
+  static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(3), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 
   lv_obj_set_grid_dsc_array(main_cont, grid_main_col_dsc, grid_main_row_dsc);
 
-  // The four actions are tappable tiles, the same look as an MMU slot card.
+  lv_obj_set_grid_cell(actions_cont, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 2);
+  lv_obj_set_flex_flow(actions_cont, LV_FLEX_FLOW_COLUMN);
   for (ButtonContainer *b : {&homing_btn, &extrude_btn, &action_btn,
                              &led_btn}) {
     b->use_plain();
+    lv_obj_set_width(b->get_container(), LV_PCT(100));
+    lv_obj_set_height(b->get_container(), 0);
+    lv_obj_set_flex_grow(b->get_container(), 1);
   }
-
-  lv_obj_set_grid_cell(homing_btn.get_container(), LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
-  lv_obj_set_grid_cell(extrude_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
-  lv_obj_set_grid_cell(action_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
-  lv_obj_set_grid_cell(led_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 2, 1);
 
   lv_obj_clear_flag(temp_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_style(temp_cont, &styles().row, 0);
@@ -577,15 +567,15 @@ void MainPanel::create_main(lv_obj_t * parent) {
   lv_obj_set_flex_flow(temp_cont, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(temp_cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_grid_cell(temp_cont, LV_GRID_ALIGN_STRETCH, 0, 2, LV_GRID_ALIGN_STRETCH, 0, 1);
+  lv_obj_set_grid_cell(temp_cont, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
   // while printing, the status chip is the first row of the column (it is
   // hidden otherwise, and flex skips hidden children)
   lv_obj_set_parent(print_status_panel.get_mini_status(), temp_cont);
   lv_obj_move_to_index(print_status_panel.get_mini_status(), 0);
 
-  // the temperature popout covers the tile column, from the column gap out
+  // Keep the keypad wide enough for its three columns of keys.
   lv_obj_update_layout(main_cont);
-  numpad.cover_from(lv_obj_get_x(homing_btn.get_container()) - gap());
+  numpad.cover_from(lv_obj_get_content_width(main_cont) / 2);
 
   // lv_chart places primary-Y tick labels at obj->coords.x1 minus the label
   // width -- outside the widget, not inside its padding (lv_chart.c:1414). So
@@ -599,9 +589,8 @@ void MainPanel::create_main(lv_obj_t * parent) {
   lv_obj_set_style_border_width(temp_chart_box, border_w(), 0);
   lv_obj_set_style_border_color(temp_chart_box, col(BORDER), 0);
   lv_obj_clear_flag(temp_chart_box, LV_OBJ_FLAG_SCROLLABLE);
-  // The graph fills the lower-left area beside the Fans and LED buttons.
-  lv_obj_set_grid_cell(temp_chart_box, LV_GRID_ALIGN_STRETCH, 0, 3,
-                       LV_GRID_ALIGN_STRETCH, 1, 2);
+  lv_obj_set_grid_cell(temp_chart_box, LV_GRID_ALIGN_STRETCH, 0, 1,
+                       LV_GRID_ALIGN_STRETCH, 1, 1);
   // room for the tick labels, which lv_chart draws to the left of the plot
   const lv_coord_t tick_gutter = scale_w(30);
   lv_obj_set_style_pad_left(temp_chart_box, tick_gutter, 0);

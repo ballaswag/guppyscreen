@@ -455,6 +455,11 @@ int fit_img(lv_obj_t *img, int w, int h, int max_zoom) {
   return zoom;
 }
 
+int fit_action_icon(lv_obj_t *img, int w, int h) {
+  const int size = action_icon_size();
+  return fit_img(img, std::min(w, size), std::min(h, size));
+}
+
 void fit_first_icon(lv_event_t *e) {
   lv_obj_t *box = lv_event_get_target(e);
   const int h = lv_obj_get_content_height(box);
@@ -462,6 +467,8 @@ void fit_first_icon(lv_event_t *e) {
 }
 
 int touch_h() { return scale_r(44); }
+
+int action_icon_size() { return scale_r(34); }
 
 int action_tile_h() { return scale_r(76); }
 

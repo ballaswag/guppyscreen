@@ -25,9 +25,8 @@ class ButtonContainer {
   // circular -- it is deriving its height from us. Measuring settles it, which
   // needs the layout resolved first, hence the root.
   void match_height(lv_obj_t *root, lv_obj_t *other);
-  // Lay the tile out as icon over label and fit the icon to whatever cell the
-  // tile is given, so tiles never clip: no box, and the icon turns the accent
-  // colour when pressed.
+  // Lay the tile out as icon over label using the theme's shared icon size:
+  // no box, and the icon turns the accent colour when pressed.
   void use_plain();
   // A tile pinned to the parent's bottom-right corner, over the content:
   // the Back button on panels whose content is a list rather than a grid.
