@@ -15,6 +15,7 @@ FanPanel::FanPanel(KWebSocketClient &websocket_client, std::mutex &lock)
   , side_cont(create_row(fanpanel_cont))
   , all_on_btn(side_cont, Icons::FAN_ON, "All On", &FanPanel::_handle_callback, this)
   , all_off_btn(side_cont, Icons::FAN_OFF_IMG, "All Off", &FanPanel::_handle_callback, this)
+  , back_btn(side_cont, Icons::BACK, "Back", &FanPanel::_handle_callback, this)
 {
   // the list takes the width, the action tiles their own column
   lv_obj_set_flex_flow(fanpanel_cont, LV_FLEX_FLOW_ROW);
@@ -25,7 +26,7 @@ FanPanel::FanPanel(KWebSocketClient &websocket_client, std::mutex &lock)
   lv_obj_set_size(side_cont, scale_w(84), lv_pct(100));
   lv_obj_set_flex_flow(side_cont, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(side_cont, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
-  for (ButtonContainer *b : {&all_on_btn, &all_off_btn}) {
+  for (ButtonContainer *b : {&all_on_btn, &all_off_btn, &back_btn}) {
     b->use_plain();
     lv_obj_set_width(b->get_container(), lv_pct(100));
     lv_obj_set_height(b->get_container(), action_tile_h());
@@ -121,7 +122,9 @@ void FanPanel::background() {
 
 void FanPanel::handle_callback(lv_event_t *event) {
   lv_obj_t *btn = lv_event_get_current_target(event);
-  if (btn == all_off_btn.get_container() || btn == all_on_btn.get_container()) {
+  if (btn == back_btn.get_container()) {
+    background();
+  } else if (btn == all_off_btn.get_container() || btn == all_on_btn.get_container()) {
     const bool on = btn == all_on_btn.get_container();
     for (auto &f : fans) {
       ws.gcode_script(fan_gcode(f.first, on ? 1.0 : 0.0));

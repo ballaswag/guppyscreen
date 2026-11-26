@@ -55,6 +55,7 @@ class LedPanel : public NotifyConsumer {
   lv_obj_t *side_cont;
   ButtonContainer all_on_btn;
   ButtonContainer all_off_btn;
+  ButtonContainer back_btn;
   std::map<std::string, std::shared_ptr<SliderContainer>> leds;
   std::string single_led_id;
   bool single_led_is_output_pin{false};

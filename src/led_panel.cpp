@@ -33,6 +33,7 @@ LedPanel::LedPanel(KWebSocketClient &websocket_client, std::mutex &lock)
   , side_cont(create_row(ledpanel_cont))
   , all_on_btn(side_cont, Icons::LIGHT_IMG, "All On", &LedPanel::_handle_callback, this)
   , all_off_btn(side_cont, Icons::LIGHT_OFF, "All Off", &LedPanel::_handle_callback, this)
+  , back_btn(side_cont, Icons::BACK, "Back", &LedPanel::_handle_callback, this)
 {
   // the list takes the width, the action tiles their own column
   lv_obj_set_flex_flow(ledpanel_cont, LV_FLEX_FLOW_ROW);
@@ -43,7 +44,7 @@ LedPanel::LedPanel(KWebSocketClient &websocket_client, std::mutex &lock)
   lv_obj_set_size(side_cont, scale_w(84), lv_pct(100));
   lv_obj_set_flex_flow(side_cont, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(side_cont, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
-  for (ButtonContainer *b : {&all_on_btn, &all_off_btn}) {
+  for (ButtonContainer *b : {&all_on_btn, &all_off_btn, &back_btn}) {
     b->use_plain();
     lv_obj_set_width(b->get_container(), lv_pct(100));
     lv_obj_set_height(b->get_container(), action_tile_h());
@@ -254,7 +255,9 @@ void LedPanel::toggle_single_led() {
 
 void LedPanel::handle_callback(lv_event_t *event) {
   lv_obj_t *btn = lv_event_get_current_target(event);
-  if (btn == all_off_btn.get_container() || btn == all_on_btn.get_container()) {
+  if (btn == back_btn.get_container()) {
+    background();
+  } else if (btn == all_off_btn.get_container() || btn == all_on_btn.get_container()) {
     const bool on = btn == all_on_btn.get_container();
     for (auto &l : leds) {
       ws.gcode_script(led_gcode(l.first, on ? 1.0 : 0.0));

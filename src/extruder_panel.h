@@ -88,7 +88,9 @@ class ExtruderPanel : public NotifyConsumer {
   lv_obj_t *load_right_col;
   lv_obj_t *extrude_right_col;
   ButtonContainer load_cooldown_btn;
+  ButtonContainer load_back_btn;
   ButtonContainer extrude_cooldown_btn;
+  ButtonContainer extrude_back_btn;
 };
 
 #endif // __EXTRUDER_PANEL_H__

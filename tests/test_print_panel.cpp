@@ -862,13 +862,26 @@ static void test_home_actions(MainPanel &main, lv_obj_t *tabs) {
       auto *panel = lv_obj_get_child(lv_scr_act(), -1);
       lv_obj_update_layout(lv_scr_act());
       assert(find_label(panel, action.second));
-      assert(!find_label(panel, "Back") && !find_label(panel, "Stop"));
+      assert(find_label(panel, "Back") && !find_label(panel, "Stop"));
       assert(panel->coords.x1 == stop->coords.x2 + 1);
       assert(panel->coords.x2 == screen_width - 1);
       assert(panel->coords.y1 == 0 && panel->coords.y2 == screen_height - 1);
       if (std::strcmp(action.first, "Homing") == 0) {
-        for (const char *text : {"Home All", "Home XY", "Motors Off", "X-", "Y+", "Z+"}) {
+        for (const char *text : {"Home All", "Home XY", "Motors Off", "X-", "Y+", "Z+", "Back"}) {
           same_icon_size(panel, text);
+        }
+        auto *back = find_action(panel, "Back");
+        auto *motors = find_action(panel, "Motors Off");
+        auto *distance = lv_obj_get_parent(find_label(panel, "Move Distance (mm)"));
+        // Equal grid columns can leave a few pixels of rounding at the edge.
+        assert(std::abs(back->coords.x2 - (panel->coords.x2 - Theme::gap())) <= Theme::gap() / 2);
+        assert(back->coords.y2 == panel->coords.y2 - Theme::gap());
+        assert(motors->coords.x1 == back->coords.x1);
+        assert(motors->coords.y2 < back->coords.y1);
+        assert(distance->coords.x2 < back->coords.x1);
+        assert(distance->coords.y2 == back->coords.y2);
+        for (const char *text : {"Home All", "Home XY", "X-", "X+", "Y-", "Y+", "Z-", "Z+"}) {
+          assert(find_action(panel, text)->coords.x2 < motors->coords.x1);
         }
       } else if (std::strcmp(action.first, "Extruder") == 0) {
         auto *tabs = lv_obj_get_child(panel, 0);
@@ -876,28 +889,61 @@ static void test_home_actions(MainPanel &main, lv_obj_t *tabs) {
           select_page(tabs, index);
           auto *tab = lv_obj_get_child(lv_tabview_get_content(tabs), index);
           auto *cooldown = lv_obj_get_parent(find_label(tab, "Cooldown"));
+          auto *back = lv_obj_get_parent(find_label(tab, "Back"));
+          auto *temperature = lv_obj_get_parent(find_label(tab, "Extruder Temperature (C)"));
           same_icon_size(tab, "Cooldown");
+          same_icon_size(tab, "Back");
           same_icon_size(tab, index == 0 ? "Load" : "Extrude");
           same_icon_size(tab, index == 0 ? "Unload" : "Retract");
-          assert(cooldown->coords.y2 == tab->coords.y2 - Theme::gap());
+          assert(back->coords.x2 == tab->coords.x2 - Theme::gap());
+          assert(back->coords.y2 == tab->coords.y2 - Theme::gap());
+          assert(cooldown->coords.y2 + 1 == back->coords.y1);
+          // Fractional rows on Extrude / Retract can leave a pixel of rounding.
+          assert(std::abs(temperature->coords.y2 - back->coords.y2) <= 1);
+          auto *keys = lv_obj_get_child(temperature, 1);
+          assert(lv_obj_check_type(keys, &lv_btnmatrix_class));
+          assert(std::abs(keys->coords.y2 - back->coords.y2) <= 1);
           assert(lv_obj_get_height(cooldown) == Theme::action_tile_h());
+          assert(lv_obj_get_height(back) == Theme::action_tile_h());
         }
       } else if (std::strcmp(action.first, "Fans") == 0 || std::strcmp(action.first, "LED") == 0) {
         auto *on = lv_obj_get_parent(find_label(panel, "All On"));
         auto *off = lv_obj_get_parent(find_label(panel, "All Off"));
+        auto *back = find_action(panel, "Back");
         same_icon_size(panel, "All On");
         same_icon_size(panel, "All Off");
+        same_icon_size(panel, "Back");
         same_icon_size(panel, "Off");
         same_icon_size(panel, "Max");
-        assert(off->coords.y2 == panel->coords.y2 - Theme::gap());
+        assert(back->coords.x2 == panel->coords.x2 - Theme::gap());
+        assert(back->coords.y2 == panel->coords.y2 - Theme::gap());
+        assert(back->coords.y1 == off->coords.y2 + 1 + Theme::gap());
         assert(off->coords.y1 == on->coords.y2 + 1 + Theme::gap());
         assert(lv_obj_get_height(on) == Theme::action_tile_h());
         assert(lv_obj_get_height(off) == Theme::action_tile_h());
+        assert(lv_obj_get_height(back) == Theme::action_tile_h());
       }
       return panel;
     };
     auto *panel = open();
     assert(main.home_active());
+    auto *back_parent = panel;
+    if (std::strcmp(action.first, "Extruder") == 0) {
+      auto *extruder_tabs = lv_obj_get_child(panel, 0);
+      back_parent = lv_obj_get_child(lv_tabview_get_content(extruder_tabs), lv_tabview_get_tab_act(extruder_tabs));
+    }
+    auto *back = find_action(back_parent, "Back");
+    assert(back);
+    auto *pointer = create_pointer();
+    const int back_x = (back->coords.x1 + back->coords.x2) / 2;
+    const int back_y = (back->coords.y1 + back->coords.y2) / 2;
+    pointer_event(pointer, back_x, back_y, LV_INDEV_STATE_PRESSED);
+    assert(pointer->proc.types.pointer.act_obj == back);
+    pointer_event(pointer, back_x, back_y, LV_INDEV_STATE_RELEASED);
+    lv_indev_delete(pointer);
+    assert(lv_obj_get_index(panel) < lv_obj_get_index(tabs));
+    assert(main.home_active() && requests.empty());
+    panel = open();
     select_page(tabs, 0); // Reselect Home through real pointer input.
     assert(lv_obj_get_index(panel) < lv_obj_get_index(tabs));
     assert(main.home_active());

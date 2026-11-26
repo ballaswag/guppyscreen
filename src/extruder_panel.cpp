@@ -142,7 +142,9 @@ ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
   , load_right_col(create_row(load_tab))
   , extrude_right_col(create_row(extrude_tab))
   , load_cooldown_btn(load_right_col, Icons::COOLDOWN_IMG, "Cooldown", &ExtruderPanel::_handle_callback, this)
+  , load_back_btn(load_right_col, Icons::BACK, "Back", &ExtruderPanel::_handle_callback, this)
   , extrude_cooldown_btn(extrude_right_col, Icons::COOLDOWN_IMG, "Cooldown", &ExtruderPanel::_handle_callback, this)
+  , extrude_back_btn(extrude_right_col, Icons::BACK, "Back", &ExtruderPanel::_handle_callback, this)
 {
   lv_obj_move_background(panel_cont);
 
@@ -184,25 +186,28 @@ ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
   style_embedded_tabview(tabview);
 
   ButtonContainer *all_tiles[] = {&load_btn, &unload_btn, &extrude_btn, &retract_btn,
-                                  &load_cooldown_btn, &extrude_cooldown_btn};
+                                  &load_cooldown_btn, &load_back_btn,
+                                  &extrude_cooldown_btn, &extrude_back_btn};
   for (ButtonContainer *b : all_tiles) {
     b->use_plain();
   }
 
-  // Cooldown stays at the bottom of each page's right-hand column.
+  // Back sits below Cooldown, at the bottom of each page's right-hand column.
   for (lv_obj_t *right_col : {load_right_col, extrude_right_col}) {
     lv_obj_set_grid_cell(right_col, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 2);
     lv_obj_set_flex_flow(right_col, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(right_col, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
     lv_obj_set_style_pad_row(right_col, 0, 0);
   }
-  for (ButtonContainer *b : {&load_cooldown_btn, &extrude_cooldown_btn}) {
+  for (ButtonContainer *b : {&load_cooldown_btn, &load_back_btn,
+                             &extrude_cooldown_btn, &extrude_back_btn}) {
     lv_obj_set_width(b->get_container(), LV_PCT(100));
     lv_obj_set_height(b->get_container(), action_tile_h());
   }
 
-  // Load / Unload: the pair side by side, the temperature presets beneath.
-  static lv_coord_t grid_load_row_dsc[] = {LV_GRID_FR(6), LV_GRID_FR(6), LV_GRID_TEMPLATE_LAST};
+  // Load / Unload: the pair side by side, with the temperature keys seated on
+  // the same bottom edge as Back, as on the Extrude / Retract tab.
+  static lv_coord_t grid_load_row_dsc[] = {LV_GRID_FR(1), LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
   static lv_coord_t grid_load_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
   lv_obj_set_grid_dsc_array(load_cont, grid_load_col_dsc, grid_load_row_dsc);
   lv_obj_set_grid_cell(load_btn.get_container(), LV_GRID_ALIGN_STRETCH, 0, 1,
@@ -210,7 +215,8 @@ ExtruderPanel::ExtruderPanel(KWebSocketClient &websocket_client,
   lv_obj_set_grid_cell(unload_btn.get_container(), LV_GRID_ALIGN_STRETCH, 1, 1,
                        LV_GRID_ALIGN_STRETCH, 0, 1);
   lv_obj_set_grid_cell(load_temp_selector.get_container(), LV_GRID_ALIGN_STRETCH, 0, 2,
-                       LV_GRID_ALIGN_STRETCH, 1, 1);
+                       LV_GRID_ALIGN_END, 1, 1);
+  load_temp_selector.seat_at_row_bottom();
 
   // Extrude / Retract: the pair stacked on the left, three selectors beside them.
   static lv_coord_t grid_extrude_row_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1),
@@ -395,6 +401,10 @@ void ExtruderPanel::handle_callback(lv_event_t *e) {
     
   } else if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
     lv_obj_t *btn = lv_event_get_current_target(e);
+    if (btn == load_back_btn.get_container() || btn == extrude_back_btn.get_container()) {
+      background();
+      return;
+    }
 
     Config *conf = Config::get_instance();
     auto selected = [](Selector &sel) {

@@ -20,6 +20,7 @@ HomingPanel::HomingPanel(KWebSocketClient &websocket_client, std::mutex &lock)
   , z_up_btn(homing_cont, Icons::Z_CLOSER, "Z+", &HomingPanel::_handle_callback, this)
   , z_down_btn(homing_cont, Icons::Z_FARTHER, "Z-", &HomingPanel::_handle_callback, this)
   , motoroff_btn(homing_cont, Icons::MOTOR_OFF_IMG, "Motors Off", &HomingPanel::_handle_callback, this)
+  , back_btn(homing_cont, Icons::BACK, "Back", &HomingPanel::_handle_callback, this)
   // the keys fill whatever the row leaves below the title; the trailing "" is
   // the btnmatrix map terminator
   , distance_selector(homing_cont, "Move Distance (mm)",
@@ -27,7 +28,7 @@ HomingPanel::HomingPanel(KWebSocketClient &websocket_client, std::mutex &lock)
 {
   static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
   static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1),
-    LV_GRID_TEMPLATE_LAST};
+    LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 
   lv_obj_set_grid_dsc_array(homing_cont, grid_main_col_dsc, grid_main_row_dsc);
 
@@ -39,12 +40,15 @@ HomingPanel::HomingPanel(KWebSocketClient &websocket_client, std::mutex &lock)
     lv_obj_set_grid_cell(tiles[i]->get_container(), LV_GRID_ALIGN_STRETCH, i % 4, 1, LV_GRID_ALIGN_STRETCH, i / 4, 1);
   }
 
-  // The selector sets the bottom row's height; the movement tiles use the rest.
+  // The selector fills the four movement columns. Motors Off and Back occupy
+  // the right lane, with Back aligned to the bottom of the selector.
   distance_selector.seat_at_row_bottom();
-  lv_obj_set_grid_cell(distance_selector.get_container(), LV_GRID_ALIGN_STRETCH, 0, 3, LV_GRID_ALIGN_END, 2, 1);
+  lv_obj_set_grid_cell(distance_selector.get_container(), LV_GRID_ALIGN_STRETCH, 0, 4, LV_GRID_ALIGN_END, 2, 1);
   motoroff_btn.use_plain();
-  lv_obj_set_grid_cell(motoroff_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_END, 2, 1);
-  motoroff_btn.match_height(homing_cont, distance_selector.get_container());
+  lv_obj_set_grid_cell(motoroff_btn.get_container(), LV_GRID_ALIGN_STRETCH, 4, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+  back_btn.use_plain();
+  lv_obj_set_grid_cell(back_btn.get_container(), LV_GRID_ALIGN_STRETCH, 4, 1, LV_GRID_ALIGN_END, 2, 1);
+  back_btn.match_height(homing_cont, distance_selector.get_container());
 
   ws.register_notify_update(this);
 }
@@ -153,6 +157,10 @@ void HomingPanel::background() {
 
 void HomingPanel::handle_callback(lv_event_t *event) {
   lv_obj_t *btn = lv_event_get_current_target(event);  
+  if (btn == back_btn.get_container()) {
+    background();
+    return;
+  }
   const char * distance = lv_btnmatrix_get_btn_text(distance_selector.get_selector(),
 						    distance_selector.get_selected_idx());
   if (btn == home_all_btn.get_container()) {

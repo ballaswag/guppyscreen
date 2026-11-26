@@ -536,10 +536,10 @@ void MainPanel::handle_emergency_cb(lv_event_t *event) {
 void MainPanel::create_main(lv_obj_t * parent) {
   lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_ROW_WRAP);
 
-  // Temperature readings and graph line up on the left; four compact actions
-  // share one vertical column on the right.
+  // Temperature readings and graph line up on the left; the action column
+  // matches the right-hand button columns on the fan and LED panels.
   static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(42), LV_GRID_FR(58), LV_GRID_TEMPLATE_LAST};
-  static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(3), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+  static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(1), (lv_coord_t)scale_w(84), LV_GRID_TEMPLATE_LAST};
 
   lv_obj_set_grid_dsc_array(main_cont, grid_main_col_dsc, grid_main_row_dsc);
 
