@@ -66,7 +66,7 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , extrude_btn(main_cont, Icons::EXTRUDE_IMG, "Extruder", &MainPanel::_handle_extrude_cb, this)
   , action_btn(main_cont, Icons::FAN, "Fans", &MainPanel::_handle_fanpanel_cb, this)
   , led_btn(main_cont, Icons::LIGHT_IMG, "LED", &MainPanel::_handle_ledpanel_cb, this)
-  , emergency_btn(main_cont, Icons::EMERGENCY, "Stop", &MainPanel::_handle_emergency_cb, this,
+  , emergency_btn(tabview, Icons::EMERGENCY, "Stop", &MainPanel::_handle_emergency_cb, this,
                   "Emergency Stop", "Do you want to emergency stop?",
                   {"Back", "Emergency Stop"})
 {
@@ -179,11 +179,16 @@ bool MainPanel::home_active() const {
 #ifdef OS_ANDROID
 bool MainPanel::printer_menu_visible() {
   const int main_index = lv_obj_get_index(tabview);
-  for (auto *panel : {homing_panel.get_container(), extruder_panel.get_container(),
-                      fan_panel.get_container(), led_panel.get_container(),
-                      print_status_panel.get_container(),
-                      prompt_panel.get_container()}) {
-    if (lv_obj_get_index(panel) > main_index) {
+  // Page panels leave the strip exposed. Only a full-screen panel above the
+  // tabview (including print tuning and macro prompts) covers the menu.
+  for (uint32_t i = main_index + 1; i < lv_obj_get_child_cnt(lv_scr_act()); i++) {
+    auto *panel = lv_obj_get_child(lv_scr_act(), i);
+    if (panel != prompt_panel.get_container() && lv_obj_get_style_bg_opa(panel, 0) != LV_OPA_COVER) {
+      continue;
+    }
+    if (lv_obj_is_visible(panel) && lv_obj_get_x(panel) <= 0 && lv_obj_get_y(panel) <= 0 &&
+        lv_obj_get_width(panel) >= lv_obj_get_width(tabview) &&
+        lv_obj_get_height(panel) >= lv_obj_get_height(tabview)) {
       return false;
     }
   }
@@ -343,8 +348,9 @@ void MainPanel::_draw_tab_icon(lv_event_t *e) {
   if (lv_img_decoder_get_info(icon, &header) != LV_RES_OK || header.w == 0 || header.h == 0) {
     return;
   }
-  const int size = std::max(1, std::min({nav_icon_px(), lv_area_get_width(&slot) - 2 * gap(),
-                                      lv_area_get_height(&slot) - 2 * gap()}));
+  const int icon_px = lv_obj_get_content_width(self->emergency_btn.get_container());
+  const int size = std::max(1, std::min({icon_px, lv_area_get_width(&slot) - 2 * gap(),
+                                      lv_area_get_height(&slot)}));
   const int zoom = size * LV_IMG_ZOOM_NONE / std::max(header.w, header.h);
   const int width = header.w * zoom / LV_IMG_ZOOM_NONE;
   const int height = header.h * zoom / LV_IMG_ZOOM_NONE;
@@ -382,6 +388,15 @@ void MainPanel::_tabview_event_cb(lv_event_t *e) {
 
     const uint16_t idx = lv_tabview_get_tab_act(tv);
 
+    // Button-matrix events also arrive when Home is already selected, so it
+    // returns from a home action panel as well as switching from another tab.
+    self->homing_panel.background();
+    self->extruder_panel.background();
+    self->fan_panel.background();
+    self->led_panel.background();
+    self->print_status_panel.background();
+    self->numpad.background();
+
     if (idx == lv_obj_get_index(self->print_tab)) {
         if (!self->klipper_ready || PrintPanel::printer_busy()) {
             self->update_print_tab();
@@ -411,6 +426,10 @@ void MainPanel::create_panel() {
   lv_obj_set_style_bg_opa(tab_btns, LV_OPA_COVER, 0);
   lv_obj_set_style_border_width(tab_btns, 0, 0);
   lv_obj_set_style_pad_all(tab_btns, 0, 0);
+  emergency_btn.use_plain();
+  emergency_btn.hide_label();
+  auto *stop = emergency_btn.get_container();
+  lv_obj_add_flag(stop, LV_OBJ_FLAG_FLOATING);
   // the selection fills its whole slot; a padded, rounded pill read as a
   // floating bubble rather than part of the bar
   lv_obj_set_style_radius(tab_btns, 0, LV_PART_ITEMS);
@@ -429,6 +448,24 @@ void MainPanel::create_panel() {
   lv_obj_set_style_pad_top(tab_btns, android_menu_height(), 0);
   android_place_menu(tab_bar_w(), android_menu_height());
 #endif
+
+  // Space all icons evenly, including the gaps above and below E-stop. Its
+  // separate click target keeps the same icon size and row height as the tabs.
+  const int menu_h = lv_obj_get_style_pad_top(tab_btns, 0);
+  const int rows = lv_obj_get_child_cnt(tv_content) + 1;
+  const int available_h = lv_disp_get_ver_res(NULL) - menu_h;
+  const int icon_px = std::max(1, std::min({nav_icon_px(), tab_bar_w() - 2 * gap(),
+                                         available_h / rows - 2 * gap()}));
+  const int icon_gap = std::max(0, (available_h - rows * icon_px) / (rows + 1));
+  const int edge = icon_gap / 2;
+  const int row_h = icon_px + icon_gap;
+  lv_obj_set_style_pad_row(tab_btns, 0, 0);
+  lv_obj_set_style_pad_top(tab_btns, menu_h + icon_gap - edge, 0);
+  lv_obj_set_style_pad_bottom(tab_btns, row_h + edge, 0);
+  lv_obj_set_style_pad_left(stop, (tab_bar_w() - icon_px) / 2, 0);
+  lv_obj_set_style_pad_right(stop, tab_bar_w() - icon_px - (tab_bar_w() - icon_px) / 2, 0);
+  lv_obj_set_size(stop, tab_bar_w(), row_h);
+  lv_obj_align(stop, LV_ALIGN_BOTTOM_LEFT, 0, -edge);
 
   // The page is the theme's background everywhere: the screen, the tabview and
   // each tab. Left alone they paint LVGL's own dark card grey, which only
@@ -453,6 +490,15 @@ void MainPanel::create_panel() {
   if (mmu_tab != NULL) {
     // Greyed out until Klipper reports a supported backend.
     lv_btnmatrix_set_btn_ctrl(tab_btns, lv_obj_get_index(mmu_tab), LV_BTNMATRIX_CTRL_DISABLED);
+  }
+
+  // These panels keep their existing foreground/background lifecycle, but
+  // occupy only the page to the right of the shared navigation strip.
+  for (auto *panel : {homing_panel.get_container(), extruder_panel.get_container(),
+                      fan_panel.get_container(), led_panel.get_container(),
+                      print_status_panel.get_container()}) {
+    lv_obj_set_width(panel, lv_disp_get_hor_res(NULL) - tab_bar_w());
+    lv_obj_align(panel, LV_ALIGN_TOP_RIGHT, 0, 0);
   }
 
   create_main(main_tab);
@@ -497,7 +543,9 @@ void MainPanel::handle_emergency_cb(lv_event_t *event) {
 void MainPanel::create_main(lv_obj_t * parent) {
   lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_ROW_WRAP);
 
-  static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+  // The top row fits three temperature readings; the lower rows put Fans and
+  // LED down the right while the graph fills the space to their left.
+  static lv_coord_t grid_main_row_dsc[] = {LV_GRID_FR(42), LV_GRID_FR(29), LV_GRID_FR(29), LV_GRID_TEMPLATE_LAST};
   static lv_coord_t grid_main_col_dsc[] = {0, 0, 0, 0, LV_GRID_TEMPLATE_LAST};
 
   // Give the temperature side all of the width recovered from the compact
@@ -512,17 +560,16 @@ void MainPanel::create_main(lv_obj_t * parent) {
 
   lv_obj_set_grid_dsc_array(main_cont, grid_main_col_dsc, grid_main_row_dsc);
 
-  // The five actions are tappable tiles, the same look as an MMU slot card.
+  // The four actions are tappable tiles, the same look as an MMU slot card.
   for (ButtonContainer *b : {&homing_btn, &extrude_btn, &action_btn,
-                             &led_btn, &emergency_btn}) {
+                             &led_btn}) {
     b->use_plain();
   }
 
   lv_obj_set_grid_cell(homing_btn.get_container(), LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
   lv_obj_set_grid_cell(extrude_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
-  lv_obj_set_grid_cell(action_btn.get_container(), LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
-  lv_obj_set_grid_cell(led_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
-  lv_obj_set_grid_cell(emergency_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 2, 1);
+  lv_obj_set_grid_cell(action_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+  lv_obj_set_grid_cell(led_btn.get_container(), LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 2, 1);
 
   lv_obj_clear_flag(temp_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_style(temp_cont, &styles().row, 0);
@@ -530,10 +577,7 @@ void MainPanel::create_main(lv_obj_t * parent) {
   lv_obj_set_flex_flow(temp_cont, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(temp_cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_grid_cell(temp_cont, LV_GRID_ALIGN_STRETCH, 0, 2, LV_GRID_ALIGN_STRETCH, 0, 3);
-  // The chart is the last child of the readout column, half its height; the
-  // rows above share the other half, for any number of sensors.
-  lv_obj_set_parent(temp_chart_box, temp_cont);
+  lv_obj_set_grid_cell(temp_cont, LV_GRID_ALIGN_STRETCH, 0, 2, LV_GRID_ALIGN_STRETCH, 0, 1);
   // while printing, the status chip is the first row of the column (it is
   // hidden otherwise, and flex skips hidden children)
   lv_obj_set_parent(print_status_panel.get_mini_status(), temp_cont);
@@ -555,13 +599,9 @@ void MainPanel::create_main(lv_obj_t * parent) {
   lv_obj_set_style_border_width(temp_chart_box, border_w(), 0);
   lv_obj_set_style_border_color(temp_chart_box, col(BORDER), 0);
   lv_obj_clear_flag(temp_chart_box, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_width(temp_chart_box, LV_PCT(100));
-  // the chart and the readout rows share the column by flex weight: the chart
-  // weighs as much as all the rows together (set in create_sensors), so it is
-  // half the column when idle and everything shrinks together when the print
-  // status chip joins the column
-  lv_obj_set_height(temp_chart_box, 0);
-  lv_obj_set_flex_grow(temp_chart_box, 1);
+  // The graph fills the lower-left area beside the Fans and LED buttons.
+  lv_obj_set_grid_cell(temp_chart_box, LV_GRID_ALIGN_STRETCH, 0, 3,
+                       LV_GRID_ALIGN_STRETCH, 1, 2);
   // room for the tick labels, which lv_chart draws to the left of the plot
   const lv_coord_t tick_gutter = scale_w(30);
   lv_obj_set_style_pad_left(temp_chart_box, tick_gutter, 0);
@@ -603,9 +643,8 @@ void MainPanel::create_sensors(json &temp_sensors) {
   sensors.clear();
   const int compact_range = FULL_TAB_BAR_W - COMPACT_TAB_BAR_W;
   const int compact_amount = reclaimed_tab_bar_w();
-  // Preserve the original balanced chart layout for a short list. Once it
-  // grows, fixed-height rows and vertical scrolling keep every tool visible.
-  const bool many_sensors = temp_sensors.size() > 4;
+  // Three readings fit the top row; additional sensors remain reachable by scrolling.
+  const bool many_sensors = temp_sensors.size() > 3;
   if (many_sensors) {
     lv_obj_add_flag(temp_cont, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(temp_cont, LV_DIR_VER);
@@ -658,17 +697,8 @@ void MainPanel::create_sensors(json &temp_sensors) {
     sensors.insert({key, sc});
   }
 
-  // the readouts were appended after the chart, so put the chart back at the
-  // bottom of the column where it belongs
-  const uint32_t last = lv_obj_get_child_cnt(temp_cont);
-  if (last > 0) {
-    lv_obj_move_to_index(temp_chart_box, last - 1);
-  }
-  lv_obj_set_height(temp_chart_box, many_sensors ? scale_r(110) : 0);
-  const int sensor_weight = std::max<int>(1, sensors.size());
-  const int compact_chart_weight = compact_amount / compact_range;
-  lv_obj_set_flex_grow(temp_chart_box,
-                       many_sensors ? 0 : sensor_weight + compact_chart_weight);
+  lv_obj_scroll_to_y(temp_cont, 0, LV_ANIM_OFF);
+  lv_obj_update_layout(temp_cont);
 }
 
 void MainPanel::create_fans(json &fans) {
@@ -678,8 +708,7 @@ void MainPanel::create_fans(json &fans) {
 void MainPanel::create_leds(json &leds) {
   std::lock_guard<std::mutex> lock(lv_lock);
   // runs again on every klipper reconnect, so a hidden button has to come back.
-  // Leave the LED cell empty when absent: Fans stays on the left, with
-  // Stop on the bottom row.
+  // Leave the LED cell empty when absent, below Fans on the right.
   const bool has_leds = leds.is_array() && !leds.empty();
   if (has_leds) {
     led_btn.show();

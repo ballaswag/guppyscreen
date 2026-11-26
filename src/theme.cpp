@@ -463,6 +463,8 @@ void fit_first_icon(lv_event_t *e) {
 
 int touch_h() { return scale_r(44); }
 
+int action_tile_h() { return scale_r(76); }
+
 int slider_h() { return scale_r(16); }
 int knob_overhang(int track_h) { return track_h / 2 + knob_pad(); }
 

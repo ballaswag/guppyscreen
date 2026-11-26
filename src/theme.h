@@ -170,6 +170,8 @@ void fit_first_icon(lv_event_t *e);
 
 // the height of anything a finger taps: buttons, list rows, entry lines
 int touch_h();
+// Height of an icon-and-label action in a group anchored to the top of a page.
+int action_tile_h();
 // a finger-sized slider's track height; no slider in the UI is taller, so the
 // shared slider style insets every track by this one's knob overhang
 int slider_h();

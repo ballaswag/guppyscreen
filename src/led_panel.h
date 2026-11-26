@@ -18,9 +18,7 @@ class LedPanel : public NotifyConsumer {
 
   void consume(json &j);
 
-#ifdef OS_ANDROID
   lv_obj_t *get_container() { return ledpanel_cont; }
-#endif
   void init(json&);
   void activate();
   const void *get_main_button_image();
@@ -58,7 +56,6 @@ class LedPanel : public NotifyConsumer {
   ButtonContainer all_on_btn;
   ButtonContainer all_off_btn;
   std::map<std::string, std::shared_ptr<SliderContainer>> leds;
-  ButtonContainer back_btn;
   std::string single_led_id;
   bool single_led_is_output_pin{false};
   double single_led_last_value{0.0};

@@ -18,9 +18,7 @@ class ExtruderPanel : public NotifyConsumer {
 
   void foreground();
   void background();
-#ifdef OS_ANDROID
   lv_obj_t *get_container() { return panel_cont; }
-#endif
   void consume(json &j);
   void handle_callback(lv_event_t *e);
 #ifndef COSMOS
@@ -52,7 +50,7 @@ class ExtruderPanel : public NotifyConsumer {
   std::vector<const char*> speed_option_map;
   uint32_t speed_default_idx;
 
-  // Each full-screen tab includes its own readout and navigation controls.
+  // Each tab includes its own readout and filament controls.
   lv_obj_t *tabview;
   lv_obj_t *load_tab;
   lv_obj_t *extrude_tab;
@@ -90,9 +88,7 @@ class ExtruderPanel : public NotifyConsumer {
   lv_obj_t *load_right_col;
   lv_obj_t *extrude_right_col;
   ButtonContainer load_cooldown_btn;
-  ButtonContainer load_back_btn;
   ButtonContainer extrude_cooldown_btn;
-  ButtonContainer extrude_back_btn;
 };
 
 #endif // __EXTRUDER_PANEL_H__

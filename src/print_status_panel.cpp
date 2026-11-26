@@ -31,9 +31,6 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   , resume_btn(buttons_cont, Icons::RESUME, "Resume", &PrintStatusPanel::_handle_callback, this)
   , cancel_btn(buttons_cont, Icons::CANCEL, "Cancel", &PrintStatusPanel::_handle_callback, this,
 	       "Cancel Print", "Do you want to cancel the print?", {"Back", "Cancel Print"})
-  , emergency_btn(buttons_cont, Icons::EMERGENCY, "Stop", &PrintStatusPanel::_handle_callback, this,
-		  "Emergency Stop", "Do you want to emergency stop?",
-                  {"Back", "Emergency Stop"})
   , back_btn(buttons_cont, Icons::BACK, "Back", &PrintStatusPanel::_handle_callback, this)
   , thumbnail_cont(lv_obj_create(status_cont))
   , thumbnail(lv_img_create(thumbnail_cont))
@@ -58,9 +55,6 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   , heater_bed_target(-1)
   , chamber_sensor_key_(Config::get_instance()->get<std::string>("/ui/chamber_temp_sensor"))
 {
-  emergency_btn.set_prompt_condition([] {
-    return Config::get_instance()->get<bool>("/ui/prompt_emergency_stop");
-  });
   // a full-screen overlay paints its own background; a plain
   // container is transparent scaffolding
   lv_obj_add_style(status_cont, &styles().screen, 0);
@@ -101,9 +95,9 @@ PrintStatusPanel::PrintStatusPanel(KWebSocketClient &websocket_client,
   lv_obj_clear_flag(buttons_cont, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_flex_flow(buttons_cont, LV_FLEX_FLOW_ROW);
 
-  // all seven actions on one row, Back on the far right, sharing the width
+  // All actions share one row, with Back on the far right.
   for (ButtonContainer *b : {&finetune_btn, &objects_btn, &pause_btn, &resume_btn,
-                             &cancel_btn, &emergency_btn, &back_btn}) {
+                             &cancel_btn, &back_btn}) {
     b->use_plain();
     lv_obj_set_height(b->get_container(), LV_PCT(100));
     lv_obj_set_flex_grow(b->get_container(), 1);
@@ -517,8 +511,6 @@ void PrintStatusPanel::handle_callback(lv_event_t *event) {
   lv_obj_t *btn = lv_event_get_current_target(event);
   if (btn == back_btn.get_container()) {
     background();
-  } else if (btn == emergency_btn.get_container()) {
-    ws.send_jsonrpc("printer.emergency_stop");
   } else if (btn == pause_btn.get_container()) {
     if (!pause_btn.start_pressed_transition(2000)) {
       return;

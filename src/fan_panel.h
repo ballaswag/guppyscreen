@@ -18,9 +18,7 @@ class FanPanel : public NotifyConsumer {
 
   void consume(json &j);
   
-#ifdef OS_ANDROID
   lv_obj_t *get_container() { return fanpanel_cont; }
-#endif
   void create_fans(json &f);
   void foreground();
   void background();
@@ -63,7 +61,6 @@ class FanPanel : public NotifyConsumer {
   /* SliderContainer fan0; */
   /* SliderContainer fan1; */
   /* SliderContainer fan2; */
-  ButtonContainer back_btn;
 };
 
 #endif // __FAN_PANEL_H__

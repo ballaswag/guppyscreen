@@ -45,9 +45,7 @@ class HomingPanel : public NotifyConsumer {
   ButtonContainer x_down_btn;
   ButtonContainer z_up_btn;
   ButtonContainer z_down_btn;
-  ButtonContainer emergency_btn;
   ButtonContainer motoroff_btn;
-  ButtonContainer back_btn;
   Selector distance_selector;
 };
 

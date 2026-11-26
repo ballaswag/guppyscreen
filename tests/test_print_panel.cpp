@@ -717,9 +717,205 @@ static void stress_preview_scrolling(const json &fixture) {
   std::puts("edge scrolling with momentum and thumbnail rendering passed");
 }
 
+static lv_obj_t *find_chart(lv_obj_t *parent) {
+  if (lv_obj_check_type(parent, &lv_chart_class)) {
+    return parent;
+  }
+  for (uint32_t i = 0; i < lv_obj_get_child_cnt(parent); ++i) {
+    if (auto *chart = find_chart(lv_obj_get_child(parent, i))) {
+      return chart;
+    }
+  }
+  return nullptr;
+}
+
+static void test_home_chart(MainPanel &main, lv_obj_t *home) {
+  auto *chart = find_chart(home);
+  assert(chart);
+  auto *box = lv_obj_get_parent(chart);
+  auto *page = lv_obj_get_parent(box);
+  assert(lv_obj_get_parent(page) == home);
+  lv_obj_update_layout(home);
+  auto *homing = lv_obj_get_parent(find_label(home, "Homing"));
+  auto *extruder = lv_obj_get_parent(find_label(home, "Extruder"));
+  auto *fans = lv_obj_get_parent(find_label(home, "Fans"));
+  auto *led = lv_obj_get_parent(find_label(home, "LED"));
+  assert(homing->coords.y1 == page->coords.y1 + Theme::gap());
+  assert(extruder->coords.y1 == homing->coords.y1);
+  assert(fans->coords.x1 == extruder->coords.x1 && led->coords.x1 == extruder->coords.x1);
+  assert(fans->coords.y1 == homing->coords.y2 + 1 + Theme::gap());
+  assert(led->coords.y1 == fans->coords.y2 + 1 + Theme::gap());
+  assert(box->coords.y1 == fans->coords.y1);
+  assert(box->coords.x1 == page->coords.x1 + Theme::gap());
+  assert(box->coords.x2 == homing->coords.x2);
+  assert(box->coords.y2 == led->coords.y2);
+  assert(lv_obj_get_height(box) >= Theme::scale_h(60));
+  const auto bounds = box->coords;
+
+  // Reconfiguring or scrolling sensor rows must leave the graph fixed below them.
+  for (int count : {3, 4, 8, 0, 3}) {
+    json sensors = json::object();
+    for (int i = 0; i < count; ++i) {
+      sensors["extruder" + std::to_string(i)] = {
+        {"display_name", "Tool " + std::to_string(i)}, {"controllable", true}, {"color", "red"}};
+    }
+    main.create_sensors(sensors);
+    lv_obj_update_layout(home);
+    int series_count = 0;
+    for (auto *series = lv_chart_get_series_next(chart, nullptr); series != nullptr;
+         series = lv_chart_get_series_next(chart, series)) {
+      ++series_count;
+    }
+    assert(series_count == count);
+    if (count == 3) {
+      auto *first = lv_obj_get_parent(find_label(home, "Tool 0"));
+      auto *last = lv_obj_get_parent(find_label(home, "Tool 2"));
+      auto *readouts = lv_obj_get_parent(first);
+      assert(first->coords.y1 >= readouts->coords.y1);
+      assert(last->coords.y2 <= readouts->coords.y2);
+      assert(!lv_obj_has_flag(readouts, LV_OBJ_FLAG_SCROLLABLE));
+      // Showing the existing print chip does not add scrolling for three readings.
+      auto *mini = lv_obj_get_child(readouts, 0);
+      lv_obj_clear_flag(mini, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_update_layout(home);
+      assert(!lv_obj_has_flag(readouts, LV_OBJ_FLAG_SCROLLABLE));
+      lv_obj_add_flag(mini, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_update_layout(home);
+    }
+    if (count > 3) {
+      auto *readouts = lv_obj_get_parent(lv_obj_get_parent(find_label(home, "Tool 0")));
+      assert(lv_obj_has_flag(readouts, LV_OBJ_FLAG_SCROLLABLE));
+      assert(lv_obj_get_scroll_bottom(readouts) > 0);
+      lv_obj_scroll_to_y(readouts, LV_COORD_MAX, LV_ANIM_OFF);
+      lv_obj_update_layout(home);
+      assert(lv_obj_get_scroll_y(readouts) > 0);
+    }
+    assert(box->coords.x1 == bounds.x1 && box->coords.x2 == bounds.x2);
+    assert(box->coords.y1 == bounds.y1 && box->coords.y2 == bounds.y2);
+  }
+}
+
+static void test_home_actions(MainPanel &main, lv_obj_t *tabs) {
+  auto *pages = lv_tabview_get_content(tabs);
+  auto *home = lv_obj_get_child(pages, 0);
+  auto *stop_label = find_label(tabs, "Stop");
+  assert(stop_label);
+  auto *stop = lv_obj_get_parent(stop_label);
+  lv_obj_update_layout(lv_scr_act());
+  assert(lv_obj_get_parent(stop) == tabs);
+  assert(stop->coords.x1 == 0);
+  assert(!find_label(home, "Stop"));
+  auto *buttons = lv_tabview_get_tab_btns(tabs);
+  auto *matrix = reinterpret_cast<lv_btnmatrix_t *>(buttons);
+  assert(buttons->coords.y1 + matrix->button_areas[matrix->btn_cnt - 1].y2 < stop->coords.y1);
+  auto *stop_icon = lv_obj_get_child(stop, 0);
+  const int icon_h = lv_obj_get_height(stop_icon);
+  auto icon_top = [&](int index) {
+    const auto &area = matrix->button_areas[index];
+    return buttons->coords.y1 + area.y1 + (lv_area_get_height(&area) - icon_h) / 2;
+  };
+  const int last_top = icon_top(matrix->btn_cnt - 1);
+  const int nav_gap = last_top - icon_top(matrix->btn_cnt - 2) - icon_h;
+  const int above_stop = stop_icon->coords.y1 - last_top - icon_h;
+  const int below_stop = screen_height - 1 - stop_icon->coords.y2;
+  assert(nav_gap > 0);
+  // Integer image zoom and row division can differ by a pixel or two.
+  assert(std::abs(above_stop - nav_gap) <= 2);
+  assert(std::abs(below_stop - nav_gap) <= 2);
+
+  json fans = {{"fan", {{"display_name", "Part cooling"}}}};
+  main.create_fans(fans);
+  json leds = json::array({{{"id", "output_pin light"}, {"display_name", "Light"}, {"pwm", true}}});
+  main.create_leds(leds);
+  test_home_chart(main, home);
+  const auto console_index = lv_obj_get_child_cnt(pages) - 2;
+  for (const auto &action : {std::make_pair("Homing", "Home All"),
+                             std::make_pair("Extruder", "Load"),
+                             std::make_pair("Fans", "All On"),
+                             std::make_pair("LED", "Light")}) {
+    auto open = [&] {
+      lv_event_send(lv_obj_get_parent(find_label(home, action.first)), LV_EVENT_CLICKED, nullptr);
+      auto *panel = lv_obj_get_child(lv_scr_act(), -1);
+      lv_obj_update_layout(lv_scr_act());
+      assert(find_label(panel, action.second));
+      assert(!find_label(panel, "Back") && !find_label(panel, "Stop"));
+      assert(panel->coords.x1 == stop->coords.x2 + 1);
+      assert(panel->coords.x2 == screen_width - 1);
+      assert(panel->coords.y1 == 0 && panel->coords.y2 == screen_height - 1);
+      if (std::strcmp(action.first, "Extruder") == 0) {
+        auto *tabs = lv_obj_get_child(panel, 0);
+        for (int index : {0, 1}) {
+          select_page(tabs, index);
+          auto *tab = lv_obj_get_child(lv_tabview_get_content(tabs), index);
+          auto *cooldown = lv_obj_get_parent(find_label(tab, "Cooldown"));
+          assert(cooldown->coords.y2 == tab->coords.y2 - Theme::gap());
+          assert(lv_obj_get_height(cooldown) == Theme::action_tile_h());
+        }
+      } else if (std::strcmp(action.first, "Fans") == 0 || std::strcmp(action.first, "LED") == 0) {
+        auto *on = lv_obj_get_parent(find_label(panel, "All On"));
+        auto *off = lv_obj_get_parent(find_label(panel, "All Off"));
+        assert(off->coords.y2 == panel->coords.y2 - Theme::gap());
+        assert(off->coords.y1 == on->coords.y2 + 1 + Theme::gap());
+        assert(lv_obj_get_height(on) == Theme::action_tile_h());
+        assert(lv_obj_get_height(off) == Theme::action_tile_h());
+      }
+      return panel;
+    };
+    auto *panel = open();
+    assert(main.home_active());
+    select_page(tabs, 0); // Reselect Home through real pointer input.
+    assert(lv_obj_get_index(panel) < lv_obj_get_index(tabs));
+    assert(main.home_active());
+    panel = open();
+    select_page(tabs, console_index);
+    assert(lv_obj_get_index(panel) < lv_obj_get_index(tabs));
+    select_page(tabs, 0);
+  }
+
+  // The nav E-stop is reachable while a home action covers the page.
+  lv_event_send(lv_obj_get_parent(find_label(home, "Homing")), LV_EVENT_CLICKED, nullptr);
+  auto *pointer = create_pointer();
+  const int x = (stop->coords.x1 + stop->coords.x2) / 2;
+  const int y = (stop->coords.y1 + stop->coords.y2) / 2;
+  pointer_event(pointer, x, y, LV_INDEV_STATE_PRESSED);
+  assert(pointer->proc.types.pointer.act_obj == stop);
+  pointer_event(pointer, x, y, LV_INDEV_STATE_RELEASED);
+  lv_indev_delete(pointer);
+  assert(requests.empty()); // A normal tap requires confirmation.
+  auto *dialog = lv_obj_get_parent(find_label(lv_scr_act(), "Emergency Stop"));
+  choose(dialog, 0);
+  assert(requests.empty());
+  lv_event_send(stop, LV_EVENT_CLICKED, nullptr);
+  dialog = lv_obj_get_parent(find_label(lv_scr_act(), "Emergency Stop"));
+  choose(dialog, 1);
+  take("printer.emergency_stop");
+  assert(requests.empty());
+
+  const std::string config_path = "/tmp/grumpy-navigation-" + std::to_string(getpid()) + ".cfg";
+  {
+    std::ofstream config(config_path);
+    config << "[ui]\nprompt_emergency_stop: false\n";
+  }
+  assert(Config::get_instance()->load_override(config_path));
+  lv_event_send(stop, LV_EVENT_CLICKED, nullptr);
+  assert(requests.empty()); // With confirmation off, only a long press fires.
+  lv_event_send(stop, LV_EVENT_LONG_PRESSED, nullptr);
+  take("printer.emergency_stop");
+  lv_event_send(stop, LV_EVENT_CLICKED, nullptr);
+  assert(requests.empty());
+  assert(Config::get_instance()->load("grumpyscreen.cfg"));
+  std::remove(config_path.c_str());
+  select_page(tabs, 0);
+  main.set_klipper_ready(false);
+  assert(lv_obj_has_state(stop, LV_STATE_DISABLED));
+  main.set_klipper_ready(true);
+  assert(!lv_obj_has_state(stop, LV_STATE_DISABLED));
+}
+
 static void test_navigation(KWebSocketClient &ws, std::mutex &lock) {
   auto &main = create_navigation(ws, lock);
   auto *tabs = navigation();
+  test_home_actions(main, tabs);
   auto *buttons = lv_tabview_get_tab_btns(tabs);
   auto *pages = lv_tabview_get_content(tabs);
   const auto print_index = lv_obj_get_child_cnt(pages) - 3;
@@ -774,6 +970,13 @@ static void test_navigation(KWebSocketClient &ws, std::mutex &lock) {
   click("Print");
   assert(take("printer.print.start").params["filename"] == "part_0.gcode");
   assert(main.home_active()); // starting a print leaves the file browser
+  auto *status_panel = lv_obj_get_child(lv_scr_act(), -1);
+  lv_obj_update_layout(lv_scr_act());
+  assert(find_label(status_panel, "Fine Tune"));
+  assert(!find_label(status_panel, "Stop"));
+  assert(status_panel->coords.x1 == lv_obj_get_width(buttons));
+  select_page(tabs, 0);
+  assert(lv_obj_get_index(status_panel) < lv_obj_get_index(tabs));
   assert(lv_obj_has_flag(panel_root, LV_OBJ_FLAG_HIDDEN));
   main.set_klipper_ready(false); // close the print-status overlay
   main.set_klipper_ready(true);
