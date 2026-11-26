@@ -661,19 +661,11 @@ void MmuPanel::create_colour_swatches() {
   }
 }
 
-bool MmuPanel::enabled() {
-  return !Config::get_instance()->get<bool>("/ui/hide_mmu", false);
-}
-
 MmuBackend *MmuPanel::select_backend() {
   // runs on the websocket thread, and again on every klipper reconnect, so it
   // can race LVGL event callbacks reading the backend on the UI thread
   std::lock_guard<std::mutex> guard(lv_lock);
   clear();
-  if (!enabled()) {
-    return NULL;
-  }
-
   for (MmuBackend *b : backends) {
     if (!b->detect()) {
       continue;

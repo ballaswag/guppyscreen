@@ -41,8 +41,7 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   , led_panel(ws, lock)    
   , tabview(lv_tabview_create(lv_scr_act(), LV_DIR_LEFT, tab_bar_w()))
   , main_tab(lv_tabview_add_tab(tabview, " "))
-  , filament_tab(mmu != NULL || (sm != NULL && !SpoolmanPanel::hidden())
-                     ? lv_tabview_add_tab(tabview, " ") : NULL)
+  , filament_tab(NULL)
   , print_tab(lv_tabview_add_tab(tabview, " "))
   , console_tab(lv_tabview_add_tab(tabview, " "))
   , console_panel(ws, lock, console_tab)
@@ -72,9 +71,6 @@ MainPanel::MainPanel(KWebSocketClient &websocket,
   emergency_btn.set_prompt_condition([] {
     return Config::get_instance()->get<bool>("/ui/prompt_emergency_stop");
   });
-    if (spoolman_panel != NULL && !SpoolmanPanel::hidden()) {
-      spoolman_panel->attach(filament_tab);
-    }
     ws.register_notify_update(this);
     if (mmu_panel != NULL && spoolman_panel != NULL) {
       mmu_panel->open_spoolman = [this]() { spoolman_panel->foreground(); };
@@ -115,6 +111,7 @@ void MainPanel::set_firmware_restart_available(bool available) {
 void MainPanel::set_klipper_ready(bool ready) {
   if (!ready) {
     disable_mmu();
+    set_spoolman_available(false);
   }
   std::lock_guard<std::mutex> lock(lv_lock);
   klipper_ready = ready;
@@ -308,7 +305,7 @@ const lv_img_dsc_t *MainPanel::tab_icon(uint16_t id) const {
     return Icons::PRINT;
   }
   if (is(filament_tab)) {
-    return mmu_available || SpoolmanPanel::hidden() ? Icons::NAV_SPOOL : Icons::NAV_SPOOLMAN;
+    return filament_is_mmu ? Icons::NAV_SPOOL : Icons::NAV_SPOOLMAN;
   }
   if (is(console_tab)) {
     return Icons::NAV_CONSOLE;
@@ -403,7 +400,7 @@ void MainPanel::_tabview_event_cb(lv_event_t *e) {
     }
     self->print_panel.background();
     if (self->filament_tab != NULL && idx == lv_obj_get_index(self->filament_tab) &&
-        !self->mmu_available && self->spoolman_available && !SpoolmanPanel::hidden()) {
+        !self->filament_is_mmu && self->spoolman_available) {
         self->spoolman_panel->foreground();
     } else if (idx == lv_obj_get_index(self->console_tab)) {
         self->console_panel.select_first_tab();
@@ -442,30 +439,10 @@ void MainPanel::create_panel() {
   // the app draws the icons from their SVGs, at exactly the size shown
   android_set_nav_icon_px(nav_icon_px());
   // the top of the strip is the app's printer menu, which it draws itself
-  lv_obj_set_style_pad_top(tab_btns, android_menu_height(), 0);
   android_place_menu(tab_bar_w(), android_menu_height());
 #endif
 
-  // Give tabs and Stop the same square target, limited by the height available
-  // on compact screens. Distribute any spare height between and around them.
-  const int menu_h = lv_obj_get_style_pad_top(tab_btns, 0);
-  const int rows = lv_obj_get_child_cnt(tv_content) + 1;
-  const int available_h = lv_disp_get_ver_res(NULL) - menu_h;
-  const int row_h = std::max(1, std::min(tab_bar_w(), available_h / rows));
-  const int icon_px = std::max(1, std::min({nav_icon_px(), tab_bar_w() - 2 * gap(),
-                                         row_h - 2 * gap()}));
-  const int spare_h = std::max(0, available_h - rows * row_h);
-  const int row_gap = spare_h / (rows + 1);
-  const int remainder = spare_h - row_gap * (rows + 1);
-  const int top = row_gap + remainder / 2;
-  const int bottom = row_gap + remainder - remainder / 2;
-  lv_obj_set_style_pad_row(tab_btns, row_gap, 0);
-  lv_obj_set_style_pad_top(tab_btns, menu_h + top, 0);
-  lv_obj_set_style_pad_bottom(tab_btns, row_h + row_gap + bottom, 0);
-  lv_obj_set_style_pad_left(stop, (tab_bar_w() - icon_px) / 2, 0);
-  lv_obj_set_style_pad_right(stop, tab_bar_w() - icon_px - (tab_bar_w() - icon_px) / 2, 0);
-  lv_obj_set_size(stop, tab_bar_w(), row_h);
-  lv_obj_align(stop, LV_ALIGN_BOTTOM_LEFT, 0, -bottom);
+  layout_navigation();
 
   // The page is the theme's background everywhere: the screen, the tabview and
   // each tab. Left alone they paint LVGL's own dark card grey, which only
@@ -495,6 +472,35 @@ void MainPanel::create_panel() {
   }
 
   create_main(main_tab);
+}
+
+void MainPanel::layout_navigation() {
+  auto *tab_btns = lv_tabview_get_tab_btns(tabview);
+  auto *stop = emergency_btn.get_container();
+  // Give tabs and Stop the same square target, limited by the height available
+  // on compact screens. Distribute any spare height between and around them.
+#ifdef OS_ANDROID
+  const int menu_h = android_menu_height();
+#else
+  const int menu_h = 0;
+#endif
+  const int rows = lv_obj_get_child_cnt(lv_tabview_get_content(tabview)) + 1;
+  const int available_h = lv_disp_get_ver_res(NULL) - menu_h;
+  const int row_h = std::max(1, std::min(tab_bar_w(), available_h / rows));
+  const int icon_px = std::max(1, std::min({nav_icon_px(), tab_bar_w() - 2 * gap(),
+                                         row_h - 2 * gap()}));
+  const int spare_h = std::max(0, available_h - rows * row_h);
+  const int row_gap = spare_h / (rows + 1);
+  const int remainder = spare_h - row_gap * (rows + 1);
+  const int top = row_gap + remainder / 2;
+  const int bottom = row_gap + remainder - remainder / 2;
+  lv_obj_set_style_pad_row(tab_btns, row_gap, 0);
+  lv_obj_set_style_pad_top(tab_btns, menu_h + top, 0);
+  lv_obj_set_style_pad_bottom(tab_btns, row_h + row_gap + bottom, 0);
+  lv_obj_set_style_pad_left(stop, (tab_bar_w() - icon_px) / 2, 0);
+  lv_obj_set_style_pad_right(stop, tab_bar_w() - icon_px - (tab_bar_w() - icon_px) / 2, 0);
+  lv_obj_set_size(stop, tab_bar_w(), row_h);
+  lv_obj_align(stop, LV_ALIGN_BOTTOM_LEFT, 0, -bottom);
 }
 
 void MainPanel::handle_homing_cb(lv_event_t *event) {
@@ -700,17 +706,49 @@ void MainPanel::create_leds(json &leds) {
   led_btn.set_image(led_panel.get_main_button_image());
 }
 
-void MainPanel::enable_spoolman() {
+void MainPanel::set_spoolman_available(bool available) {
   if (spoolman_panel == NULL) {
     return;
   }
-  spoolman_panel->init();
-  std::lock_guard<std::mutex> lock(lv_lock);
-  spoolman_available = true;
-  if (mmu_panel != NULL) {
-    mmu_panel->set_spoolman_available(true);
+  {
+    std::lock_guard<std::mutex> lock(lv_lock);
+    spoolman_available = available;
+    if (mmu_panel != NULL) {
+      mmu_panel->set_spoolman_available(available);
+    }
+    if (available && !mmu_available && (filament_tab == NULL || !filament_is_mmu)) {
+      ensure_filament_tab();
+      spoolman_panel->attach(filament_tab);
+    }
+    if (!available) {
+      spoolman_panel->background();
+      if (!filament_is_mmu && filament_tab != NULL &&
+          lv_tabview_get_tab_act(tabview) == lv_obj_get_index(filament_tab)) {
+        show_home();
+      }
+    }
+    update_filament_tab();
   }
-  update_filament_tab();
+  if (available) {
+    spoolman_panel->init();
+  }
+}
+
+void MainPanel::ensure_filament_tab() {
+  if (filament_tab != NULL) {
+    return;
+  }
+  // Preserve the selected page while inserting the detected panel after Home.
+  // All labels are placeholders; navigation icons follow the page indices.
+  auto *pages = lv_tabview_get_content(tabview);
+  auto *active = lv_obj_get_child(pages, lv_tabview_get_tab_act(tabview));
+  filament_tab = lv_tabview_add_tab(tabview, " ");
+  lv_obj_move_to_index(filament_tab, 1);
+  lv_obj_add_style(filament_tab, &styles().screen, 0);
+  lv_obj_set_style_pad_all(filament_tab, 0, 0);
+  layout_navigation();
+  lv_tabview_set_act(tabview, lv_obj_get_index(active), LV_ANIM_OFF);
+  update_print_tab();
 }
 
 void MainPanel::update_filament_tab() {
@@ -719,7 +757,7 @@ void MainPanel::update_filament_tab() {
   }
   auto *buttons = lv_tabview_get_tab_btns(tabview);
   const auto index = lv_obj_get_index(filament_tab);
-  if (mmu_available || (spoolman_available && !SpoolmanPanel::hidden())) {
+  if (filament_is_mmu ? mmu_available : spoolman_available) {
     lv_btnmatrix_clear_btn_ctrl(buttons, index, LV_BTNMATRIX_CTRL_DISABLED);
   } else {
     lv_btnmatrix_set_btn_ctrl(buttons, index, LV_BTNMATRIX_CTRL_DISABLED);
@@ -728,12 +766,18 @@ void MainPanel::update_filament_tab() {
 }
 
 void MainPanel::enable_mmu() {
-  if (filament_tab == NULL || mmu_panel == NULL) {
+  if (mmu_panel == NULL) {
     return;
   }
 
   LOG_DEBUG("enabling mmu panel");
   std::lock_guard<std::mutex> lock(lv_lock);
+  // The first detected service owns this nav slot until the app restarts.
+  if (filament_tab != NULL && !filament_is_mmu) {
+    return;
+  }
+  ensure_filament_tab();
+  filament_is_mmu = true;
   if (spoolman_panel != NULL) {
     spoolman_panel->detach();
   }
@@ -743,7 +787,7 @@ void MainPanel::enable_mmu() {
 }
 
 // Klipper is offline or has no supported backend. Clear the previous session
-// and restore Spoolman navigation when its browser is enabled.
+// and disable its navigation slot without removing it.
 void MainPanel::disable_mmu() {
   if (filament_tab == NULL || mmu_panel == NULL) {
     return;
@@ -756,12 +800,9 @@ void MainPanel::disable_mmu() {
   mmu_available = false;
   if (spoolman_panel != NULL) {
     spoolman_panel->background();
-    if (!SpoolmanPanel::hidden()) {
-      spoolman_panel->attach(filament_tab);
-    }
   }
   if (was_available && lv_tabview_get_tab_act(tabview) == lv_obj_get_index(filament_tab)) {
-    lv_tabview_set_act(tabview, lv_obj_get_index(main_tab), LV_ANIM_OFF);
+    show_home();
   }
   update_filament_tab();
 }

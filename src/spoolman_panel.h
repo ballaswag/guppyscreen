@@ -28,7 +28,6 @@ class SpoolmanPanel {
  public:
   SpoolmanPanel(KWebSocketClient &c, std::mutex &l);
   ~SpoolmanPanel();
-  static bool hidden();
 
   // Embed the list in main navigation; MMU browsing and picking use the screen.
   void attach(lv_obj_t *parent);

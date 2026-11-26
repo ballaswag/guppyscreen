@@ -32,6 +32,7 @@ class InitPanel {
 
   void start_initialization(KWebSocketClient &ws);
   bool initialization_active(uint64_t generation);
+  bool initialization_current(uint64_t generation);
   void wait_for_klipper(uint64_t generation);
   void show_klippy_error(json &printer_info);
   void initialization_complete(uint64_t generation);

@@ -55,9 +55,8 @@ KWebSocketClient GuppyScreen::ws(NULL);
 std::mutex GuppyScreen::lv_lock;
 
 GuppyScreen::GuppyScreen()
-  : spoolman_panel((!SpoolmanPanel::hidden() || MmuPanel::enabled())
-                       ? std::make_unique<SpoolmanPanel>(ws, lv_lock) : nullptr)
-  , mmu_panel(MmuPanel::enabled() ? std::make_unique<MmuPanel>(ws, lv_lock) : nullptr)
+  : spoolman_panel(std::make_unique<SpoolmanPanel>(ws, lv_lock))
+  , mmu_panel(std::make_unique<MmuPanel>(ws, lv_lock))
 #ifdef MMU_BACKEND_AFC
   , afc_backend(mmu_panel != nullptr ? std::make_unique<AfcBackend>(ws) : nullptr)
 #endif
@@ -67,10 +66,6 @@ GuppyScreen::GuppyScreen()
   , main_panel(ws, lv_lock, spoolman_panel.get(), mmu_panel.get())
   , init_panel(main_panel, lv_lock)
 {
-  if (mmu_panel == nullptr) {
-    main_panel.create_panel();
-    return;
-  }
 #ifdef MMU_BACKEND_AFC
   if (afc_backend != nullptr) {
     mmu_panel->add_backend(afc_backend.get());

@@ -264,13 +264,12 @@ test-notification-banner: $(LVGL_TEST_OBJS) $(BUILD_OBJ_DIR)/src/notification_ba
 MMU_TEST_OBJS = $(filter-out $(BUILD_OBJ_DIR)/src/main.o,$(TARGET))
 .PHONY: test-mmu-lifecycle
 test-mmu-lifecycle: libhv.a wpaclient $(MMU_TEST_OBJS)
-	@$(CXX) -std=c++17 -I./src $(INC) $(DEFINES) tests/test_mmu_lifecycle.cpp $(MMU_TEST_OBJS) $(LDFLAGS) $(LDLIBS) -o $(BUILD_DIR)/test_mmu_lifecycle
+	@$(CXX) -std=c++17 -I./src $(INC) $(DEFINES) tests/test_mmu_lifecycle.cpp $(filter-out $(BUILD_OBJ_DIR)/src/websocket_client.o,$(MMU_TEST_OBJS)) $(LDFLAGS) $(LDLIBS) -o $(BUILD_DIR)/test_mmu_lifecycle
 	$(BUILD_DIR)/test_mmu_lifecycle
 	$(BUILD_DIR)/test_mmu_lifecycle --startup
-	$(BUILD_DIR)/test_mmu_lifecycle --hidden
-	$(BUILD_DIR)/test_mmu_lifecycle --mmu-hidden
-	$(BUILD_DIR)/test_mmu_lifecycle --spoolman-hidden
+	$(BUILD_DIR)/test_mmu_lifecycle --spoolman
 	$(BUILD_DIR)/test_mmu_lifecycle --small
+	$(BUILD_DIR)/test_mmu_lifecycle --spoolman-small
 
 .PHONY: test-prompt-panel
 test-prompt-panel: libhv.a wpaclient $(MMU_TEST_OBJS)

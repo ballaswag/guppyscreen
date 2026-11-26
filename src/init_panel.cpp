@@ -108,26 +108,6 @@ void InitPanel::start_initialization(KWebSocketClient &ws) {
 
     this->main_panel.subscribe();
 
-    // spoolman
-    ws.send_jsonrpc("server.info", [this, generation](json &j) {
-      if (!initialization_active(generation)) {
-        return;
-      }
-      if (get_log_level() <= LogLevel::DEBUG) {
-        LOG_DEBUG("server_info {}", j.dump());
-      }
-      State::get_instance()->set_data("server_info", j, "/result");
-
-      const auto components_ptr = "/result/components"_json_pointer;
-      if (j.contains(components_ptr) && !j[components_ptr].is_null()) {
-        auto &components = j[components_ptr];
-        const auto &has_spoolman = components.template get<std::vector<std::string>>();
-        if (std::find(has_spoolman.begin(), has_spoolman.end(), "spoolman") != has_spoolman.end()) {
-          this->main_panel.enable_spoolman();
-        }
-      }
-    });
-
     auto display_sensors = state->get_display_sensors();
     this->main_panel.create_sensors(display_sensors);
 
@@ -173,6 +153,25 @@ void InitPanel::start_initialization(KWebSocketClient &ws) {
         this->main_panel.disable_mmu();
       }
 
+      // MMU takes its nav slot immediately. Spoolman gets a main-nav slot only
+      // without an MMU; with one, this enables its existing panel shortcut.
+      ws.send_jsonrpc("server.info", [this, generation](json &j) {
+        // This reply can arrive after the printer subscription completes,
+        // but must never enable navigation from an earlier startup.
+        if (!initialization_current(generation)) {
+          return;
+        }
+        if (get_log_level() <= LogLevel::DEBUG) {
+          LOG_DEBUG("server_info {}", j.dump());
+        }
+        State::get_instance()->set_data("server_info", j, "/result");
+
+        const auto components_ptr = "/result/components"_json_pointer;
+        const bool available = j.contains(components_ptr) && j[components_ptr].is_array() &&
+            std::find(j[components_ptr].begin(), j[components_ptr].end(), "spoolman") != j[components_ptr].end();
+        this->main_panel.set_spoolman_available(available);
+      });
+
       json subs = {{ "objects", sub_objs }};
       if (get_log_level() <= LogLevel::DEBUG) {
         LOG_DEBUG("subscribing to {}", subs.dump());
@@ -197,6 +196,11 @@ void InitPanel::start_initialization(KWebSocketClient &ws) {
 bool InitPanel::initialization_active(uint64_t generation) {
   std::lock_guard<std::mutex> lock(lv_lock);
   return lifecycle == Lifecycle::Initializing && lifecycle_generation == generation;
+}
+
+bool InitPanel::initialization_current(uint64_t generation) {
+  std::lock_guard<std::mutex> lock(lv_lock);
+  return lifecycle != Lifecycle::WaitingForKlipper && lifecycle_generation == generation;
 }
 
 void InitPanel::wait_for_klipper(uint64_t generation) {

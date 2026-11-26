@@ -37,8 +37,6 @@ class MmuPanel : public NotifyConsumer {
 
   // Probe compiled-in backends in registration order when Klipper connects.
   void add_backend(MmuBackend *b) { backends.push_back(b); }
-  // /ui/hide_mmu controls visibility; visible by default.
-  static bool enabled();
   // Detect a supported backend; NULL leaves MMU unavailable.
   MmuBackend *select_backend();
   // names of the lanes holding spool_id, ", " separated

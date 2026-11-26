@@ -35,7 +35,7 @@ class MainPanel : public NotifyConsumer {
   void consume(json &data);
   void init(json &data);
   void subscribe();
-  void enable_spoolman();
+  void set_spoolman_available(bool available);
   void enable_mmu();
   void disable_mmu();
   void set_firmware_restart_available(bool available);
@@ -98,6 +98,8 @@ class MainPanel : public NotifyConsumer {
  private:
   void update_print_tab();
   void update_filament_tab();
+  void ensure_filament_tab();
+  void layout_navigation();
   void show_home();
   void create_main(lv_obj_t *parent);
   static void _tabview_event_cb(lv_event_t *e);
@@ -109,8 +111,10 @@ class MainPanel : public NotifyConsumer {
   LedPanel led_panel;
   lv_obj_t *tabview;
   lv_obj_t *main_tab;
-  // MMU when a backend is available; otherwise the Spoolman browser.
+  // Added on first MMU or Spoolman detection, with MMU checked first.
+  // The selected service and its slot stay fixed for this app session.
   lv_obj_t *filament_tab;
+  bool filament_is_mmu = false;
   bool mmu_available = false;
   bool spoolman_available = false;
   lv_area_t tab_icon_area{};

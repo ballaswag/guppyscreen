@@ -54,16 +54,14 @@ Point the screen's `[moonraker]` `host` and `port` at it, and set `thumbnail_pat
 | `SIM_CFG_OVERRIDE` | | Override file copied into the session |
 | `SIM_KEEP` | `0` | `1` keeps other UIs running, for side-by-side ports |
 
-Set `[ui] hide_spoolman: true` in the configuration to hide the main-nav
-Spoolman entry; the MMU shortcut and spool assignment stay available. To try visibility
-settings with the simulator, put them in an override file and run
-`SIM_CFG_OVERRIDE=/path/to/grumpyscreen.ini ./sim.sh`.
-
-MMU detection needs no screen backend setting: `SIM_BACKEND=afc` and
-`SIM_BACKEND=hh` put MMU on the main navigation and Spoolman at the top right
-of the MMU panel. `SIM_BACKEND=none` leaves Spoolman on the main navigation.
-Set `[ui] hide_mmu: true` to disable MMU integration and keep Spoolman on the
-main navigation. Both visibility settings default to `false`.
+Navigation is detected automatically after Klipper is ready. Neither MMU nor
+Spoolman appears while waiting on the first startup. `SIM_BACKEND=afc` and
+`SIM_BACKEND=hh` add MMU to the main navigation, with Spoolman available from
+its panel's top-right shortcut. `SIM_BACKEND=none` adds Spoolman only when
+`SIM_SPOOLMAN` is not `off`; with both disabled, neither nav button appears.
+Once detected, the navigation slot stays in place through restarts, disabled
+while unavailable; the selected service does not change during that app session.
+There are no visibility flags to configure.
 
 Useful `SIM_ARGS` flags (`python3 tools/fake_moonraker.py --help` lists all):
 

@@ -833,10 +833,10 @@ static void test_home_actions(MainPanel &main, lv_obj_t *tabs) {
   const int above_stop = stop_icon->coords.y1 - last_top - icon_h;
   const int below_stop = screen_height - 1 - stop_icon->coords.y2;
   assert(nav_gap > 0);
-  // Icons are centered in their targets, leaving half an icon gap at the
-  // screen edge. Integer image zoom can differ by a pixel or two.
+  // Icons stay evenly spaced, with balanced margins above and below the strip
+  // whether the optional filament slot has appeared or not.
   assert(std::abs(above_stop - nav_gap) <= 2);
-  assert(std::abs(below_stop - nav_gap / 2) <= 2);
+  assert(std::abs(below_stop - icon_top(0)) <= 2);
 
   json fans = {{"fan", {{"display_name", "Part cooling"}}}};
   main.create_fans(fans);

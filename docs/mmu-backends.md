@@ -197,30 +197,26 @@ outlives the panel:
 mmu_panel.add_backend(&afc_backend);
 ```
 
-MMU and Spoolman share a main navigation slot. When Klipper reports a supported
-MMU backend, the slot opens MMU and Spoolman moves to an icon at the top right
-of its panel. Otherwise, including with `hide_mmu: true`, the slot opens
-Spoolman once Moonraker reports the component. The Spoolman browser's Back
-button returns to MMU. `hide_spoolman: true` hides the main-nav Spoolman entry;
-the MMU shortcut and spool assignment remain available.
+MMU and Spoolman share a main navigation slot, added dynamically after Klipper
+is ready. Neither has a placeholder during initial startup. MMU detection runs
+first: a supported backend immediately adds the MMU button. Otherwise, the
+Spoolman button is added only if Moonraker reports its Spoolman component.
+With an MMU, Spoolman remains accessible from the panel's top-right shortcut;
+it never adds a second main-nav button.
 
 `MmuPanel::select_backend()` calls `detect()` on the compiled-in backends in
 registration order (AFC, then Happy Hare), choosing the first match. If neither
 is available, no MMU screens are allocated. Detection runs again on every
-Klipper reconnect; going offline detaches the backend, closes its controls
-and restores Spoolman navigation.
+Klipper reconnect; going offline detaches the backend and closes its controls.
+Once a navigation slot has been added, it stays in place for the rest of the
+app session, disabled while its service is unavailable. Its selected service
+does not change on reconnect, even if the other service appears. Each restart
+disables both the nav entry and the MMU panel's Spoolman shortcut until fresh
+detection confirms their services. A fresh app launch starts with neither
+nav button again.
 
-To hide the button and disable MMU integration entirely, set:
-
-```ini
-[ui]
-hide_mmu: true
-```
-
-`hide_mmu` defaults to `false` and is controlled by the configuration. Hidden
-MMU support allocates no panel or backend and performs no detection. The old `[mmu] backend`
-setting is ignored; replace `backend: none` with `[ui] hide_mmu: true` to keep
-MMU support disabled. `[mmu] materials` still configures the material catalog.
+Visibility is automatic, with no MMU or Spoolman visibility flags.
+`[mmu] materials` still configures the material catalog.
 
 ---
 
