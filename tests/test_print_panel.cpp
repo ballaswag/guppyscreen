@@ -228,7 +228,7 @@ static void test_tile_captions(PrintPanel &panel, PrintStatusPanel &status) {
     assert(lv_obj_get_x(weight) + lv_obj_get_width(weight) <=
         lv_obj_get_width(footer) - lv_obj_get_style_pad_right(footer, 0));
     if (check_start_path) {
-      click(example.caption.c_str(), LV_EVENT_SHORT_CLICKED);
+      click(example.caption.c_str(), LV_EVENT_LONG_PRESSED);
       assert(find_label(lv_layer_top(), path.c_str()));
       click("Print");
       assert(take("printer.print.start").params["filename"] == path);
@@ -257,7 +257,7 @@ static void test_tile_captions(PrintPanel &panel, PrintStatusPanel &status) {
   assert(!lv_anim_get(short_name, nullptr));
   assert(!lv_anim_get(last, nullptr));
   assert(!lv_anim_get(material, nullptr));
-  click(long_name.c_str(), LV_EVENT_SHORT_CLICKED);
+  click(long_name.c_str(), LV_EVENT_LONG_PRESSED);
   auto *modal_name = find_label(lv_layer_top(), long_path.c_str());
   assert(modal_name);
   lv_obj_update_layout(lv_layer_top());
@@ -267,7 +267,7 @@ static void test_tile_captions(PrintPanel &panel, PrintStatusPanel &status) {
   assert(lv_anim_get(modal_name, nullptr)); // still scrolls when details arrive
   click("Back");
   assert(!lv_anim_get(modal_name, nullptr));
-  click("part_1", LV_EVENT_SHORT_CLICKED);
+  click("part_1", LV_EVENT_LONG_PRESSED);
   auto *short_modal_name = find_label(lv_layer_top(), "part_1.gcode");
   assert(short_modal_name);
   lv_obj_update_layout(lv_layer_top());
@@ -332,11 +332,11 @@ static void test_preview_cache(PrintPanel &panel) {
   auto *decoded = _lv_img_cache_open(source, lv_color_black(), 0);
   assert(decoded && decoded->dec_dsc.img_data);
   const void *pixels = decoded->dec_dsc.img_data;
-  click("cache_0", LV_EVENT_SHORT_CLICKED);
+  click("cache_0", LV_EVENT_LONG_PRESSED);
   click("Back");
   assert(requests.empty());
 
-  click("cache_1", LV_EVENT_SHORT_CLICKED);
+  click("cache_1", LV_EVENT_LONG_PRESSED);
   click("Delete");
   choose(lv_obj_get_parent(find_label(lv_layer_top(), "Delete file")), 0);
   auto deletion = take("server.files.delete_file");
@@ -470,6 +470,70 @@ static lv_obj_t *gallery() {
   auto *tabs = file_tabs();
   auto *page = lv_obj_get_child(lv_tabview_get_content(tabs), lv_tabview_get_tab_act(tabs));
   return lv_obj_get_child(lv_obj_get_child(page, 0), 0);
+}
+
+static void test_tile_activation(PrintPanel &panel) {
+  auto listing = file_list();
+  for (int i = 0; i < 18; ++i) {
+    listing["result"].push_back({{"path", "usb/usb_" + std::to_string(i) + ".gcode"}, {"modified", 1000 - i}});
+  }
+  reply_files(listing);
+  for (uint16_t source : {0, 1}) {
+    select_page(file_tabs(), source);
+    auto *grid = gallery();
+    lv_obj_scroll_to_y(grid, 0, LV_ANIM_OFF);
+    while (!requests.empty()) {
+      reply("server.files.metadata", metadata());
+    }
+    lv_obj_update_layout(panel_root);
+    auto *tile = lv_obj_get_parent(label(source == 0 ? "part_0" : "usb_0"));
+    const int x = (tile->coords.x1 + tile->coords.x2) / 2;
+    const int y = (tile->coords.y1 + tile->coords.y2) / 2;
+    auto *pointer = create_pointer();
+    pointer_event(pointer, x, y, LV_INDEV_STATE_PRESSED);
+    assert(pointer->proc.types.pointer.act_obj == tile);
+    pointer_event(pointer, x, y, LV_INDEV_STATE_RELEASED);
+    assert(!find_action(lv_layer_top(), "Print")); // a tap never opens the dialog
+
+    pointer_event(pointer, x, y, LV_INDEV_STATE_PRESSED);
+    assert(!find_action(lv_layer_top(), "Print")); // pressing alone never opens it
+    usleep((pointer->driver->long_press_time + 1) * 1000);
+    pointer_event(pointer, x, y, LV_INDEV_STATE_PRESSED);
+    assert(find_action(lv_layer_top(), "Print"));
+    // Keep the opening touch down as the dialog appears, then drift onto
+    // an action. It must take a fresh touch to press Print or Delete.
+    lv_obj_update_layout(lv_layer_top());
+    auto *action = find_action(lv_layer_top(), source == 0 ? "Print" : "Delete");
+    const int release_x = (action->coords.x1 + action->coords.x2) / 2;
+    const int release_y = (action->coords.y1 + action->coords.y2) / 2;
+    pointer_event(pointer, release_x, release_y, LV_INDEV_STATE_PRESSED);
+    pointer_event(pointer, release_x, release_y, LV_INDEV_STATE_RELEASED);
+    assert(find_action(lv_layer_top(), "Delete"));
+    assert(!find_label(lv_layer_top(), "Delete file", true));
+    assert(requests.empty()); // releasing a hold cannot start a print or delete
+    click("Back");
+
+    // Pausing mid-scroll past the hold threshold must not open a dialog.
+    lv_obj_clear_flag(grid, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+    pointer_event(pointer, x, y, LV_INDEV_STATE_PRESSED);
+    const int drag_y = y - Theme::scale_r(50);
+    pointer_event(pointer, x, drag_y, LV_INDEV_STATE_PRESSED);
+    assert(lv_indev_get_scroll_obj(pointer) == grid);
+    usleep((pointer->driver->long_press_time + 1) * 1000);
+    pointer_event(pointer, x, drag_y, LV_INDEV_STATE_PRESSED);
+    assert(!find_action(lv_layer_top(), "Print"));
+    pointer_event(pointer, x, drag_y, LV_INDEV_STATE_RELEASED);
+    assert(lv_obj_get_scroll_y(grid) > 0);
+    assert(!find_action(lv_layer_top(), "Print"));
+    lv_obj_add_flag(grid, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+    lv_indev_delete(pointer);
+    while (!requests.empty()) {
+      reply("server.files.metadata", metadata());
+    }
+  }
+  panel.background();
+  panel.foreground();
+  std::puts("print tile taps, holds and paused scrolling passed");
 }
 
 static void test_source_tabs(PrintPanel &panel) {
@@ -625,7 +689,7 @@ static void test_usb_metadata_scan(PrintPanel &panel) {
   assert(requests.front().params == json({{"filename", path}}));
   auto *card = lv_obj_get_parent(label("usb_preview"));
   assert(find_spinner(card));
-  click("usb_preview", LV_EVENT_SHORT_CLICKED);
+  click("usb_preview", LV_EVENT_LONG_PRESSED);
   assert(lv_obj_has_state(lv_obj_get_parent(label("Print")), LV_STATE_DISABLED));
   reply("server.files.metascan", preview);
   assert(requests.empty() && !find_spinner(card));
@@ -652,7 +716,7 @@ static void test_usb_metadata_scan(PrintPanel &panel) {
   assert(!find_spinner(card) && find_label(card, "Unavailable"));
 
   // Upstream Moonraker uses 404 for the same missing-metadata response.
-  click("usb_preview", LV_EVENT_SHORT_CLICKED);
+  click("usb_preview", LV_EVENT_LONG_PRESSED);
   auto not_found = missing;
   not_found["error"]["code"] = 404;
   reply("server.files.metadata", not_found);
@@ -1047,7 +1111,7 @@ static void test_navigation(KWebSocketClient &ws, std::mutex &lock) {
   while (!requests.empty()) {
     reply("server.files.metadata", metadata());
   }
-  click("part_0", LV_EVENT_SHORT_CLICKED);
+  click("part_0", LV_EVENT_LONG_PRESSED);
   click("Print");
   assert(take("printer.print.start").params["filename"] == "part_0.gcode");
   assert(main.home_active()); // starting a print leaves the file browser
@@ -1136,7 +1200,7 @@ int main(int argc, char **argv) {
       stress_preview_scrolling(data);
     }
     if (const char *selected = std::getenv("PRINT_PANEL_FILE")) {
-      click(selected, LV_EVENT_SHORT_CLICKED);
+      click(selected, LV_EVENT_LONG_PRESSED);
     }
     if (std::getenv("PRINT_PANEL_HOME") != nullptr) {
       select_page(tabs, 0);
@@ -1175,6 +1239,7 @@ int main(int argc, char **argv) {
   test_tile_captions(panel, status);
   test_preview_cache(panel);
   test_source_tabs(panel);
+  test_tile_activation(panel);
   test_usb_metadata_scan(panel);
   reply_files(file_list());
   auto *grid = lv_obj_get_parent(lv_obj_get_parent(label("part_0")));
@@ -1203,7 +1268,7 @@ int main(int argc, char **argv) {
   reply("server.files.metadata", {{"error", {{"message", "Missing metadata"}}}});
   assert(!find_spinner(first));
   assert(requests.front().params["filename"] == "part_1.gcode");
-  click("part_0", LV_EVENT_SHORT_CLICKED);
+  click("part_0", LV_EVENT_LONG_PRESSED);
   assert(find_spinner(first)); // retrying a failed preview restarts its spinner
   // A failed tile can be retried while another preview is still in flight.
   reply("server.files.metadata", metadata());
@@ -1270,7 +1335,7 @@ int main(int argc, char **argv) {
     reply("server.files.metadata", metadata());
   }
   // The USB and printer files share a basename but retain their full paths.
-  click("a \"b\"", LV_EVENT_SHORT_CLICKED);
+  click("a \"b\"", LV_EVENT_LONG_PRESSED);
   assert(find_label(lv_layer_top(), "usb/models/a \"b\".gcode"));
   assert(lv_obj_is_visible(find_label(panel_root, "a \"b\""))); // the gallery remains behind the modal
   auto *modal = lv_obj_get_parent(lv_obj_get_parent(label("Print")));
@@ -1287,7 +1352,7 @@ int main(int argc, char **argv) {
   while (!requests.empty()) {
     reply("server.files.metadata", metadata());
   }
-  click("a \"b\"", LV_EVENT_SHORT_CLICKED);
+  click("a \"b\"", LV_EVENT_LONG_PRESSED);
   click("Delete");
   for (const char *state : {"printing", "paused"}) {
     printer_state(state);
@@ -1308,8 +1373,7 @@ int main(int argc, char **argv) {
     reply("server.files.metadata", metadata());
   }
   click("a \"b\"", LV_EVENT_LONG_PRESSED);
-  assert(!find_action(lv_layer_top(), "Print")); // holding has no separate action
-  click("a \"b\"", LV_EVENT_SHORT_CLICKED);
+  assert(find_action(lv_layer_top(), "Print"));
   click("Delete");
   assert(find_label(lv_layer_top(), "Delete file"));
   auto *dialog = lv_obj_get_parent(find_label(lv_layer_top(), "Delete file"));
@@ -1328,7 +1392,7 @@ int main(int argc, char **argv) {
   // Unplugging USB while its selected file is loading returns to the gallery.
   panel.handle_file_list_change(changed);
   reply_files({{"result", json::array({with_usb["result"].back()})}});
-  click("a \"b\"", LV_EVENT_SHORT_CLICKED);
+  click("a \"b\"", LV_EVENT_LONG_PRESSED);
   assert(lv_obj_has_state(lv_obj_get_parent(label("Print")), LV_STATE_DISABLED));
   stale = take("server.files.metadata");
   panel.handle_file_list_change(changed);

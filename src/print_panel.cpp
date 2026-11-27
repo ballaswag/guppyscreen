@@ -472,7 +472,7 @@ void PrintPanel::show_files(int scroll_y) {
     lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(tile, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(tile, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_add_event_cb(tile, _handle_callback, LV_EVENT_SHORT_CLICKED, this);
+    lv_obj_add_event_cb(tile, _handle_callback, LV_EVENT_LONG_PRESSED, this);
     auto *preview_box = create_row(tile);
     lv_obj_set_size(preview_box, LV_PCT(100), 0);
     lv_obj_set_flex_grow(preview_box, 1);
@@ -631,7 +631,7 @@ void PrintPanel::show_browser() {
 }
 
 void PrintPanel::handle_callback(lv_event_t *e) {
-  if (!visible || refreshing_files || printer_busy()) {
+  if (lv_event_get_code(e) != LV_EVENT_LONG_PRESSED || !visible || refreshing_files || printer_busy()) {
     return;
   }
   auto *target = lv_event_get_current_target(e);

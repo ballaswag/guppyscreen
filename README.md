@@ -16,6 +16,11 @@ Grumpyscreen is a fork of GuppyScreen specifically for Simple AF, OpenCentauri C
 :white_check_mark: Spoolman Integration  
 :white_check_mark: MMU support (AFC, Happy Hare)
 
+## Print tiles
+
+Hold a file tile for about 0.4 seconds to open its Print/Delete dialog. This
+applies to both Printer and USB files; scrolling does not open the dialog.
+
 ## Credits
 
 - [Guppyscreen](https://github.com/ballaswag/guppyscreen)
