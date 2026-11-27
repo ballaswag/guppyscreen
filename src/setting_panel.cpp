@@ -331,6 +331,9 @@ lv_obj_t *SettingPanel::get_container() {
 }
 
 void SettingPanel::foreground() {
+  // Asked as soon as the panel is shown, so the answer is usually in before
+  // the About tab is opened.
+  refresh_total_print_time();
   refresh_active_tab();
 }
 
@@ -430,7 +433,8 @@ void SettingPanel::refresh_active_tab() {
   }
 }
 
-// Total time of the jobs in Moonraker's history, loaded when the tab is opened.
+// Total time of the jobs in Moonraker's history. The reply arrives later on the
+// websocket thread; nothing waits for it and the line reads "-" until then.
 void SettingPanel::refresh_total_print_time() {
   ws.send_jsonrpc("server.history.totals", [this](json &d) {
     if (!d.contains("result") || !d["result"].contains("job_totals")) {
@@ -440,8 +444,12 @@ void SettingPanel::refresh_total_print_time() {
     if (!t.is_number()) {
       return;
     }
+    const std::string text = "Total print time: " + format_print_time(t.template get<double>());
     std::lock_guard<std::mutex> lock(lv_lock);
-    lv_label_set_text(total_print_time_label, ("Total print time: " + format_print_time(t.template get<double>())).c_str());
+    // Left alone when unchanged, so reopening the tab does not redraw the label.
+    if (text != lv_label_get_text(total_print_time_label)) {
+      lv_label_set_text(total_print_time_label, text.c_str());
+    }
   });
 }
 
