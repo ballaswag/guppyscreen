@@ -7,6 +7,7 @@ extern "C" {
 #include "lvgl/src/extra/libs/png/lodepng.h"
 }
 
+#include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
@@ -534,6 +535,168 @@ static void test_tile_activation(PrintPanel &panel) {
   panel.background();
   panel.foreground();
   std::puts("print tile taps, holds and paused scrolling passed");
+}
+
+static void test_large_library(PrintPanel &panel) {
+  constexpr int count = 2003; // a partial final row at both screen sizes
+  json listing = {{"result", json::array()}};
+  for (const char *directory : {"models/", "usb/models/"}) {
+    for (int i = 0; i < count; ++i) {
+      listing["result"].push_back({{"path", std::string(directory) + "archive_" + std::to_string(i) + ".gcode"},
+                                   {"modified", count - i}, {"size", 1024}});
+    }
+  }
+  reply_files(listing);
+  auto *grid = gallery();
+  int saved_scroll[2];
+  for (uint16_t source : {0, 1}) {
+    select_page(file_tabs(), source);
+    const std::string directory = source == 0 ? "models/" : "usb/models/";
+    const std::string first_path = directory + "archive_0.gcode";
+    auto first_preview = take("server.files.metadata");
+    assert(first_preview.params["filename"] == first_path);
+    assert(find_label(grid, "archive_0"));
+    assert(!find_label(grid, "archive_2002"));
+    // File names remain lightweight data; widget count stays bounded even
+    // when jumping through thousands of files with a request still pending.
+    const size_t widget_count = lv_obj_get_child_cnt(grid);
+    assert(widget_count <= 17);
+    std::vector<lv_obj_t *> widgets;
+    for (size_t i = 0; i < widget_count; ++i) {
+      widgets.push_back(lv_obj_get_child(grid, i));
+    }
+    const int bottom = lv_obj_get_scroll_bottom(grid);
+    assert(bottom > 10000);
+    for (int step = 1; step <= 10; ++step) {
+      lv_obj_scroll_to_y(grid, bottom * step / 10, LV_ANIM_OFF);
+      assert(lv_obj_get_child_cnt(grid) == widget_count);
+      for (size_t i = 0; i < widget_count; ++i) {
+        assert(std::find(widgets.begin(), widgets.end(), lv_obj_get_child(grid, i)) != widgets.end());
+      }
+    }
+    assert(find_label(grid, "archive_2002"));
+    assert(!find_label(grid, "archive_0"));
+    auto first_data = metadata(111);
+    first_data["result"]["filament_type"] = "INITIAL";
+    first_preview.callback(first_data); // cache the reply after its tile was recycled
+    if (source == 0) {
+      auto pending_preview = take("server.files.metadata");
+      click("archive_2002", LV_EVENT_LONG_PRESSED);
+      assert(lv_obj_has_state(lv_obj_get_parent(label("Print")), LV_STATE_DISABLED));
+      // Uploads can move an open file outside the recycled tile window. The
+      // dialog must finish loading it even while its card has no widget.
+      auto expanded = listing;
+      for (int i = 0; i < 40; ++i) {
+        expanded["result"].push_back({{"path", "new_" + std::to_string(i) + ".gcode"}, {"modified", count + i}});
+      }
+      json changed = {{"params", json::array({{{"item", {{"root", "gcodes"}}}}})}};
+      panel.handle_file_list_change(changed);
+      reply_files(expanded);
+      assert(!find_label(grid, "archive_2002"));
+      assert(requests.front().params["filename"] == "models/archive_2002.gcode");
+      reply("server.files.metadata", metadata());
+      assert(!lv_obj_has_state(lv_obj_get_parent(label("Print")), LV_STATE_DISABLED));
+      assert(find_label(lv_layer_top(), "models/archive_2002.gcode", true));
+      auto stale_data = metadata();
+      pending_preview.callback(stale_data);
+      panel.handle_file_list_change(changed);
+      reply_files(listing);
+      assert(find_label(lv_layer_top(), "models/archive_2002.gcode", true));
+      click("Back");
+    }
+    while (!requests.empty()) {
+      assert(requests.front().params["filename"] != first_path);
+      reply("server.files.metadata", metadata());
+    }
+    click("archive_2002", LV_EVENT_LONG_PRESSED);
+    assert(find_label(lv_layer_top(), (directory + "archive_2002.gcode").c_str(), true));
+    click("Delete");
+    auto *title = find_label(lv_layer_top(), "Delete file");
+    assert(title);
+    auto *dialog = lv_obj_get_parent(title);
+    choose(dialog, 1);
+    click("Back");
+    assert(lv_obj_get_scroll_y(grid) == bottom);
+
+    lv_obj_scroll_to_y(grid, 0, LV_ANIM_OFF);
+    auto *first = lv_obj_get_parent(label("archive_0"));
+    assert(find_label(first, "INITIAL"));
+    auto *image = lv_obj_get_child(lv_obj_get_child(first, 0), 0);
+    assert(lv_img_src_get_type(lv_img_get_src(image)) == LV_IMG_SRC_SYMBOL);
+    while (!requests.empty()) {
+      assert(requests.front().params["filename"] != first_path); // reuse the cached reply
+      reply("server.files.metadata", metadata());
+    }
+
+    // Actual swipes must keep scrolling when tile widgets are recycled.
+    lv_obj_clear_flag(grid, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+    auto *pointer = create_pointer();
+    const int columns = screen_width == 480 ? 3 : 4;
+    const int pitch = lv_obj_get_height(first) + Theme::gap();
+    for (int swipe = 0; swipe < 6; ++swipe) {
+      const int row = (lv_obj_get_scroll_y(grid) + pitch - 1) / pitch;
+      const auto caption = "archive_" + std::to_string(row * columns);
+      auto *card = lv_obj_get_parent(label(caption.c_str()));
+      const int x = (card->coords.x1 + card->coords.x2) / 2;
+      const int y = (card->coords.y1 + card->coords.y2) / 2;
+      pointer_event(pointer, x, y, LV_INDEV_STATE_PRESSED);
+      assert(pointer->proc.types.pointer.act_obj == card);
+      pointer_event(pointer, x, y - pitch / 3, LV_INDEV_STATE_PRESSED);
+      assert(lv_indev_get_scroll_obj(pointer) == grid);
+      pointer_event(pointer, x, y - pitch / 3, LV_INDEV_STATE_RELEASED);
+      assert(lv_obj_get_child_cnt(grid) == widget_count);
+      assert(!find_action(lv_layer_top(), "Print"));
+    }
+    lv_indev_delete(pointer);
+    lv_obj_add_flag(grid, LV_OBJ_FLAG_SCROLL_MOMENTUM);
+    while (!requests.empty()) {
+      reply("server.files.metadata", metadata());
+    }
+
+    lv_obj_scroll_to_y(grid, bottom / 2, LV_ANIM_OFF);
+    auto stale = take("server.files.metadata");
+    const int scroll_y = lv_obj_get_scroll_y(grid);
+    json changed = {{"params", json::array({{{"item", {{"root", "gcodes"}}}}})}};
+    panel.handle_file_list_change(changed);
+    reply_files(listing);
+    assert(lv_obj_get_scroll_y(grid) == scroll_y);
+    assert(lv_obj_get_child_cnt(grid) == widget_count);
+    auto stale_data = metadata();
+    stale_data["result"]["filament_type"] = "STALE";
+    stale.callback(stale_data);
+    while (!requests.empty()) {
+      reply("server.files.metadata", metadata());
+    }
+    assert(!find_label(grid, "STALE"));
+    saved_scroll[source] = scroll_y;
+  }
+  select_page(file_tabs(), 0);
+  assert(lv_obj_get_scroll_y(grid) == saved_scroll[0]);
+  select_page(file_tabs(), 1);
+  assert(lv_obj_get_scroll_y(grid) == saved_scroll[1]);
+  // Shrinking a still-large library clamps the saved position to its new end.
+  json changed = {{"params", json::array({{{"item", {{"root", "gcodes"}}}}})}};
+  auto shorter = listing;
+  shorter["result"].erase(shorter["result"].begin() + 30, shorter["result"].end());
+  panel.handle_file_list_change(changed);
+  reply_files(shorter);
+  while (!requests.empty()) {
+    reply("server.files.metadata", metadata());
+  }
+  assert(lv_obj_get_scroll_y(grid) < saved_scroll[1]);
+  assert(lv_obj_get_scroll_bottom(grid) == 0);
+  assert(find_label(grid, "archive_29"));
+  // Switching back to an ordinary library removes the virtual scroll range.
+  panel.handle_file_list_change(changed);
+  reply_files(file_list(1));
+  while (!requests.empty()) {
+    reply("server.files.metadata", metadata());
+  }
+  assert(lv_obj_get_child_cnt(grid) == 2);
+  assert(lv_obj_get_scroll_y(grid) == 0);
+  panel.background();
+  panel.foreground();
+  std::puts("large Printer/USB libraries, recycled tiles, cached replies and refresh tests passed");
 }
 
 static void test_source_tabs(PrintPanel &panel) {
@@ -1240,6 +1403,7 @@ int main(int argc, char **argv) {
   test_preview_cache(panel);
   test_source_tabs(panel);
   test_tile_activation(panel);
+  test_large_library(panel);
   test_usb_metadata_scan(panel);
   reply_files(file_list());
   auto *grid = lv_obj_get_parent(lv_obj_get_parent(label("part_0")));

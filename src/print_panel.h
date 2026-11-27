@@ -79,6 +79,10 @@ class PrintPanel : public NotifyConsumer {
   };
 
   void show_files(int scroll_y);
+  FileTile create_tile(int width, int height);
+  void assign_tile(FileTile &tile, const PrintFile &file);
+  size_t tile_offset_for_scroll(int scroll_y, size_t tile_count) const;
+  void update_visible_tiles();
   void update_source_tabs(bool usb_available);
   void select_source();
   void finish_refresh();
@@ -116,12 +120,20 @@ class PrintPanel : public NotifyConsumer {
   PrintStatusPanel &print_status;
   MmuPanel *mmu;
   std::vector<FileTile> tiles;
+  std::vector<std::string> file_order;
+  lv_obj_t *scroll_extent = NULL;
+  size_t tile_offset = 0;
+  int tile_columns = 0;
+  int tile_width = 0;
+  int tile_height = 0;
+  bool updating_tiles = false;
   uint64_t view_generation = 0;
   uint64_t refresh_generation = 0;
   bool usb_available = false;
   bool active_usb = false;
   int source_scroll_y[2] = {0, 0};
   bool metadata_pending = false;
+  bool detail_requested = false;
   bool refreshing_files;
   bool refresh_pending;
   bool visible;

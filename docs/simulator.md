@@ -128,10 +128,16 @@ and swipe scrolling without a scrollbar or a gallery Back button. The small
 480×272 screen fits three cards across; the normal 800×480 screen fits four.
 The cards use narrower previews and compact caption padding. Long material names
 scroll when needed, while time and weight stay in place.
-Tap a card to open a modal with its preview and Back, Print and Delete image buttons. Delete's
-icon uses the danger colour. There is no
-long-press action. The Print entry is disabled while a job is printing or paused;
+Hold a card for about 0.4 seconds to open a modal with its preview and Back,
+Print and Delete image buttons. Delete's icon uses the danger colour.
+The Print entry is disabled while a job is printing or paused;
 an active job also closes the gallery and any open file dialog.
+
+Large libraries keep only four rows of card widgets alive, reusing them as the
+gallery scrolls. The full scroll range and newest-first order are preserved,
+including the oldest files. Metadata and previews load for visible cards, with
+an open file dialog taking priority. Moonraker still returns the complete file
+list in one response; the panel does not create a widget for every filename.
 
 Loaded previews remain cached while the gallery is open. Deleting or uploading
 a file preserves the other cards and the scroll position. A changed file reloads

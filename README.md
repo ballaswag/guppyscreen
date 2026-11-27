@@ -20,6 +20,8 @@ Grumpyscreen is a fork of GuppyScreen specifically for Simple AF, OpenCentauri C
 
 Hold a file tile for about 0.4 seconds to open its Print/Delete dialog. This
 applies to both Printer and USB files; scrolling does not open the dialog.
+Large libraries create only a few rows of tiles initially, reusing them as you
+scroll. Previews load for visible files and stay cached while the panel is open.
 
 ## Credits
 

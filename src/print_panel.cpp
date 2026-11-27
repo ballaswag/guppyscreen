@@ -108,6 +108,7 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
     panel->visible = false;
     panel->files_cont = NULL;
     panel->file_grid = NULL;
+    panel->scroll_extent = NULL;
   }, LV_EVENT_DELETE, this);
 
   lv_obj_set_size(browser_view, LV_PCT(100), LV_PCT(100));
@@ -122,7 +123,9 @@ PrintPanel::PrintPanel(KWebSocketClient &websocket, std::mutex &lock, PrintStatu
   lv_obj_set_flex_align(file_grid, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
   manage_scroll(file_grid);
   lv_obj_add_event_cb(file_grid, [](lv_event_t *e) {
-    static_cast<PrintPanel *>(lv_event_get_user_data(e))->update_tile_animations();
+    auto *panel = static_cast<PrintPanel *>(lv_event_get_user_data(e));
+    panel->update_visible_tiles();
+    panel->load_visible_metadata();
   }, LV_EVENT_SCROLL, this);
   lv_obj_add_event_cb(file_grid, [](lv_event_t *e) {
     static_cast<PrintPanel *>(lv_event_get_user_data(e))->load_visible_metadata();
@@ -394,6 +397,7 @@ void PrintPanel::invalidate_thumbnail(const PrintFile &file) {
 }
 
 void PrintPanel::clear_files() {
+  updating_tiles = true;
   ++view_generation;
   ++refresh_generation;
   metadata_pending = false;
@@ -405,17 +409,22 @@ void PrintPanel::clear_files() {
     invalidate_thumbnail(file.second);
   }
   tiles.clear();
+  file_order.clear();
+  scroll_extent = NULL;
+  tile_offset = 0;
   if (file_grid != NULL) {
     lv_obj_clean(file_grid);
   }
   files.clear();
   tiles.shrink_to_fit();
+  file_order.shrink_to_fit();
   source_scroll_y[0] = source_scroll_y[1] = 0;
   if (files_cont != NULL && active_usb) {
     active_usb = false;
     lv_obj_set_parent(browser_view, printer_tab);
     lv_tabview_set_act(source_tabs, 0, LV_ANIM_OFF);
   }
+  updating_tiles = false;
 }
 
 PrintPanel::PrintFile *PrintPanel::find_file(const std::string &path) {
@@ -424,6 +433,7 @@ PrintPanel::PrintFile *PrintPanel::find_file(const std::string &path) {
 }
 
 void PrintPanel::show_files(int scroll_y) {
+  updating_tiles = true;
   ++view_generation;
   // An unanswered request from an earlier view (or connection) must not
   // prevent previews in this one from loading.
@@ -435,6 +445,10 @@ void PrintPanel::show_files(int scroll_y) {
     previous_tiles.emplace(path, std::move(tile));
   }
   tiles.clear();
+  if (scroll_extent != NULL) {
+    lv_obj_del(scroll_extent);
+    scroll_extent = NULL;
+  }
   if (previous_tiles.empty()) {
     lv_obj_clean(file_grid); // remove the empty-state label
   }
@@ -447,103 +461,173 @@ void PrintPanel::show_files(int scroll_y) {
   std::sort(entries.begin(), entries.end(), [](const PrintFile *a, const PrintFile *b) {
     return a->date_modified != b->date_modified ? a->date_modified > b->date_modified : a->full_path < b->full_path;
   });
-  lv_obj_update_layout(browser_view);
-  const int columns = std::clamp(lv_obj_get_content_width(file_grid) / std::max(scale_r(95), 128), 3, 4);
-  const int tile_w = (lv_obj_get_content_width(file_grid) - (columns - 1) * gap()) / columns;
-  const int tile_h = std::max(scale_r(96), (lv_obj_get_content_height(file_grid) - gap()) / 2);
-  tiles.reserve(entries.size());
+  file_order.clear();
+  file_order.reserve(entries.size());
   for (auto *entry : entries) {
+    file_order.push_back(entry->full_path);
+  }
+  lv_obj_update_layout(browser_view);
+  tile_columns = std::clamp(lv_obj_get_content_width(file_grid) / std::max(scale_r(95), 128), 3, 4);
+  tile_width = (lv_obj_get_content_width(file_grid) - (tile_columns - 1) * gap()) / tile_columns;
+  tile_height = std::max(scale_r(96), (lv_obj_get_content_height(file_grid) - gap()) / 2);
+  // Small galleries retain their existing widgets. Large libraries use only
+  // four rows, recycling those widgets as files enter and leave the viewport.
+  const bool virtual_gallery = entries.size() > 24;
+  lv_obj_set_layout(file_grid, virtual_gallery ? 0 : LV_LAYOUT_FLEX);
+  const size_t tile_count = virtual_gallery ? tile_columns * 4 : entries.size();
+  if (virtual_gallery) {
+    const size_t rows = (entries.size() + tile_columns - 1) / tile_columns;
+    const int total_height = rows * (tile_height + gap()) - gap();
+    scroll_y = std::clamp(scroll_y, 0, std::max(0, total_height - lv_obj_get_content_height(file_grid)));
+  }
+  tile_offset = tile_offset_for_scroll(scroll_y, tile_count);
+  tiles.reserve(tile_count);
+  for (size_t i = 0; i < tile_count; ++i) {
+    auto *entry = entries[tile_offset + i];
     auto previous = previous_tiles.find(entry->full_path);
     if (previous != previous_tiles.end()) {
       auto tile = std::move(previous->second);
       previous_tiles.erase(previous);
-      lv_obj_set_size(tile.container, tile_w, tile_h);
+      lv_obj_set_size(tile.container, tile_width, tile_height);
       tiles.push_back(std::move(tile));
-      continue;
+    } else {
+      tiles.push_back(create_tile(tile_width, tile_height));
     }
-    auto *tile = lv_obj_create(file_grid);
-    lv_obj_add_style(tile, &styles().card, 0);
-    lv_obj_add_style(tile, &styles().card_pressed, LV_STATE_PRESSED);
-    lv_obj_set_style_bg_color(tile, col(RAISED), 0);
-    lv_obj_set_style_pad_all(tile, 0, 0);
-    lv_obj_set_style_pad_row(tile, 0, 0);
-    lv_obj_set_style_clip_corner(tile, true, 0);
-    lv_obj_set_size(tile, tile_w, tile_h);
-    lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_flex_flow(tile, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(tile, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_add_event_cb(tile, _handle_callback, LV_EVENT_LONG_PRESSED, this);
-    auto *preview_box = create_row(tile);
-    lv_obj_set_size(preview_box, LV_PCT(100), 0);
-    lv_obj_set_flex_grow(preview_box, 1);
-    lv_obj_set_style_bg_color(preview_box, col(SURFACE), 0);
-    lv_obj_set_style_bg_opa(preview_box, LV_OPA_COVER, 0);
-    lv_obj_set_style_radius(preview_box, 0, 0);
-    lv_obj_clear_flag(preview_box, LV_OBJ_FLAG_CLICKABLE);
-    auto *preview = lv_img_create(preview_box);
-    lv_img_set_src(preview, LV_SYMBOL_FILE);
-    lv_obj_set_style_text_font(preview, scale_font(28), 0);
-    lv_obj_set_style_text_color(preview, col(TEXT_DIM), 0);
-    lv_obj_center(preview);
-    auto *name = lv_label_create(tile);
-    lv_obj_set_width(name, LV_PCT(100));
-    lv_obj_set_style_text_font(name, scale_font(12), 0);
-    lv_obj_set_height(name, lv_font_get_line_height(scale_font(12)) + scale_r(4));
-    lv_obj_set_style_pad_hor(name, scale_r(4), 0);
-    lv_obj_set_style_pad_ver(name, scale_r(2), 0);
-    lv_label_set_long_mode(name, LV_LABEL_LONG_CLIP);
-    lv_obj_set_style_anim_speed(name, scale_r(30), 0);
-    const auto caption = tile_caption(entry->name);
-    lv_label_set_text(name, caption.first.c_str());
-    auto *footer = create_row(tile);
-    const auto *footer_font = scale_font(10);
-    lv_obj_clear_flag(footer, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_size(footer, LV_PCT(100), lv_font_get_line_height(footer_font) + gap());
-    lv_obj_set_style_pad_hor(footer, scale_r(4), 0);
-    lv_obj_set_style_pad_bottom(footer, gap(), 0);
-    lv_obj_set_style_pad_column(footer, scale_r(4), 0);
-    lv_obj_set_flex_flow(footer, LV_FLEX_FLOW_ROW);
-    auto *material = lv_label_create(footer);
-    auto *time = lv_label_create(footer);
-    auto *weight = lv_label_create(footer);
-    for (auto *field : {material, time, weight}) {
-      lv_obj_add_style(field, &styles().dim_label, 0);
-      lv_obj_set_style_text_font(field, footer_font, 0);
-      lv_obj_set_size(field, LV_SIZE_CONTENT, lv_font_get_line_height(footer_font));
-      lv_label_set_long_mode(field, LV_LABEL_LONG_DOT);
-    }
-    lv_obj_set_width(material, 0);
-    lv_obj_set_flex_grow(material, 1);
-    lv_label_set_long_mode(material, LV_LABEL_LONG_CLIP);
-    lv_obj_set_style_anim_speed(material, scale_r(30), 0);
-    lv_obj_set_style_text_align(weight, LV_TEXT_ALIGN_RIGHT, 0);
-    lv_label_set_text(material, caption.second.empty() ? "Loading..." : caption.second.c_str());
-    lv_label_set_text(time, "");
-    lv_label_set_text(weight, "");
-    tiles.push_back({entry->full_path, tile, preview, material, time, weight});
-    tiles.back().filename_material = caption.second;
-    tiles.back().name = name;
+    assign_tile(tiles.back(), *entry);
   }
   for (const auto &tile : previous_tiles) {
     lv_obj_del(tile.second.container);
   }
   for (size_t i = 0; i < tiles.size(); ++i) {
     lv_obj_move_to_index(tiles[i].container, i);
-    auto *file = find_file(tiles[i].path);
-    tiles[i].requested = file->contains_metadata();
-    update_tile(tiles[i], *file);
   }
   const auto alignment = entries.empty() ? LV_FLEX_ALIGN_CENTER : LV_FLEX_ALIGN_START;
-  lv_obj_set_flex_align(file_grid, alignment, alignment, alignment);
-  if (entries.empty()) {
+  if (!virtual_gallery) {
+    lv_obj_set_flex_align(file_grid, alignment, alignment, alignment);
+  }
+  if (virtual_gallery) {
+    // A transparent marker preserves the full scroll range without creating
+    // widgets for every file. It does not receive touches.
+    scroll_extent = lv_obj_create(file_grid);
+    lv_obj_remove_style_all(scroll_extent);
+    lv_obj_clear_flag(scroll_extent, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(scroll_extent, 1, 1);
+    const size_t rows = (entries.size() + tile_columns - 1) / tile_columns;
+    lv_obj_set_pos(scroll_extent, 0, rows * (tile_height + gap()) - gap() - 1);
+  } else if (entries.empty()) {
     auto *label = lv_label_create(file_grid);
     lv_label_set_text(label, "No G-code files");
   }
   lv_obj_update_layout(file_grid);
   lv_obj_scroll_to_y(file_grid, scroll_y, LV_ANIM_OFF);
+  updating_tiles = false;
+  update_visible_tiles();
   refresh_scroll(file_grid);
   update_actions();
   load_visible_metadata();
+}
+
+PrintPanel::FileTile PrintPanel::create_tile(int width, int height) {
+  auto *tile = lv_obj_create(file_grid);
+  lv_obj_add_style(tile, &styles().card, 0);
+  lv_obj_add_style(tile, &styles().card_pressed, LV_STATE_PRESSED);
+  lv_obj_set_style_bg_color(tile, col(RAISED), 0);
+  lv_obj_set_style_pad_all(tile, 0, 0);
+  lv_obj_set_style_pad_row(tile, 0, 0);
+  lv_obj_set_style_clip_corner(tile, true, 0);
+  lv_obj_set_size(tile, width, height);
+  lv_obj_clear_flag(tile, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_flex_flow(tile, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(tile, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_add_event_cb(tile, _handle_callback, LV_EVENT_LONG_PRESSED, this);
+  auto *preview_box = create_row(tile);
+  lv_obj_set_size(preview_box, LV_PCT(100), 0);
+  lv_obj_set_flex_grow(preview_box, 1);
+  lv_obj_set_style_bg_color(preview_box, col(SURFACE), 0);
+  lv_obj_set_style_bg_opa(preview_box, LV_OPA_COVER, 0);
+  lv_obj_set_style_radius(preview_box, 0, 0);
+  lv_obj_clear_flag(preview_box, LV_OBJ_FLAG_CLICKABLE);
+  auto *preview = lv_img_create(preview_box);
+  lv_img_set_src(preview, LV_SYMBOL_FILE);
+  lv_obj_set_style_text_font(preview, scale_font(28), 0);
+  lv_obj_set_style_text_color(preview, col(TEXT_DIM), 0);
+  lv_obj_center(preview);
+  auto *name = lv_label_create(tile);
+  lv_obj_set_width(name, LV_PCT(100));
+  lv_obj_set_style_text_font(name, scale_font(12), 0);
+  lv_obj_set_height(name, lv_font_get_line_height(scale_font(12)) + scale_r(4));
+  lv_obj_set_style_pad_hor(name, scale_r(4), 0);
+  lv_obj_set_style_pad_ver(name, scale_r(2), 0);
+  lv_label_set_long_mode(name, LV_LABEL_LONG_CLIP);
+  lv_obj_set_style_anim_speed(name, scale_r(30), 0);
+  auto *footer = create_row(tile);
+  const auto *footer_font = scale_font(10);
+  lv_obj_clear_flag(footer, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_size(footer, LV_PCT(100), lv_font_get_line_height(footer_font) + gap());
+  lv_obj_set_style_pad_hor(footer, scale_r(4), 0);
+  lv_obj_set_style_pad_bottom(footer, gap(), 0);
+  lv_obj_set_style_pad_column(footer, scale_r(4), 0);
+  lv_obj_set_flex_flow(footer, LV_FLEX_FLOW_ROW);
+  auto *material = lv_label_create(footer);
+  auto *time = lv_label_create(footer);
+  auto *weight = lv_label_create(footer);
+  for (auto *field : {material, time, weight}) {
+    lv_obj_add_style(field, &styles().dim_label, 0);
+    lv_obj_set_style_text_font(field, footer_font, 0);
+    lv_obj_set_size(field, LV_SIZE_CONTENT, lv_font_get_line_height(footer_font));
+    lv_label_set_long_mode(field, LV_LABEL_LONG_DOT);
+  }
+  lv_obj_set_width(material, 0);
+  lv_obj_set_flex_grow(material, 1);
+  lv_label_set_long_mode(material, LV_LABEL_LONG_CLIP);
+  lv_obj_set_style_anim_speed(material, scale_r(30), 0);
+  lv_obj_set_style_text_align(weight, LV_TEXT_ALIGN_RIGHT, 0);
+  lv_label_set_text(time, "");
+  lv_label_set_text(weight, "");
+  FileTile result{"", tile, preview, material, time, weight};
+  result.name = name;
+  return result;
+}
+
+void PrintPanel::assign_tile(FileTile &tile, const PrintFile &file) {
+  stop_tile_spinner(tile);
+  tile.path = file.full_path;
+  const auto caption = tile_caption(file.name);
+  tile.filename_material = caption.second;
+  lv_label_set_text(tile.name, caption.first.c_str());
+  tile.requested = file.contains_metadata();
+  update_tile(tile, file);
+}
+
+size_t PrintPanel::tile_offset_for_scroll(int scroll_y, size_t tile_count) const {
+  const size_t row = std::max(0, scroll_y) / (tile_height + gap());
+  // Keep one row above the viewport and a row ahead of the visible page.
+  return std::min((row > 0 ? row - 1 : 0) * tile_columns, file_order.size() - tile_count);
+}
+
+void PrintPanel::update_visible_tiles() {
+  if (!visible || updating_tiles || scroll_extent == NULL) {
+    return;
+  }
+  updating_tiles = true;
+  const size_t offset = tile_offset_for_scroll(lv_obj_get_scroll_y(file_grid), tiles.size());
+  const int64_t shift = static_cast<int64_t>(offset) - static_cast<int64_t>(tile_offset);
+  if (shift > 0 && shift < static_cast<int64_t>(tiles.size())) {
+    std::rotate(tiles.begin(), tiles.begin() + shift, tiles.end());
+  } else if (shift < 0 && -shift < static_cast<int64_t>(tiles.size())) {
+    std::rotate(tiles.begin(), tiles.end() + shift, tiles.end());
+  }
+  tile_offset = offset;
+  for (size_t i = 0; i < tiles.size(); ++i) {
+    const size_t index = tile_offset + i;
+    if (tiles[i].path != file_order[index]) {
+      assign_tile(tiles[i], *find_file(file_order[index]));
+    }
+    lv_obj_set_pos(tiles[i].container, (index % tile_columns) * (tile_width + gap()),
+        (index / tile_columns) * (tile_height + gap()));
+  }
+  lv_obj_update_layout(file_grid);
+  updating_tiles = false;
 }
 
 void PrintPanel::update_tile(FileTile &tile, const PrintFile &file) {
@@ -578,6 +662,10 @@ void PrintPanel::update_tile(FileTile &tile, const PrintFile &file) {
     auto *box = lv_obj_get_parent(tile.preview);
     lv_obj_update_layout(tile.container);
     fit_img(tile.preview, lv_obj_get_content_width(box), lv_obj_get_content_height(box), 2 * LV_IMG_ZOOM_NONE);
+    lv_obj_center(tile.preview);
+  } else {
+    lv_img_set_src(tile.preview, LV_SYMBOL_FILE);
+    fit_img(tile.preview, scale_r(32), scale_r(32));
     lv_obj_center(tile.preview);
   }
 }
@@ -655,11 +743,13 @@ void PrintPanel::show_file_detail(PrintFile *file) {
   }
   lv_obj_clear_flag(file_view, LV_OBJ_FLAG_HIDDEN);
   file_panel.clear_view(file->full_path);
+  detail_requested = false;
+  if (file->contains_metadata()) {
+    file_panel.refresh_view(file->metadata, file->full_path, file->thumbnail_path);
+  }
   for (auto &tile : tiles) {
     if (tile.path == file->full_path) {
-      if (file->contains_metadata()) {
-        file_panel.refresh_view(file->metadata, file->full_path, file->thumbnail_path);
-      } else {
+      if (!file->contains_metadata()) {
         tile.requested = false;  // selecting a failed preview retries it
         tile.loading = true;
       }
@@ -671,45 +761,57 @@ void PrintPanel::show_file_detail(PrintFile *file) {
 }
 
 void PrintPanel::load_visible_metadata() {
-  if (!visible) {
+  if (!visible || updating_tiles) {
     return;
   }
   update_tile_animations();
   if (refreshing_files || metadata_pending) {
     return;
   }
-  for (auto &tile : tiles) {
-    if (tile.requested) {
-      continue;
+  PrintFile *next_file = NULL;
+  if (cur_file != NULL) {
+    if (cur_file->contains_metadata() || detail_requested) {
+      return;
     }
-    if (cur_file != NULL ? tile.path != cur_file->full_path : !lv_obj_is_visible(tile.container)) {
-      continue;
-    }
-    tile.requested = true;
-    metadata_pending = true;
-    const std::string path = tile.path;
-    const uint64_t generation = view_generation;
-    // Prefer the larger embedded preview over a slicer's tiny 32px icon.
-    const int width = std::max(scale_r(96), 180);
-    ws.send_jsonrpc("server.files.metadata", {{"filename", path}}, [this, path, generation, width](json &data) {
-      const auto message = data.value("/error/message"_json_pointer, std::string());
-      if (data.value("/error/code"_json_pointer, 0) == 404 || message.find("Metadata not available for") == 0) {
-        std::lock_guard<std::mutex> lock(lv_lock);
-        if (!visible || generation != view_generation) {
-          return;
-        }
-        // Files on a newly mounted USB key can be listed before Moonraker has
-        // indexed them. Scan only this visible file, keeping the preview pending.
-        LOG_DEBUG("Scanning missing metadata for {}", path);
-        ws.send_jsonrpc("server.files.metascan", {{"filename", path}}, [this, path, generation, width](json &scanned) {
-          handle_metadata(path, generation, width, scanned);
-        });
-        return;
+    // A refresh can move the selected file outside the tile window. Its
+    // dialog still needs a preview, independently of the gallery widgets.
+    detail_requested = true;
+    next_file = cur_file;
+  } else {
+    for (auto &tile : tiles) {
+      if (tile.requested || !lv_obj_is_visible(tile.container)) {
+        continue;
       }
-      handle_metadata(path, generation, width, data);
-    });
+      tile.requested = true;
+      next_file = find_file(tile.path);
+      break;
+    }
+  }
+  if (next_file == NULL) {
     return;
   }
+  metadata_pending = true;
+  const std::string path = next_file->full_path;
+  const uint64_t generation = view_generation;
+  // Prefer the larger embedded preview over a slicer's tiny 32px icon.
+  const int width = std::max(scale_r(96), 180);
+  ws.send_jsonrpc("server.files.metadata", {{"filename", path}}, [this, path, generation, width](json &data) {
+    const auto message = data.value("/error/message"_json_pointer, std::string());
+    if (data.value("/error/code"_json_pointer, 0) == 404 || message.find("Metadata not available for") == 0) {
+      std::lock_guard<std::mutex> lock(lv_lock);
+      if (!visible || generation != view_generation) {
+        return;
+      }
+      // Files on a newly mounted USB key can be listed before Moonraker has
+      // indexed them. Scan only this visible file, keeping the preview pending.
+      LOG_DEBUG("Scanning missing metadata for {}", path);
+      ws.send_jsonrpc("server.files.metascan", {{"filename", path}}, [this, path, generation, width](json &scanned) {
+        handle_metadata(path, generation, width, scanned);
+      });
+      return;
+    }
+    handle_metadata(path, generation, width, data);
+  });
 }
 
 void PrintPanel::handle_metadata(const std::string &path, uint64_t generation, int width, json &data) {
@@ -731,30 +833,36 @@ void PrintPanel::handle_metadata(const std::string &path, uint64_t generation, i
   }
   if (current && visible && generation == view_generation) {
     auto *file = find_file(path);
+    if (file != NULL && success) {
+      // A request can finish after its tile has been recycled by scrolling.
+      // Keep the result cached for when this file comes back into view.
+      file->metadata = data;
+      file->thumbnail_path = thumbnail;
+      invalidate_thumbnail(*file);
+    }
     for (auto &tile : tiles) {
       if (tile.path != path || file == NULL) {
         continue;
       }
       tile.requested = true;
       if (success) {
-        file->metadata = data;
-        file->thumbnail_path = thumbnail;
-        invalidate_thumbnail(*file);
         update_tile(tile, *file);
-        if (cur_file == file) {
-          file_panel.refresh_view(file->metadata, path, thumbnail);
-        }
       } else {
         tile.loading = false;
         stop_tile_spinner(tile);
         lv_label_set_text(tile.material, tile.filename_material.empty() ? "Unavailable" : tile.filename_material.c_str());
         lv_label_set_text(tile.time, "");
         lv_label_set_text(tile.weight, "");
-        if (cur_file == file) {
-          file_panel.clear_view(path, "Could not load file details. Reopen to retry.");
-        }
       }
       break;
+    }
+    if (file != NULL && cur_file == file) {
+      detail_requested = true;
+      if (success) {
+        file_panel.refresh_view(file->metadata, path, thumbnail);
+      } else {
+        file_panel.clear_view(path, "Could not load file details. Reopen to retry.");
+      }
     }
     update_actions();
   }
